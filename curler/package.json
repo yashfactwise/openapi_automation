@@ -1,0 +1,18 @@
+{
+    "name": "curler",
+    "version": "1.0.0",
+    "description": "The cURLer - API cURL Generator Webapp",
+    "scripts": {
+        "test": "vitest --run",
+        "test:watch": "vitest",
+        "test:unit": "vitest --run tests/unit",
+        "test:property": "vitest --run tests/property",
+        "test:integration": "vitest --run tests/integration"
+    },
+    "devDependencies": {
+        "vitest": "^1.0.0",
+        "jsdom": "^23.0.0",
+        "fast-check": "^3.15.0"
+    },
+    "type": "module"
+}

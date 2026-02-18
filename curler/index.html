@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The cURLer - API Request Generator</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+    <!--
+        The cURLer - API cURL Request Generator
+        
+        Phase 1: Core infrastructure and UI skeleton
+        - Environment management (IMPLEMENTED)
+        - Account management (IMPLEMENTED)
+        - Module/operation navigation (UI ONLY - all 22 operations visible)
+        - Action buttons (Copy/Download work, Execute shows placeholder)
+        - Response display (UI ready for Phase 2)
+        
+        Phase 2: Contract module full implementation
+        Phase 3+: Other modules (PO, Items, Vendors, Projects, Costing Sheets)
+        
+        Related specs: .kiro/specs/api-curl-generator-webapp/
+    -->
+
+    <div class="app-container">
+        <!-- Sidebar: Navigation & Settings -->
+        <aside class="sidebar">
+            <div class="brand">
+                <h1>⚡ The cURLer</h1>
+            </div>
+
+            <div class="sidebar-content">
+                <!-- Environment Selector -->
+                <section id="environment-section" class="sidebar-section">
+                    <div class="section-label">Environment</div>
+                    <div id="environment-selector"></div>
+                </section>
+
+                <!-- Account Manager -->
+                <section id="account-section" class="sidebar-section">
+                    <div class="section-label">Account</div>
+                    <div id="account-manager"></div>
+                </section>
+
+                <!-- Module Navigator -->
+                <section id="module-section" class="sidebar-section">
+                    <div class="section-label">Modules</div>
+                    <div id="module-navigator"></div>
+                </section>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-bar hidden">
+                <h2 class="current-operation">Select Operation</h2>
+            </header>
+
+            <div class="content-grid">
+                <!-- Dashboard View -->
+                <div id="dashboard-container" class="dashboard-container">
+                    <!-- Dashboard content injected by JS -->
+                </div>
+
+                <!-- Operation View (Initially Hidden) -->
+                <div id="operation-view" class="hidden">
+                    <!-- Form Section -->
+                    <section id="form-section" class="panel">
+                        <div class="panel-header">
+                            <h3>Parameters</h3>
+                        </div>
+                        <div id="operation-form" class="form-container">
+                            <!-- Form injected by JS -->
+                        </div>
+                    </section>
+
+                    <!-- Action Buttons (Original placeholder, now hidden/unused but kept for JS ref compatibility if needed, otherwise we use footer) -->
+                    <div id="actions-section" class="panel output-panel hidden">
+                        <!-- cURL Display -->
+                        <div class="panel-header">
+                            <h3>Generated cURL</h3>
+                            <div class="panel-actions">
+                                <button id="btn-copy-curl-panel" class="btn-small">Copy</button>
+                                <button id="btn-download-curl-panel" class="btn-small">Download</button>
+                            </div>
+                        </div>
+                        <div id="curl-display" class="code-block">
+                            <!-- cURL injected here -->
+                        </div>
+                    </div>
+
+                    <!-- Response Section -->
+                    <section id="response-section" class="panel response-panel hidden">
+                        <div class="panel-header">
+                            <h3>Response</h3>
+                        </div>
+                        <div id="response-display" class="code-block response-body">
+                            <!-- Response injected by JS -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Sticky Footer for Actions -->
+            <div class="bottom-bar hidden">
+                <button id="btn-reset" class="btn-secondary">Reset Form</button>
+                <button id="btn-generate" class="btn-secondary">Generate cURL</button>
+                <button id="btn-execute" class="btn-primary" disabled>Execute Request</button>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <!-- CommonJS/Global modules loaded as regular scripts -->
+    <script src="js/environment-manager.js"></script>
+    <script src="js/account-store.js"></script>
+    <script src="js/token-manager.js"></script>
+    <script src="js/module-registry.js"></script> <!-- Added -->
+    <script src="js/payload-builder.js"></script>
+    <script src="js/curl-generator.js"></script> <!-- Added -->
+    <script src="js/api-client.js"></script>
+    <script src="js/ui-controller.js"></script>
+
+    <!-- Main Application Entry Point -->
+    <script src="js/main.js"></script>
+</body>
+
+</html>
