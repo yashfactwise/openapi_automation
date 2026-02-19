@@ -134,7 +134,9 @@ class AccountStore {
                     entity_name: 'Global Field',
                     user_email: 'globalfieldsete',
                     enterprise_id: 'ent_dev_001',
-                    buyer_id: 'buy_dev_001'
+                    buyer_id: 'buy_dev_001',
+                    api_id: '999sl79ylc',
+                    api_key: '0YwNujOwpH2Q2Hx8QYOeJ6g6OImKmTLW2gB4QcNR'
                 }
             ],
             'prod': [
@@ -144,7 +146,9 @@ class AccountStore {
                     entity_name: 'Syrma SGS',
                     user_email: 'syrma_sgs',
                     enterprise_id: 'ent_prod_001',
-                    buyer_id: 'buy_prod_001'
+                    buyer_id: 'buy_prod_001',
+                    api_id: 'placeholder_prod_id',
+                    api_key: 'placeholder_prod_key'
                 }
             ]
         };

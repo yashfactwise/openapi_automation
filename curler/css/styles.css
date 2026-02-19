@@ -26,7 +26,11 @@
     --font-mono: 'JetBrains Mono', 'Courier New', monospace;
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
 
 body {
     font-family: var(--font-sans);
@@ -37,7 +41,9 @@ body {
     font-size: 14px;
 }
 
-button { font-family: inherit; }
+button {
+    font-family: inherit;
+}
 
 /* ============================================
    LAYOUT ENGINE
@@ -108,6 +114,7 @@ button { font-family: inherit; }
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
+    justify-content: space-between;
     padding: 0 32px;
     flex-shrink: 0;
 }
@@ -119,10 +126,13 @@ button { font-family: inherit; }
 }
 
 .content-grid {
-    flex: 1; /* Takes remaining height */
-    overflow-y: auto; /* Scrollable */
+    flex: 1;
+    /* Takes remaining height */
+    overflow-y: auto;
+    /* Scrollable */
     padding: 32px;
-    display: block; /* Vertical stacking */
+    display: block;
+    /* Vertical stacking */
 }
 
 /* Sticky Footer */
@@ -167,7 +177,7 @@ button { font-family: inherit; }
 .env-button.active {
     background: var(--accent-color);
     color: white;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .environment-info {
@@ -178,8 +188,8 @@ button { font-family: inherit; }
 
 /* Account Manager */
 .account-item {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: var(--radius-md);
     padding: 12px;
     margin-bottom: 8px;
@@ -188,8 +198,8 @@ button { font-family: inherit; }
 }
 
 .account-item:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.2);
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .account-item.selected {
@@ -197,8 +207,17 @@ button { font-family: inherit; }
     border-color: var(--accent-color);
 }
 
-.account-name { font-weight: 600; font-size: 13px; color: white; }
-.account-email { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+.account-name {
+    font-weight: 600;
+    font-size: 13px;
+    color: white;
+}
+
+.account-email {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 2px;
+}
 
 .btn-add-account {
     width: 100%;
@@ -218,7 +237,9 @@ button { font-family: inherit; }
 }
 
 /* Module Navigator */
-.module-group { margin-bottom: 12px; }
+.module-group {
+    margin-bottom: 12px;
+}
 
 .module-header {
     padding: 8px 12px;
@@ -238,10 +259,11 @@ button { font-family: inherit; }
 
 .operation-item:hover {
     color: white;
-    background: rgba(255,255,255,0.03);
+    background: rgba(255, 255, 255, 0.03);
 }
 
-.operation-item.selected, .operation-item.active {
+.operation-item.selected,
+.operation-item.active {
     color: var(--accent-color);
     background: rgba(79, 70, 229, 0.05);
     border-left-color: var(--accent-color);
@@ -285,7 +307,9 @@ button { font-family: inherit; }
     align-items: center;
 }
 
-.module-operations { padding: 12px; }
+.module-operations {
+    padding: 12px;
+}
 
 .dashboard-op-btn {
     display: block;
@@ -333,9 +357,13 @@ button { font-family: inherit; }
     color: var(--text-primary);
 }
 
-.form-container { padding: 24px; }
+.form-container {
+    padding: 24px;
+}
 
-.form-group { margin-bottom: 20px; }
+.form-group {
+    margin-bottom: 20px;
+}
 
 .form-group label {
     display: block;
@@ -345,7 +373,10 @@ button { font-family: inherit; }
     margin-bottom: 6px;
 }
 
-.input-field, .form-input, .form-select, .form-textarea {
+.input-field,
+.form-input,
+.form-select,
+.form-textarea {
     width: 100%;
     padding: 10px 12px;
     border: 1px solid #d1d5db;
@@ -355,7 +386,10 @@ button { font-family: inherit; }
     font-family: var(--font-sans);
 }
 
-.input-field:focus, .form-input:focus, .form-select:focus, .form-textarea:focus {
+.input-field:focus,
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
     outline: none;
     border-color: var(--accent-color);
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
@@ -365,7 +399,10 @@ button { font-family: inherit; }
     display: flex;
     gap: 20px;
 }
-.form-row .form-group { flex: 1; }
+
+.form-row .form-group {
+    flex: 1;
+}
 
 /* ============================================
    OUTPUT & BUTTONS
@@ -380,7 +417,9 @@ button { font-family: inherit; }
     line-height: 1.6;
 }
 
-.btn-primary, .btn-secondary, .btn-small {
+.btn-primary,
+.btn-secondary,
+.btn-small {
     padding: 10px 24px;
     border-radius: var(--radius-sm);
     font-weight: 500;
@@ -423,27 +462,54 @@ button { font-family: inherit; }
 }
 
 .btn-small {
-    padding: 4px 10px;
+    padding: 6px 12px;
     font-size: 12px;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.2);
-    color: white;
+    background: transparent;
+    border: 1px solid #d1d5db;
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.btn-small:hover { border-color: white; }
+.btn-small:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+}
 
 /* ============================================
    UTILITY & MISC
    ============================================ */
-.hidden { display: none !important; }
+.hidden {
+    display: none !important;
+}
 
 /* Scrollbars */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-.sidebar-content::-webkit-scrollbar-thumb { background: #334155; }
-.sidebar-content::-webkit-scrollbar-thumb:hover { background: #475569; }
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
 
 /* Placeholder/Phase messages */
 .phase-message {

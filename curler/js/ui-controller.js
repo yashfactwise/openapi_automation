@@ -49,7 +49,16 @@ class UIController {
             bottomBar: document.querySelector('.bottom-bar'),
             btnReset: document.getElementById('btn-reset'),
             btnGenerate: document.getElementById('btn-generate'),
-            btnExecute: document.getElementById('btn-execute')
+            btnExecute: document.getElementById('btn-execute'),
+
+            // Test Buttons
+            btnTestSimple: document.getElementById('btn-test-simple'),
+            btnTestMedium: document.getElementById('btn-test-medium'),
+            btnTestHard: document.getElementById('btn-test-hard'),
+
+            // Panel Actions
+            btnCopyCurlPanel: document.getElementById('btn-copy-curl-panel'),
+            btnDownloadCurlPanel: document.getElementById('btn-download-curl-panel')
         };
 
         // Render Sidebar Components
@@ -99,12 +108,22 @@ class UIController {
         // Footer Actions
         if (this.elements.btnReset) this.elements.btnReset.addEventListener('click', () => this.handleReset());
         if (this.elements.btnGenerate) this.elements.btnGenerate.addEventListener('click', () => this.handleGenerate());
+
         if (this.elements.btnExecute) this.elements.btnExecute.addEventListener('click', () => this.handleExecute());
+
+        // Test Buttons
+        if (this.elements.btnTestSimple) this.elements.btnTestSimple.addEventListener('click', (e) => this.handleTest('simple', e));
+        if (this.elements.btnTestMedium) this.elements.btnTestMedium.addEventListener('click', (e) => this.handleTest('medium', e));
+        if (this.elements.btnTestHard) this.elements.btnTestHard.addEventListener('click', (e) => this.handleTest('hard', e));
 
         // Form Validation Monitoring
         // We use delegation on operationForm because inputs are injected dynamically
         this.elements.operationForm.addEventListener('input', () => this.checkFormValidity());
         this.elements.operationForm.addEventListener('change', () => this.checkFormValidity());
+
+        // Panel Actions
+        if (this.elements.btnCopyCurlPanel) this.elements.btnCopyCurlPanel.addEventListener('click', () => this.handleCopyCurl());
+        if (this.elements.btnDownloadCurlPanel) this.elements.btnDownloadCurlPanel.addEventListener('click', () => this.handleDownloadCurl());
     }
 
     // ============================================================
@@ -221,36 +240,69 @@ class UIController {
     }
 
     renderFormInputs(module, operation) {
-        // Placeholder implementation for Phase 1
-        // In Phase 2, this will use actual schemas
+        let inputsHtml = '';
 
-        let inputsHtml = `
-            <div class="phase-message">
-                Phase 1 Prototype: Placeholder inputs for ${operation.name}
-            </div>
-        `;
+        // Specific form for Contract Terminate (using PO Terminate backend)
+        if (module.id === 'contract' && operation.id === 'state') {
+            inputsHtml = `
+                <div class="phase-message" style="margin-bottom: 20px;">
+                    <span class="badge" style="background: #e0f2fe; color: #0284c7; padding: 4px 8px; border-radius: 4px; font-size: 11px;">
+                        Using credentials for: ${this.currentAccount ? this.currentAccount.entity_name : 'No Account Selected'}
+                    </span>
+                </div>
 
-        // Always show these mock fields for now to test validation
-        inputsHtml += `
-            <div class="form-row">
+                <div class="section-divider" style="margin: 15px 0 10px 0; border-bottom: 1px solid #eee; padding-bottom: 5px;">
+                    <strong>Body Payload</strong>
+                </div>
                 <div class="form-group">
-                    <label>Entity Name *</label>
-                    <input type="text" class="input-field" required placeholder="e.g. Factwise">
+                    <label>Factwise PO ID *</label>
+                    <input type="text" name="factwise_po_id" class="input-field" required value="PO000146-R3">
                 </div>
-                 <div class="form-group">
-                    <label>Username *</label>
-                    <input type="text" class="input-field" required placeholder="username">
+                <div class="form-group">
+                    <label>ERP PO ID *</label>
+                    <input type="text" name="ERP_po_id" class="input-field" required value="PO_CREATE-3">
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Operation Context</label>
-                <input type="text" class="input-field" value="${operation.endpoint}" readonly title="Endpoint">
-            </div>
-            <div class="form-group">
-                <label>Notes (Optional)</label>
-                <textarea class="form-textarea" rows="3" placeholder="Add additional details..."></textarea>
-            </div>
-        `;
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <input type="text" name="status" class="input-field" required value="ACCEPTED">
+                    </div>
+                    <div class="form-group">
+                        <label>Modified By Email *</label>
+                        <input type="email" name="modified_by_user_email" class="input-field" required value="globalfieldsETE@gmail.com">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="notes" class="form-textarea" rows="3">aise hi</textarea>
+                </div>
+            `;
+        } else {
+            // Generic placeholder for other operations
+            inputsHtml = `
+                <div class="phase-message">
+                    Phase 1 Prototype: Placeholder inputs for ${operation.name}
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required placeholder="e.g. Factwise">
+                    </div>
+                     <div class="form-group">
+                        <label>Username *</label>
+                        <input type="text" name="username" class="input-field" required placeholder="username">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Operation Context</label>
+                    <input type="text" class="input-field" value="${operation.endpoint}" readonly title="Endpoint">
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea name="notes" class="form-textarea" rows="3" placeholder="Add additional details..."></textarea>
+                </div>
+            `;
+        }
 
         this.elements.operationForm.innerHTML = inputsHtml;
     }
@@ -307,6 +359,34 @@ class UIController {
         this.elements.actionsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
+
+
+    handleTest(level, e) {
+        if (e) e.preventDefault();
+        console.log(`Running ${level} test`);
+
+        if (!this.elements.operationForm) return;
+
+        // Auto-fill form inputs with test data
+        const inputs = this.elements.operationForm.querySelectorAll('input:not([readonly]), textarea');
+        inputs.forEach(input => {
+            if (input.type === 'text' || input.tagName === 'TEXTAREA') {
+                // Generate a value based on level and placeholder/name
+                let value = `${level}_test_value`;
+
+                // If simple, maybe Keep it short?
+                if (level === 'simple') value = 'test_val';
+                if (level === 'hard') value = 'complex_test_val_with_symbols_!@#';
+
+                input.value = value;
+            }
+        });
+
+        // Validate and Generate
+        this.checkFormValidity();
+        this.handleGenerate();
+    }
+
     handleExecute() {
         // Generate cURL
         const curl = this._generateCurlCommand();
@@ -332,15 +412,81 @@ class UIController {
     }
 
     _generateCurlCommand() {
-        // Basic mock generator
+        // dynamic generator based on form inputs
         const env = this.environmentManager.getCurrentEnvironment();
         const op = this.moduleRegistry.getOperation(this.currentModule, this.currentOperation);
-        const endpoint = op ? op.endpoint : '/unknown';
 
-        return `curl -X POST \\
-  '${env.baseUrl}${endpoint}' \\
-  -H 'Authorization: Bearer <TOKEN>' \\
-  -H 'Content-Type: application/json'`;
+        if (!op) return 'Error: Operation not found';
+
+        const url = `${env.baseUrl}${op.endpoint}`;
+        const method = op.method || 'POST';
+
+        // Collect data from form inputs
+        const body = {};
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        const inputs = this.elements.operationForm.querySelectorAll('input[name], textarea[name], select[name]');
+
+        // Add headers from current account if available
+        if (this.currentAccount) {
+            if (this.currentAccount.api_id) headers['api-id'] = this.currentAccount.api_id;
+            if (this.currentAccount.api_key) headers['x-api-key'] = this.currentAccount.api_key;
+        }
+
+        inputs.forEach(input => {
+            if (input.value) {
+                // Body fields
+                body[input.name] = input.value;
+            }
+        });
+
+        // Generate using CurlGenerator
+        return this.curlGenerator.generate({
+            method: method,
+            url: url,
+            headers: headers,
+            body: Object.keys(body).length > 0 ? body : null
+        });
+    }
+
+    handleCopyCurl() {
+        const curl = this._generateCurlCommand();
+        if (!curl) return;
+
+        navigator.clipboard.writeText(curl).then(() => {
+            const originalText = this.elements.btnCopyCurlPanel.textContent;
+            this.elements.btnCopyCurlPanel.textContent = 'Copied!';
+            this.elements.btnCopyCurlPanel.disabled = true;
+
+            setTimeout(() => {
+                this.elements.btnCopyCurlPanel.textContent = originalText;
+                this.elements.btnCopyCurlPanel.disabled = false;
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy: ', err);
+            alert('Failed to copy to clipboard');
+        });
+    }
+
+    handleDownloadCurl() {
+        const curl = this._generateCurlCommand();
+        if (!curl) return;
+
+        const blob = new Blob([curl], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        a.href = url;
+        // User requested .curl extension
+        a.download = `request-${this.currentModule}-${this.currentOperation}.curl`;
+        document.body.appendChild(a);
+        a.click();
+
+        // Cleanup
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     }
 
     _escapeHtml(str) {

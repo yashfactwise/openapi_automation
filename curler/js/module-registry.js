@@ -79,11 +79,11 @@ class ModuleRegistry {
                     },
                     {
                         id: "state",
-                        name: "Contract State",
-                        description: "Update Status/Terminate",
-                        endpoint: "/openapi/contract/state/",
+                        name: "Contract Terminate",
+                        description: "Terminate Contract (via PO Terminate)",
+                        endpoint: "/dev/api/purchase_order/terminate/",
                         method: "PUT",
-                        implemented: false // Phase 2: will be true
+                        implemented: true // Phase 2: Implemented
                     }
                 ]
             },
