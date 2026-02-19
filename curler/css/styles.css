@@ -207,16 +207,58 @@ button {
     border-color: var(--accent-color);
 }
 
+.account-main {
+    margin-bottom: 0;
+}
+
 .account-name {
     font-weight: 600;
     font-size: 13px;
     color: white;
+    margin-bottom: 2px;
 }
 
 .account-email {
     font-size: 11px;
     color: #94a3b8;
-    margin-top: 2px;
+}
+
+.account-headers {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.3s ease, opacity 0.3s ease, margin-top 0.3s ease;
+}
+
+.account-headers.expanded {
+    max-height: 200px;
+    opacity: 1;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    margin-bottom: 4px;
+}
+
+.header-row:last-child {
+    margin-bottom: 0;
+}
+
+.header-label {
+    color: #64748b;
+    font-weight: 500;
+}
+
+.header-value {
+    color: #cbd5e1;
+    font-family: var(--font-mono);
+    font-size: 9px;
 }
 
 .btn-add-account {
@@ -522,10 +564,4 @@ button {
     font-size: 13px;
 }
 
-.account-context {
-    background: #f0f9ff;
-    padding: 12px;
-    border-radius: var(--radius-sm);
-    margin-bottom: 16px;
-    border: 1px solid #bae6fd;
-}
+/* .account-context removed */

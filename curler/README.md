@@ -15,55 +15,48 @@ The cURLer is a single-page web application that streamlines API testing by prov
 
 This project is implemented in phases to ensure incremental delivery and validation:
 
-### Phase 1: Core Infrastructure and UI Skeleton (Current)
+### Phase 1: Core Infrastructure and UI Skeleton ✅ COMPLETE
 
-**Status**: In Development
+**Status**: Complete
 
 **Scope**:
-- ✅ Environment management (dev/prod toggle)
+- ✅ Environment management (dev/prod toggle with auto-account switching)
 - ✅ Account management (CRUD operations, localStorage persistence)
 - ✅ Token management (automatic refresh, credential storage)
 - ✅ Module/operation navigation (all 22 operations visible in UI)
 - ✅ cURL generation (with placeholder payloads)
 - ✅ Action buttons (Copy, Download, Execute*)
-- ✅ Response display UI (ready for Phase 2)
+- ✅ Response display UI
 - ✅ Error handling and display
 
-**Note**: Execute button shows "Not implemented" message in Phase 1. Actual API integration begins in Phase 2.
+### Phase 2: Contract Module Full Implementation ✅ COMPLETE
 
-**What's Implemented**:
-- Complete infrastructure layer (Environment, Account, Token managers)
-- Full UI skeleton showing all modules and operations
-- cURL generation with placeholder data
-- Copy to clipboard functionality
-- Download as .sh file functionality
-- localStorage persistence for all settings
-
-**What's NOT Implemented**:
-- Actual API payload construction (Phase 2+)
-- Template system (Phase 2+)
-- Real API calls (Phase 2+)
-- Module-specific business logic (Phase 2+)
-
-### Phase 2: Contract Module Full Implementation (Future)
+**Status**: Complete
 
 **Scope**:
-- Complete Contract API integration
-- Payload building for Contract operations
-- Templates for 1-tier and 2-tier contracts
-- Real API calls and response handling
-- Execute button functional for Contract operations
+- ✅ Complete Contract API integration
+- ✅ Payload building for all 3 Contract operations
+- ✅ Templates for 1-tier and 2-tier contracts
+- ✅ Real API calls and response handling
+- ✅ Execute button functional for Contract operations
+- ✅ Form validation and error handling
+- ✅ Dynamic form rendering with tier/item inputs
 
-**Pattern**: Phase 2 establishes the reference implementation pattern that will be followed for all other modules.
+**Contract Operations Implemented**:
+1. **Contract Create** - Create contracts with 1-tier or 2-tier templates
+2. **Contract Update** - Modify existing contracts (partial updates supported)
+3. **Contract State** - Update status or terminate contracts
+
+**Pattern**: Phase 2 establishes the reference implementation pattern for all future modules.
 
 ### Phase 3+: Other Modules (Future)
 
 **Scope**:
-- Purchase Orders module
-- Items module
-- Vendors module
-- Projects module
-- Costing Sheets module
+- Purchase Orders module (4 operations)
+- Items module (4 operations)
+- Vendors module (6 operations)
+- Projects module (2 operations)
+- Costing Sheets module (2 operations)
 
 **Pattern**: Each module follows the Contract implementation pattern from Phase 2.
 
@@ -146,10 +139,10 @@ Then open your browser to `http://localhost:8000`
 
 Toggle between Development and Production environments using the environment selector at the top of the page.
 
-- **Dev**: Points to development API endpoints
-- **Prod**: Points to production API endpoints
+- **Dev**: Points to development API endpoints (uses GlobalFields account)
+- **Prod**: Points to production API endpoints (uses Syrma SGS account)
 
-The webapp can call prod APIs even when deployed on dev (and vice versa).
+Accounts automatically switch when you change environments.
 
 ### 2. Manage Accounts
 
@@ -159,7 +152,11 @@ Accounts store test parameters like enterprise_id, buyer_id, entity_name, and us
 - Add new accounts using the "Add Account" button
 - Edit existing accounts by clicking the edit icon
 - Delete accounts by clicking the delete icon
-- Select an account to use it for API requests
+- Click an account in the sidebar to expand/collapse headers
+
+**Default Accounts**:
+- **Dev**: GlobalFields (api_id: 1, enterprise_id: 1, buyer_id: 1)
+- **Prod**: Syrma SGS (api_id: syrma_api_id, enterprise_id: ent_prod_001, buyer_id: buy_prod_001)
 
 ### 3. Select Operation
 
@@ -169,25 +166,46 @@ Navigate through the module list to find your desired operation:
 2. Click on an operation (e.g., "Contract Create")
 3. The operation form will appear
 
-**Phase 1 Note**: All operations show placeholder forms. Full implementation begins in Phase 2.
+**Phase 2**: Contract operations have full forms with validation and templates.
+**Other Modules**: Show placeholder forms (Phase 3+ implementation).
 
-### 4. Generate cURL
+### 4. Use Contract Operations (Phase 2)
+
+#### Contract Create
+1. Select a template (1 Tier, 2 Tiers, or Custom)
+2. Template auto-populates all fields with sample data
+3. Modify any fields as needed
+4. Click "Generate cURL" to see the command
+5. Click "Execute Request" to make the actual API call
+
+#### Contract Update
+1. Enter Contract ID (required)
+2. Fill in any fields you want to update (all optional)
+3. Click "Generate cURL" or "Execute Request"
+
+#### Contract State
+1. Enter Contract ID (required)
+2. Select Action (Update Status or Terminate)
+3. If Update Status, select a status (DRAFT, ACTIVE, SUSPENDED, COMPLETED)
+4. Add optional notes
+5. Click "Generate cURL" or "Execute Request"
+
+### 5. Generate cURL
 
 Once you've configured your request:
 
 - **Copy**: Copies the cURL command to your clipboard
 - **Download**: Downloads the cURL command as a .sh file
-- **Execute**: (Phase 1: Shows "Not implemented" message)
+- **Execute**: Makes real API call (Contract operations only in Phase 2)
 
-### 5. View Response
+### 6. View Response
 
-When Execute is functional (Phase 2+), responses will display:
+For Contract operations, responses display:
 
 - HTTP status code (color-coded: green for 2xx, yellow for 3xx, red for 4xx/5xx)
-- Response headers (collapsible)
-- Response body (formatted JSON with syntax highlighting)
-- Request execution time
-- Response history for multiple requests
+- Request execution time in milliseconds
+- Response body (formatted JSON)
+- Error messages if the request fails
 
 ## Testing
 

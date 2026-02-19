@@ -67,15 +67,128 @@ class PayloadBuilder {
      * @returns {Object} Placeholder payload for Phase 1
      */
     buildContractCreatePayload(account, params) {
-        // Phase 1: Return placeholder data
+        // Phase 2: IMPLEMENTED
+        // Validate required fields
+        if (!params.contract_name) throw new Error('contract_name is required');
+        if (!params.vendor_id) throw new Error('vendor_id is required');
+        if (!params.start_date) throw new Error('start_date is required');
+        if (!params.end_date) throw new Error('end_date is required');
+        if (!params.tiers || !Array.isArray(params.tiers) || params.tiers.length === 0) {
+            throw new Error('tiers array is required and must not be empty');
+        }
+
+        // Validate each tier
+        params.tiers.forEach((tier, index) => {
+            if (!tier.tier_number) throw new Error(`Tier ${index + 1}: tier_number is required`);
+            if (tier.min_quantity === undefined) throw new Error(`Tier ${index + 1}: min_quantity is required`);
+            if (tier.max_quantity === undefined) throw new Error(`Tier ${index + 1}: max_quantity is required`);
+            if (!tier.items || !Array.isArray(tier.items) || tier.items.length === 0) {
+                throw new Error(`Tier ${index + 1}: items array is required and must not be empty`);
+            }
+
+            // Validate each item
+            tier.items.forEach((item, itemIndex) => {
+                if (!item.item_id) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: item_id is required`);
+                if (!item.item_name) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: item_name is required`);
+                if (item.unit_price === undefined) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: unit_price is required`);
+                if (item.quantity === undefined) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: quantity is required`);
+            });
+        });
+
+        // Construct payload
         return {
-            _placeholder: true,
-            _phase: "Phase 2",
-            _operation: "Contract Create",
-            _message: "This payload will be implemented in Phase 2",
-            enterprise_id: account?.enterprise_id || "placeholder_enterprise",
-            buyer_id: account?.buyer_id || "placeholder_buyer",
-            contract_name: "Placeholder Contract"
+            contract_name: params.contract_name,
+            vendor_id: params.vendor_id,
+            start_date: params.start_date,
+            end_date: params.end_date,
+            tiers: params.tiers.map(tier => ({
+                tier_number: tier.tier_number,
+                min_quantity: tier.min_quantity,
+                max_quantity: tier.max_quantity,
+                items: tier.items.map(item => ({
+                    item_id: item.item_id,
+                    item_name: item.item_name,
+                    unit_price: item.unit_price,
+                    quantity: item.quantity
+                }))
+            }))
+        };
+    }
+
+    /**
+     * Get 1-tier contract template
+     * @returns {Object} Template with 1 tier and 1 sample item
+     */
+    getContractCreate1TierTemplate() {
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const endDate = new Date(today.setFullYear(today.getFullYear() + 1)).toISOString().split('T')[0];
+
+        return {
+            contract_name: "Standard 1-Tier Contract",
+            vendor_id: "VENDOR_001",
+            start_date: startDate,
+            end_date: endDate,
+            tiers: [
+                {
+                    tier_number: 1,
+                    min_quantity: 1,
+                    max_quantity: 100,
+                    items: [
+                        {
+                            item_id: "ITEM_001",
+                            item_name: "Standard Widget",
+                            unit_price: 25.50,
+                            quantity: 50
+                        }
+                    ]
+                }
+            ]
+        };
+    }
+
+    /**
+     * Get 2-tier contract template
+     * @returns {Object} Template with 2 tiers and 2 sample items
+     */
+    getContractCreate2TierTemplate() {
+        const today = new Date();
+        const startDate = today.toISOString().split('T')[0];
+        const endDate = new Date(today.setFullYear(today.getFullYear() + 1)).toISOString().split('T')[0];
+
+        return {
+            contract_name: "Volume-Based 2-Tier Contract",
+            vendor_id: "VENDOR_002",
+            start_date: startDate,
+            end_date: endDate,
+            tiers: [
+                {
+                    tier_number: 1,
+                    min_quantity: 1,
+                    max_quantity: 50,
+                    items: [
+                        {
+                            item_id: "ITEM_002",
+                            item_name: "Premium Component A",
+                            unit_price: 45.00,
+                            quantity: 25
+                        }
+                    ]
+                },
+                {
+                    tier_number: 2,
+                    min_quantity: 51,
+                    max_quantity: 100,
+                    items: [
+                        {
+                            item_id: "ITEM_003",
+                            item_name: "Premium Component B",
+                            unit_price: 38.50,
+                            quantity: 75
+                        }
+                    ]
+                }
+            ]
         };
     }
 
@@ -94,16 +207,28 @@ class PayloadBuilder {
      * @returns {Object} Placeholder payload for Phase 1
      */
     buildContractUpdatePayload(account, params) {
-        // Phase 1: Return placeholder data
-        return {
-            _placeholder: true,
-            _phase: "Phase 2",
-            _operation: "Contract Update",
-            _message: "This payload will be implemented in Phase 2",
-            enterprise_id: account?.enterprise_id || "placeholder_enterprise",
-            buyer_id: account?.buyer_id || "placeholder_buyer",
-            contract_id: params?.contract_id || "placeholder_contract_id"
+        // Phase 2: IMPLEMENTED
+        // Validate required fields
+        if (!params.contract_id) throw new Error('contract_id is required');
+
+        // Build payload with only fields being updated
+        const payload = {
+            contract_id: params.contract_id
         };
+
+        // Add optional fields if provided
+        if (params.contract_name) payload.contract_name = params.contract_name;
+        if (params.vendor_id) payload.vendor_id = params.vendor_id;
+        if (params.start_date) payload.start_date = params.start_date;
+        if (params.end_date) payload.end_date = params.end_date;
+        if (params.tiers) payload.tiers = params.tiers;
+
+        // Validate at least one field is being updated
+        if (Object.keys(payload).length === 1) {
+            throw new Error('At least one field must be updated besides contract_id');
+        }
+
+        return payload;
     }
 
     /**
@@ -121,17 +246,31 @@ class PayloadBuilder {
      * @returns {Object} Placeholder payload for Phase 1
      */
     buildContractStatePayload(account, params) {
-        // Phase 1: Return placeholder data
-        return {
-            _placeholder: true,
-            _phase: "Phase 2",
-            _operation: "Contract State (Update Status/Terminate)",
-            _message: "This payload will be implemented in Phase 2",
-            enterprise_id: account?.enterprise_id || "placeholder_enterprise",
-            buyer_id: account?.buyer_id || "placeholder_buyer",
-            contract_id: params?.contract_id || "placeholder_contract_id",
-            action: params?.action || "placeholder_action"
+        // Phase 2: IMPLEMENTED
+        // Validate required fields
+        if (!params.contract_id) throw new Error('contract_id is required');
+        if (!params.action) throw new Error('action is required');
+
+        const validActions = ['update_status', 'terminate'];
+        if (!validActions.includes(params.action)) {
+            throw new Error(`action must be one of: ${validActions.join(', ')}`);
+        }
+
+        // If action is update_status, status is required
+        if (params.action === 'update_status' && !params.status) {
+            throw new Error('status is required when action is "update_status"');
+        }
+
+        // Build payload
+        const payload = {
+            contract_id: params.contract_id,
+            action: params.action
         };
+
+        if (params.status) payload.status = params.status;
+        if (params.notes) payload.notes = params.notes;
+
+        return payload;
     }
 
     // ============================================================================

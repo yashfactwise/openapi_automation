@@ -129,26 +129,30 @@ class AccountStore {
         return {
             'dev': [
                 {
-                    id: 'globalfield',
-                    name: 'Global Field',
-                    entity_name: 'Global Field',
-                    user_email: 'globalfieldsete',
-                    enterprise_id: 'ent_dev_001',
-                    buyer_id: 'buy_dev_001',
-                    api_id: '999sl79ylc',
-                    api_key: '0YwNujOwpH2Q2Hx8QYOeJ6g6OImKmTLW2gB4QcNR'
+                    id: 'globalfields-dev',
+                    name: 'GlobalFields Dev',
+                    entity_name: 'GlobalFields',
+                    user_email: 'globalfieldsETE@gmail.com',
+                    enterprise_id: '1',
+                    buyer_id: '1',
+                    api_id: '1',
+                    api_key: 'b34e0d6295a0f5c5f471c0cc527b5a93',
+                    created_at: Date.now(),
+                    updated_at: Date.now()
                 }
             ],
             'prod': [
                 {
-                    id: 'syrma_sgs',
-                    name: 'Syrma SGS',
+                    id: 'syrma-prod',
+                    name: 'Syrma SGS Prod',
                     entity_name: 'Syrma SGS',
-                    user_email: 'syrma_sgs',
+                    user_email: 'syrma_sgs@example.com',
                     enterprise_id: 'ent_prod_001',
                     buyer_id: 'buy_prod_001',
-                    api_id: 'placeholder_prod_id',
-                    api_key: 'placeholder_prod_key'
+                    api_id: 'syrma_api_id',
+                    api_key: 'syrma_api_key_placeholder',
+                    created_at: Date.now(),
+                    updated_at: Date.now()
                 }
             ]
         };

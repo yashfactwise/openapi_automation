@@ -67,7 +67,7 @@ class ModuleRegistry {
                         description: "Create a new contract",
                         endpoint: "/openapi/contract/create/",
                         method: "POST",
-                        implemented: false // Phase 2: will be true
+                        implemented: true // Phase 2: IMPLEMENTED
                     },
                     {
                         id: "update",
@@ -75,15 +75,15 @@ class ModuleRegistry {
                         description: "Modify an existing contract",
                         endpoint: "/openapi/contract/update/",
                         method: "PUT",
-                        implemented: false // Phase 2: will be true
+                        implemented: true // Phase 2: IMPLEMENTED
                     },
                     {
                         id: "state",
-                        name: "Contract Terminate",
-                        description: "Terminate Contract (via PO Terminate)",
-                        endpoint: "/dev/api/purchase_order/terminate/",
+                        name: "Contract State",
+                        description: "Update status or terminate contract",
+                        endpoint: "/openapi/contract/state/",
                         method: "PUT",
-                        implemented: true // Phase 2: Implemented
+                        implemented: true // Phase 2: IMPLEMENTED
                     }
                 ]
             },
