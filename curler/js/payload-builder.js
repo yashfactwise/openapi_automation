@@ -67,79 +67,224 @@ class PayloadBuilder {
      * @returns {Object} Placeholder payload for Phase 1
      */
     buildContractCreatePayload(account, params) {
-        // Phase 2: IMPLEMENTED
+        // Phase 2: IMPLEMENTED - matches PAYLOAD_EXAMPLES.md format
         // Validate required fields
+        if (!params.created_by_user_email) throw new Error('created_by_user_email is required');
         if (!params.contract_name) throw new Error('contract_name is required');
-        if (!params.vendor_id) throw new Error('vendor_id is required');
-        if (!params.start_date) throw new Error('start_date is required');
-        if (!params.end_date) throw new Error('end_date is required');
-        if (!params.tiers || !Array.isArray(params.tiers) || params.tiers.length === 0) {
-            throw new Error('tiers array is required and must not be empty');
+        if (!params.contract_start_date) throw new Error('contract_start_date is required');
+        if (!params.contract_end_date) throw new Error('contract_end_date is required');
+
+        // Validate contract_items
+        if (!params.contract_items || !Array.isArray(params.contract_items) || params.contract_items.length === 0) {
+            throw new Error('contract_items array is required and must not be empty');
         }
 
-        // Validate each tier
-        params.tiers.forEach((tier, index) => {
-            if (!tier.tier_number) throw new Error(`Tier ${index + 1}: tier_number is required`);
-            if (tier.min_quantity === undefined) throw new Error(`Tier ${index + 1}: min_quantity is required`);
-            if (tier.max_quantity === undefined) throw new Error(`Tier ${index + 1}: max_quantity is required`);
-            if (!tier.items || !Array.isArray(tier.items) || tier.items.length === 0) {
-                throw new Error(`Tier ${index + 1}: items array is required and must not be empty`);
-            }
-
-            // Validate each item
-            tier.items.forEach((item, itemIndex) => {
-                if (!item.item_id) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: item_id is required`);
-                if (!item.item_name) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: item_name is required`);
-                if (item.unit_price === undefined) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: unit_price is required`);
-                if (item.quantity === undefined) throw new Error(`Tier ${index + 1}, Item ${itemIndex + 1}: quantity is required`);
-            });
+        // Validate each contract item
+        params.contract_items.forEach((item, index) => {
+            if (!item.factwise_item_code) throw new Error(`Item ${index + 1}: factwise_item_code is required`);
+            if (!item.currency_code_id) throw new Error(`Item ${index + 1}: currency_code_id is required`);
+            if (!item.measurement_unit_id) throw new Error(`Item ${index + 1}: measurement_unit_id is required`);
+            if (item.rate === undefined) throw new Error(`Item ${index + 1}: rate is required`);
+            if (item.quantity === undefined) throw new Error(`Item ${index + 1}: quantity is required`);
         });
 
-        // Construct payload
+        // Construct payload matching PAYLOAD_EXAMPLES.md format
         return {
+            created_by_user_email: params.created_by_user_email,
             contract_name: params.contract_name,
-            vendor_id: params.vendor_id,
-            start_date: params.start_date,
-            end_date: params.end_date,
-            tiers: params.tiers.map(tier => ({
-                tier_number: tier.tier_number,
-                min_quantity: tier.min_quantity,
-                max_quantity: tier.max_quantity,
-                items: tier.items.map(item => ({
-                    item_id: item.item_id,
-                    item_name: item.item_name,
-                    unit_price: item.unit_price,
-                    quantity: item.quantity
-                }))
+            ERP_contract_id: params.ERP_contract_id || null,
+            contract_start_date: params.contract_start_date,
+            contract_end_date: params.contract_end_date,
+            entity_name: params.entity_name || null,
+            status: params.status || "DRAFT",
+            template_name: params.template_name || "Default Template",
+            buyer_identifications: params.buyer_identifications || [],
+            buyer_address: params.buyer_address || null,
+            buyer_contact: params.buyer_contact || null,
+            factwise_vendor_code: params.factwise_vendor_code || null,
+            ERP_vendor_code: params.ERP_vendor_code || null,
+            vendor_contact: params.vendor_contact || null,
+            vendor_identifications: params.vendor_identifications || [],
+            vendor_address: params.vendor_address || { address_id: null, full_address: null },
+            project: params.project || null,
+            additional_costs: params.additional_costs || [],
+            taxes: params.taxes || [],
+            discounts: params.discounts || [],
+            prepayment_percentage: params.prepayment_percentage || 0,
+            payment_type: params.payment_type || "PER_INVOICE_ITEM",
+            payment_terms: params.payment_terms || {
+                term: 1,
+                period: "MONTHS",
+                applied_from: "INVOICE_DATE"
+            },
+            deliverables_payment_terms: params.deliverables_payment_terms || [],
+            incoterm: params.incoterm || "NA",
+            lead_time: params.lead_time || "10",
+            lead_time_period: params.lead_time_period || "DAYS",
+            custom_sections: params.custom_sections || [],
+            attachments: params.attachments || [],
+            terms_and_conditions: params.terms_and_conditions || {
+                data: "",
+                name: "FactWise Default TNC"
+            },
+            contract_items: params.contract_items.map(item => ({
+                ERP_item_code: item.ERP_item_code || null,
+                factwise_item_code: item.factwise_item_code,
+                currency_code_id: item.currency_code_id,
+                measurement_unit_id: item.measurement_unit_id,
+                attributes: item.attributes || [],
+                rate: item.rate,
+                quantity: item.quantity,
+                pricing_tiers: (item.pricing_tiers || []).map(tier => ({
+                    min_quantity: tier.min_quantity,
+                    max_quantity: tier.max_quantity,
+                    rate: tier.rate,
+                    additional_costs: tier.additional_costs || [],
+                    taxes: tier.taxes || [],
+                    discounts: tier.discounts || []
+                })),
+                prepayment_percentage: item.prepayment_percentage || 0,
+                payment_type: item.payment_type || "PER_INVOICE_ITEM",
+                payment_terms: item.payment_terms || {
+                    term: 1,
+                    period: "MONTHS",
+                    applied_from: "INVOICE_DATE"
+                },
+                deliverables_payment_terms: item.deliverables_payment_terms || [],
+                incoterm: item.incoterm || "NA",
+                lead_time: item.lead_time || "10",
+                lead_time_period: item.lead_time_period || "DAYS",
+                additional_costs: item.additional_costs || [],
+                taxes: item.taxes || [],
+                discounts: item.discounts || [],
+                attachments: item.attachments || [],
+                custom_sections: item.custom_sections || []
             }))
         };
     }
 
     /**
      * Get 1-tier contract template
-     * @returns {Object} Template with 1 tier and 1 sample item
+     * @returns {Object} Template matching PAYLOAD_EXAMPLES.md format with 1 item and 1 pricing tier
      */
     getContractCreate1TierTemplate() {
         const today = new Date();
         const startDate = today.toISOString().split('T')[0];
-        const endDate = new Date(today.setFullYear(today.getFullYear() + 1)).toISOString().split('T')[0];
+        const endDate = new Date(new Date().setDate(today.getDate() + 7)).toISOString().split('T')[0];
 
         return {
+            created_by_user_email: "globalfieldsETE@gmail.com",
             contract_name: "Standard 1-Tier Contract",
-            vendor_id: "VENDOR_001",
-            start_date: startDate,
-            end_date: endDate,
-            tiers: [
+            ERP_contract_id: "ERPTEST01",
+            contract_start_date: startDate,
+            contract_end_date: endDate,
+            entity_name: "FactWise",
+            status: "DRAFT",
+            template_name: "Open API Test",
+            buyer_identifications: ["GST"],
+            buyer_address: "Main address",
+            buyer_contact: "globalfieldsETE@gmail.com",
+            factwise_vendor_code: "V001",
+            ERP_vendor_code: null,
+            vendor_contact: "dimple@factwise.io",
+            vendor_identifications: [
                 {
-                    tier_number: 1,
-                    min_quantity: 1,
-                    max_quantity: 100,
-                    items: [
+                    identification_name: "Precision Tools Corp.",
+                    identification_value: "901234567"
+                }
+            ],
+            vendor_address: {
+                address_id: null,
+                full_address: "432 Tool Ave, Chicago"
+            },
+            project: "P000039",
+            additional_costs: [],
+            taxes: [],
+            discounts: [
+                {
+                    name: "Overall discount",
+                    value: 5
+                }
+            ],
+            prepayment_percentage: 0,
+            payment_type: "PER_INVOICE_ITEM",
+            payment_terms: {
+                term: 1,
+                period: "MONTHS",
+                applied_from: "INVOICE_DATE"
+            },
+            deliverables_payment_terms: [],
+            incoterm: "CFR",
+            lead_time: "10",
+            lead_time_period: "DAYS",
+            custom_sections: [
+                {
+                    name: "Contract Details",
+                    custom_fields: []
+                },
+                {
+                    name: "Essential Terms",
+                    section_type: "ITEM",
+                    custom_fields: []
+                },
+                {
+                    name: "Payment and Delivery Terms",
+                    section_type: "ITEM",
+                    custom_fields: []
+                }
+            ],
+            attachments: [],
+            terms_and_conditions: {
+                data: "",
+                name: "FactWise Default TNC"
+            },
+            contract_items: [
+                {
+                    ERP_item_code: null,
+                    factwise_item_code: "BKT112",
+                    currency_code_id: "a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3",
+                    measurement_unit_id: "f16d124e-db59-48fe-a2b8-19f625745cbf",
+                    attributes: [],
+                    rate: 10,
+                    quantity: 1000,
+                    pricing_tiers: [
                         {
-                            item_id: "ITEM_001",
-                            item_name: "Standard Widget",
-                            unit_price: 25.50,
-                            quantity: 50
+                            min_quantity: 0,
+                            max_quantity: 100,
+                            rate: 10,
+                            additional_costs: [],
+                            taxes: [],
+                            discounts: [
+                                {
+                                    name: "Discount",
+                                    value: 10
+                                }
+                            ]
+                        }
+                    ],
+                    prepayment_percentage: 100,
+                    payment_type: "PER_INVOICE_ITEM",
+                    payment_terms: {
+                        term: 1,
+                        period: "MONTHS",
+                        applied_from: "INVOICE_DATE"
+                    },
+                    deliverables_payment_terms: [],
+                    incoterm: "NA",
+                    lead_time: "10",
+                    lead_time_period: "DAYS",
+                    additional_costs: [],
+                    taxes: [],
+                    discounts: [],
+                    attachments: [],
+                    custom_sections: [
+                        {
+                            name: "Essential Terms",
+                            custom_fields: []
+                        },
+                        {
+                            name: "Payment and Delivery Terms",
+                            custom_fields: []
                         }
                     ]
                 }
@@ -149,42 +294,139 @@ class PayloadBuilder {
 
     /**
      * Get 2-tier contract template
-     * @returns {Object} Template with 2 tiers and 2 sample items
+     * @returns {Object} Template matching PAYLOAD_EXAMPLES.md format with 1 item and 2 pricing tiers
      */
     getContractCreate2TierTemplate() {
         const today = new Date();
         const startDate = today.toISOString().split('T')[0];
-        const endDate = new Date(today.setFullYear(today.getFullYear() + 1)).toISOString().split('T')[0];
+        const endDate = new Date(new Date().setDate(today.getDate() + 7)).toISOString().split('T')[0];
 
         return {
+            created_by_user_email: "globalfieldsETE@gmail.com",
             contract_name: "Volume-Based 2-Tier Contract",
-            vendor_id: "VENDOR_002",
-            start_date: startDate,
-            end_date: endDate,
-            tiers: [
+            ERP_contract_id: "ERPTEST02",
+            contract_start_date: startDate,
+            contract_end_date: endDate,
+            entity_name: "FactWise",
+            status: "DRAFT",
+            template_name: "Open API Test",
+            buyer_identifications: ["GST"],
+            buyer_address: "Main address",
+            buyer_contact: "globalfieldsETE@gmail.com",
+            factwise_vendor_code: "V001",
+            ERP_vendor_code: null,
+            vendor_contact: "dimple@factwise.io",
+            vendor_identifications: [
                 {
-                    tier_number: 1,
-                    min_quantity: 1,
-                    max_quantity: 50,
-                    items: [
-                        {
-                            item_id: "ITEM_002",
-                            item_name: "Premium Component A",
-                            unit_price: 45.00,
-                            quantity: 25
-                        }
-                    ]
+                    identification_name: "Precision Tools Corp.",
+                    identification_value: "901234567"
+                }
+            ],
+            vendor_address: {
+                address_id: null,
+                full_address: "432 Tool Ave, Chicago"
+            },
+            project: "P000039",
+            additional_costs: [],
+            taxes: [],
+            discounts: [
+                {
+                    name: "Overall discount",
+                    value: 5
+                }
+            ],
+            prepayment_percentage: 0,
+            payment_type: "PER_INVOICE_ITEM",
+            payment_terms: {
+                term: 1,
+                period: "MONTHS",
+                applied_from: "INVOICE_DATE"
+            },
+            deliverables_payment_terms: [],
+            incoterm: "CFR",
+            lead_time: "10",
+            lead_time_period: "DAYS",
+            custom_sections: [
+                {
+                    name: "Contract Details",
+                    custom_fields: []
                 },
                 {
-                    tier_number: 2,
-                    min_quantity: 51,
-                    max_quantity: 100,
-                    items: [
+                    name: "Essential Terms",
+                    section_type: "ITEM",
+                    custom_fields: []
+                },
+                {
+                    name: "Payment and Delivery Terms",
+                    section_type: "ITEM",
+                    custom_fields: []
+                }
+            ],
+            attachments: [],
+            terms_and_conditions: {
+                data: "",
+                name: "FactWise Default TNC"
+            },
+            contract_items: [
+                {
+                    ERP_item_code: null,
+                    factwise_item_code: "BKT112",
+                    currency_code_id: "a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3",
+                    measurement_unit_id: "f16d124e-db59-48fe-a2b8-19f625745cbf",
+                    attributes: [],
+                    rate: 10,
+                    quantity: 1000,
+                    pricing_tiers: [
                         {
-                            item_id: "ITEM_003",
-                            item_name: "Premium Component B",
-                            unit_price: 38.50,
-                            quantity: 75
+                            min_quantity: 0,
+                            max_quantity: 100,
+                            rate: 10,
+                            additional_costs: [],
+                            taxes: [],
+                            discounts: [
+                                {
+                                    name: "Discount",
+                                    value: 10
+                                }
+                            ]
+                        },
+                        {
+                            min_quantity: 100,
+                            max_quantity: 200,
+                            rate: 20,
+                            additional_costs: [],
+                            taxes: [],
+                            discounts: [
+                                {
+                                    name: "Discount",
+                                    value: 10
+                                }
+                            ]
+                        }
+                    ],
+                    prepayment_percentage: 100,
+                    payment_type: "PER_INVOICE_ITEM",
+                    payment_terms: {
+                        term: 1,
+                        period: "MONTHS",
+                        applied_from: "INVOICE_DATE"
+                    },
+                    deliverables_payment_terms: [],
+                    incoterm: "NA",
+                    lead_time: "10",
+                    lead_time_period: "DAYS",
+                    additional_costs: [],
+                    taxes: [],
+                    discounts: [],
+                    attachments: [],
+                    custom_sections: [
+                        {
+                            name: "Essential Terms",
+                            custom_fields: []
+                        },
+                        {
+                            name: "Payment and Delivery Terms",
+                            custom_fields: []
                         }
                     ]
                 }

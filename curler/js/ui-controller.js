@@ -301,13 +301,13 @@ class UIController {
 
                 <div class="form-group">
                     <label>Contract Name *</label>
-                    <input type="text" name="contract_name" class="input-field" required value="Test Contract">
+                    <input type="text" name="contract_name" class="input-field" required value="TestAPI 220126">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>ERP Contract ID</label>
-                        <input type="text" name="ERP_contract_id" class="input-field" value="ERP_CONTRACT_001">
+                        <input type="text" name="ERP_contract_id" class="input-field" value="ERPTEST22">
                     </div>
                     <div class="form-group">
                         <label>Factwise Contract ID</label>
@@ -359,7 +359,7 @@ class UIController {
                     </div>
                     <div class="form-group">
                         <label>Buyer Contact *</label>
-                        <input type="email" name="buyer_contact" class="input-field" required value="${this.currentAccount?.user_email || 'buyer@example.com'}">
+                        <input type="email" name="buyer_contact" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
                     </div>
                 </div>
 
@@ -382,17 +382,17 @@ class UIController {
 
                 <div class="form-group">
                     <label>Vendor Contact *</label>
-                    <input type="email" name="vendor_contact" class="input-field" required value="vendor@example.com">
+                    <input type="email" name="vendor_contact" class="input-field" required value="dimple@factwise.io">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
                         <label>Vendor Identification Name *</label>
-                        <input type="text" name="vendor_identification_name" class="input-field" required value="Vendor Corp">
+                        <input type="text" name="vendor_identification_name" class="input-field" required value="Precision Tools Corp.">
                     </div>
                     <div class="form-group">
                         <label>Vendor Identification Value *</label>
-                        <input type="text" name="vendor_identification_value" class="input-field" required value="123456789">
+                        <input type="text" name="vendor_identification_value" class="input-field" required value="901234567">
                     </div>
                 </div>
 
@@ -403,7 +403,7 @@ class UIController {
                     </div>
                     <div class="form-group">
                         <label>Vendor Full Address</label>
-                        <input type="text" name="vendor_full_address" class="input-field" value="123 Vendor St">
+                        <input type="text" name="vendor_full_address" class="input-field" value="432 Tool Ave, Chicago">
                     </div>
                 </div>
 
@@ -416,11 +416,11 @@ class UIController {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Project</label>
-                        <input type="text" name="project" class="input-field" value="P000001">
+                        <input type="text" name="project" class="input-field" value="P000039">
                     </div>
                     <div class="form-group">
                         <label>Prepayment %</label>
-                        <input type="number" name="prepayment_percentage" class="input-field" value="10" min="0" max="100" step="0.01">
+                        <input type="number" name="prepayment_percentage" class="input-field" value="0" min="0" max="100" step="0.01">
                     </div>
                 </div>
 
@@ -1022,7 +1022,7 @@ class UIController {
                                        data-validate-item="true"
                                        data-currency-field="item_${itemIndex}_currency_id"
                                        data-unit-field="item_${itemIndex}_unit_id"
-                                       value="ITEM_00${itemIndex + 1}">
+                                       value="BKT112">
                             </div>
                             <div class="form-group">
                                 <label>ERP Item Code</label>
@@ -1055,11 +1055,11 @@ class UIController {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Rate</label>
-                                <input type="number" name="item_${itemIndex}_rate" class="input-field" value="15" step="0.01">
+                                <input type="number" name="item_${itemIndex}_rate" class="input-field" value="10" step="0.01">
                             </div>
                             <div class="form-group">
                                 <label>Quantity</label>
-                                <input type="number" name="item_${itemIndex}_quantity" class="input-field" value="200" step="0.01">
+                                <input type="number" name="item_${itemIndex}_quantity" class="input-field" value="1000" step="0.01">
                             </div>
                         </div>
 
@@ -1199,7 +1199,7 @@ class UIController {
                         </div>
                         <div class="form-group">
                             <label>Rate</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_rate" class="input-field" value="5" step="0.01">
+                            <input type="number" name="item_${itemIndex}_tier_${i}_rate" class="input-field" value="10" step="0.01">
                         </div>
                     </div>
                     ${showCosts ? `
@@ -2188,8 +2188,8 @@ class UIController {
                     const item = {
                         ERP_item_code: card.querySelector(`[name="item_${index}_erp_code"]`)?.value || null,
                         factwise_item_code: card.querySelector(`[name="item_${index}_factwise_code"]`)?.value,
-                        currency_code_id: card.querySelector(`[name="item_${index}_currency"]`)?.value,
-                        measurement_unit_id: card.querySelector(`[name="item_${index}_unit"]`)?.value,
+                        currency_code_id: card.querySelector(`[name="item_${index}_currency_id"]`)?.value,
+                        measurement_unit_id: card.querySelector(`[name="item_${index}_unit_id"]`)?.value,
                         attributes: [],
                         rate: parseFloat(card.querySelector(`[name="item_${index}_rate"]`)?.value) || 0,
                         quantity: parseFloat(card.querySelector(`[name="item_${index}_quantity"]`)?.value) || 0,
@@ -2213,9 +2213,9 @@ class UIController {
                     };
 
                     // Collect pricing tiers for this item
-                    const tiersContainer = card.querySelector(`#item-${index}-tiers-container`);
+                    const tiersContainer = card.querySelector(`#tiers-container-${index}`);
                     if (tiersContainer) {
-                        const tierRows = tiersContainer.querySelectorAll('.cc-tier-row');
+                        const tierRows = tiersContainer.querySelectorAll('.cc-tier-card');
                         tierRows.forEach((tierRow, tierIndex) => {
                             const tier = {
                                 min_quantity: parseInt(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_min"]`)?.value) || 0,
@@ -2380,8 +2380,8 @@ class UIController {
                     const item = {
                         ERP_item_code: card.querySelector(`[name="item_${index}_erp_code"]`)?.value || null,
                         factwise_item_code: card.querySelector(`[name="item_${index}_factwise_code"]`)?.value,
-                        currency_code_id: card.querySelector(`[name="item_${index}_currency"]`)?.value,
-                        measurement_unit_id: card.querySelector(`[name="item_${index}_unit"]`)?.value,
+                        currency_code_id: card.querySelector(`[name="item_${index}_currency_id"]`)?.value,
+                        measurement_unit_id: card.querySelector(`[name="item_${index}_unit_id"]`)?.value,
                         attributes: [],
                         rate: parseFloat(card.querySelector(`[name="item_${index}_rate"]`)?.value) || 0,
                         quantity: parseFloat(card.querySelector(`[name="item_${index}_quantity"]`)?.value) || 0,
@@ -2405,9 +2405,9 @@ class UIController {
                     };
 
                     // Collect pricing tiers for this item
-                    const tiersContainer = card.querySelector(`#item-${index}-tiers-container`);
+                    const tiersContainer = card.querySelector(`#tiers-container-update-${index}`);
                     if (tiersContainer) {
-                        const tierRows = tiersContainer.querySelectorAll('.cc-tier-row');
+                        const tierRows = tiersContainer.querySelectorAll('.cc-tier-card');
                         tierRows.forEach((tierRow, tierIndex) => {
                             const tier = {
                                 min_quantity: parseInt(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_min"]`)?.value) || 0,
