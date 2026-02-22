@@ -437,6 +437,28 @@ button {
     box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* Error state for incomplete required fields */
+.input-field.field-error,
+.form-input.field-error,
+.form-select.field-error,
+.form-textarea.field-error {
+    border-color: #fca5a5;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    animation: errorPulse 0.5s ease-in-out;
+}
+
+@keyframes errorPulse {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.15);
+    }
+}
+
 .form-row {
     display: flex;
     gap: 20px;

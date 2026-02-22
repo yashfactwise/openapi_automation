@@ -1953,9 +1953,18 @@ class UIController {
 
         const inputs = this.elements.operationForm.querySelectorAll('input[required], select[required], textarea[required]');
         let allValid = true;
+        const invalidFields = [];
+
+        // Remove all existing error classes first
+        this.elements.operationForm.querySelectorAll('.field-error').forEach(field => {
+            field.classList.remove('field-error');
+        });
 
         inputs.forEach(input => {
-            if (!input.value.trim()) allValid = false;
+            if (!input.value.trim()) {
+                allValid = false;
+                invalidFields.push(input);
+            }
         });
 
         // Update Buttons
@@ -1968,7 +1977,7 @@ class UIController {
             // Note: Generate button remains enabled even if invalid
         }
 
-        return allValid;
+        return { valid: allValid, invalidFields };
     }
 
     handleReset() {
@@ -1984,7 +1993,34 @@ class UIController {
     }
 
     handleGenerate() {
-        // Generate cURL (Mock for now)
+        // Check form validity and highlight incomplete fields
+        const validationResult = this.checkFormValidity();
+
+        // If form is incomplete, add error styling to invalid fields
+        if (!validationResult.valid && validationResult.invalidFields) {
+            validationResult.invalidFields.forEach(field => {
+                field.classList.add('field-error');
+
+                // Remove error class when user starts typing
+                const removeError = () => {
+                    field.classList.remove('field-error');
+                    field.removeEventListener('input', removeError);
+                    field.removeEventListener('change', removeError);
+                };
+                field.addEventListener('input', removeError);
+                field.addEventListener('change', removeError);
+            });
+
+            // Scroll to first invalid field
+            if (validationResult.invalidFields.length > 0) {
+                validationResult.invalidFields[0].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }
+
+        // Generate cURL (even if incomplete - will use null for missing values)
         const curl = this._generateCurlCommand();
         this.elements.curlDisplay.innerHTML = `<pre><code>${this._escapeHtml(curl)}</code></pre>`;
 
@@ -2060,35 +2096,389 @@ class UIController {
         const form = this.elements.operationForm;
 
         if (operation.id === 'create') {
-            // Collect all input values from the form
-            const inputs = form.querySelectorAll('input, select, textarea');
-            const data = {};
+            // Build payload matching the expected API format from PAYLOAD_EXAMPLES.md
+            const payload = {
+                created_by_user_email: form.querySelector('[name="buyer_contact"]')?.value || this.currentAccount?.user_email || null,
+                contract_name: form.querySelector('[name="contract_name"]')?.value || null,
+                ERP_contract_id: form.querySelector('[name="ERP_contract_id"]')?.value || null,
+                factwise_contract_id: form.querySelector('[name="factwise_contract_id"]')?.value || null,
+                contract_start_date: form.querySelector('[name="contract_start_date"]')?.value || null,
+                contract_end_date: form.querySelector('[name="contract_end_date"]')?.value || null,
+                entity_name: form.querySelector('[name="entity_name"]')?.value || null,
+                status: form.querySelector('[name="status"]')?.value || null,
+                template_name: form.querySelector('[name="template_name"]')?.value || "Default Template",
+                buyer_identifications: (form.querySelector('[name="buyer_identifications"]')?.value || '').split(',').map(s => s.trim()).filter(s => s),
+                buyer_address: form.querySelector('[name="buyer_address"]')?.value || null,
+                buyer_contact: form.querySelector('[name="buyer_contact"]')?.value || null,
+                factwise_vendor_code: form.querySelector('[name="factwise_vendor_code"]')?.value || null,
+                ERP_vendor_code: form.querySelector('[name="ERP_vendor_code"]')?.value || null,
+                vendor_contact: form.querySelector('[name="vendor_contact"]')?.value || null,
+                vendor_identifications: [
+                    {
+                        identification_name: form.querySelector('[name="vendor_identification_name"]')?.value || null,
+                        identification_value: form.querySelector('[name="vendor_identification_value"]')?.value || null
+                    }
+                ],
+                vendor_address: {
+                    address_id: form.querySelector('[name="vendor_address_id"]')?.value || null,
+                    full_address: form.querySelector('[name="vendor_full_address"]')?.value || null
+                },
+                project: form.querySelector('[name="project"]')?.value || null,
+                additional_costs: [],
+                taxes: [],
+                discounts: [],
+                prepayment_percentage: parseFloat(form.querySelector('[name="prepayment_percentage"]')?.value) || 0,
+                payment_type: form.querySelector('[name="payment_type"]')?.value || null,
+                payment_terms: {
+                    term: parseInt(form.querySelector('[name="payment_term"]')?.value) || 0,
+                    period: form.querySelector('[name="payment_period"]')?.value || "MONTHS",
+                    applied_from: form.querySelector('[name="payment_applied_from"]')?.value || "INVOICE_DATE"
+                },
+                deliverables_payment_terms: [],
+                incoterm: form.querySelector('[name="incoterm"]')?.value || null,
+                lead_time: form.querySelector('[name="lead_time"]')?.value || null,
+                lead_time_period: form.querySelector('[name="lead_time_period"]')?.value || null,
+                custom_sections: [],
+                attachments: [],
+                terms_and_conditions: {
+                    data: "",
+                    name: "FactWise Default TNC"
+                },
+                contract_items: []
+            };
 
-            inputs.forEach(input => {
-                if (input.name) {
-                    data[input.name] = input.value;
-                }
-            });
+            // Collect contract-level costs if enabled
+            const contractCostsContainer = form.querySelector('#contract-costs-container');
+            if (contractCostsContainer) {
+                const costRows = contractCostsContainer.querySelectorAll('.cc-cost-row');
+                costRows.forEach(row => {
+                    const type = row.querySelector('[name$="_type"]')?.value;
+                    const name = row.querySelector('[name$="_name"]')?.value;
+                    const value = parseFloat(row.querySelector('[name$="_value"]')?.value);
 
-            console.log('Collected form data:', data);
+                    if (name && !isNaN(value)) {
+                        const costItem = { name, value };
+                        if (type === 'cost') payload.additional_costs.push(costItem);
+                        else if (type === 'tax') payload.taxes.push(costItem);
+                        else if (type === 'discount') payload.discounts.push(costItem);
+                    }
+                });
+            }
 
-            // For now, return the collected data as-is
-            // The payload builder will need to be updated to handle this format
-            return data;
+            // Collect contract-level custom sections if enabled
+            const contractCustomContainer = form.querySelector('#contract-custom-container');
+            if (contractCustomContainer) {
+                const customSections = contractCustomContainer.querySelectorAll('.cc-custom-section');
+                customSections.forEach(section => {
+                    const sectionName = section.querySelector('[name$="_section_name"]')?.value;
+                    if (sectionName) {
+                        payload.custom_sections.push({
+                            name: sectionName,
+                            custom_fields: []
+                        });
+                    }
+                });
+            }
+
+            // Collect contract items
+            const itemsContainer = form.querySelector('#contract-items-container');
+            if (itemsContainer) {
+                const itemCards = itemsContainer.querySelectorAll('.cc-item-card');
+                itemCards.forEach((card, index) => {
+                    const item = {
+                        ERP_item_code: card.querySelector(`[name="item_${index}_erp_code"]`)?.value || null,
+                        factwise_item_code: card.querySelector(`[name="item_${index}_factwise_code"]`)?.value,
+                        currency_code_id: card.querySelector(`[name="item_${index}_currency"]`)?.value,
+                        measurement_unit_id: card.querySelector(`[name="item_${index}_unit"]`)?.value,
+                        attributes: [],
+                        rate: parseFloat(card.querySelector(`[name="item_${index}_rate"]`)?.value) || 0,
+                        quantity: parseFloat(card.querySelector(`[name="item_${index}_quantity"]`)?.value) || 0,
+                        pricing_tiers: [],
+                        prepayment_percentage: parseFloat(card.querySelector(`[name="item_${index}_prepayment"]`)?.value) || 0,
+                        payment_type: card.querySelector(`[name="item_${index}_payment_type"]`)?.value || "PER_INVOICE_ITEM",
+                        payment_terms: {
+                            term: parseInt(card.querySelector(`[name="item_${index}_payment_term"]`)?.value) || 1,
+                            period: card.querySelector(`[name="item_${index}_payment_period"]`)?.value || "MONTHS",
+                            applied_from: card.querySelector(`[name="item_${index}_payment_applied_from"]`)?.value || "INVOICE_DATE"
+                        },
+                        deliverables_payment_terms: [],
+                        incoterm: card.querySelector(`[name="item_${index}_incoterm"]`)?.value || "NA",
+                        lead_time: card.querySelector(`[name="item_${index}_lead_time"]`)?.value || null,
+                        lead_time_period: card.querySelector(`[name="item_${index}_lead_time_period"]`)?.value || null,
+                        additional_costs: [],
+                        taxes: [],
+                        discounts: [],
+                        attachments: [],
+                        custom_sections: []
+                    };
+
+                    // Collect pricing tiers for this item
+                    const tiersContainer = card.querySelector(`#item-${index}-tiers-container`);
+                    if (tiersContainer) {
+                        const tierRows = tiersContainer.querySelectorAll('.cc-tier-row');
+                        tierRows.forEach((tierRow, tierIndex) => {
+                            const tier = {
+                                min_quantity: parseInt(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_min"]`)?.value) || 0,
+                                max_quantity: parseInt(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_max"]`)?.value) || 0,
+                                rate: parseFloat(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_rate"]`)?.value) || 0,
+                                additional_costs: [],
+                                taxes: [],
+                                discounts: []
+                            };
+
+                            // Collect tier-level costs if enabled
+                            const tierCostsContainer = tierRow.querySelector(`#item-${index}-tier-${tierIndex}-costs`);
+                            if (tierCostsContainer) {
+                                const costRows = tierCostsContainer.querySelectorAll('.cc-tier-cost-row');
+                                costRows.forEach(costRow => {
+                                    const type = costRow.querySelector('[name$="_type"]')?.value;
+                                    const name = costRow.querySelector('[name$="_name"]')?.value;
+                                    const value = parseFloat(costRow.querySelector('[name$="_value"]')?.value);
+
+                                    if (name && !isNaN(value)) {
+                                        const costItem = { name, value };
+                                        if (type === 'cost') tier.additional_costs.push(costItem);
+                                        else if (type === 'tax') tier.taxes.push(costItem);
+                                        else if (type === 'discount') tier.discounts.push(costItem);
+                                    }
+                                });
+                            }
+
+                            item.pricing_tiers.push(tier);
+                        });
+                    }
+
+                    // Collect item-level costs
+                    const itemCostsContainer = card.querySelector(`#item-${index}-costs`);
+                    if (itemCostsContainer) {
+                        const costRows = itemCostsContainer.querySelectorAll('.cc-item-cost-row');
+                        costRows.forEach(costRow => {
+                            const type = costRow.querySelector('[name$="_type"]')?.value;
+                            const name = costRow.querySelector('[name$="_name"]')?.value;
+                            const value = parseFloat(costRow.querySelector('[name$="_value"]')?.value);
+
+                            if (name && !isNaN(value)) {
+                                const costItem = { name, value };
+                                if (type === 'cost') item.additional_costs.push(costItem);
+                                else if (type === 'tax') item.taxes.push(costItem);
+                                else if (type === 'discount') item.discounts.push(costItem);
+                            }
+                        });
+                    }
+
+                    // Collect item-level custom sections if enabled
+                    const itemCustomContainer = card.querySelector(`#item-${index}-custom`);
+                    if (itemCustomContainer) {
+                        const customSections = itemCustomContainer.querySelectorAll('.cc-item-custom-section');
+                        customSections.forEach(section => {
+                            const sectionName = section.querySelector('[name$="_section_name"]')?.value;
+                            if (sectionName) {
+                                item.custom_sections.push({
+                                    name: sectionName,
+                                    custom_fields: []
+                                });
+                            }
+                        });
+                    }
+
+                    payload.contract_items.push(item);
+                });
+            }
+
+            console.log('Built contract create payload:', payload);
+            return payload;
 
         } else if (operation.id === 'update') {
-            // Collect all input values from the update form
-            const inputs = form.querySelectorAll('input, select, textarea');
-            const data = {};
+            // Build payload matching the expected API format for update
+            const payload = {
+                created_by_user_email: form.querySelector('[name="buyer_contact"]')?.value || this.currentAccount?.user_email,
+                contract_name: form.querySelector('[name="contract_name"]')?.value,
+                ERP_contract_id: form.querySelector('[name="ERP_contract_id"]')?.value || null,
+                factwise_contract_id: form.querySelector('[name="factwise_contract_id"]')?.value || null,
+                contract_start_date: form.querySelector('[name="contract_start_date"]')?.value,
+                contract_end_date: form.querySelector('[name="contract_end_date"]')?.value,
+                entity_name: form.querySelector('[name="entity_name"]')?.value,
+                status: form.querySelector('[name="status"]')?.value,
+                buyer_identifications: form.querySelector('[name="buyer_identifications"]')?.value.split(',').map(s => s.trim()).filter(s => s),
+                buyer_address: form.querySelector('[name="buyer_address"]')?.value || null,
+                buyer_contact: form.querySelector('[name="buyer_contact"]')?.value,
+                factwise_vendor_code: form.querySelector('[name="factwise_vendor_code"]')?.value || null,
+                ERP_vendor_code: form.querySelector('[name="ERP_vendor_code"]')?.value || null,
+                vendor_contact: form.querySelector('[name="vendor_contact"]')?.value,
+                vendor_identifications: [
+                    {
+                        identification_name: form.querySelector('[name="vendor_identification_name"]')?.value,
+                        identification_value: form.querySelector('[name="vendor_identification_value"]')?.value
+                    }
+                ],
+                vendor_address: {
+                    address_id: form.querySelector('[name="vendor_address_id"]')?.value || null,
+                    full_address: form.querySelector('[name="vendor_full_address"]')?.value || null
+                },
+                project: form.querySelector('[name="project"]')?.value || null,
+                additional_costs: [],
+                taxes: [],
+                discounts: [],
+                prepayment_percentage: parseFloat(form.querySelector('[name="prepayment_percentage"]')?.value) || 0,
+                payment_type: form.querySelector('[name="payment_type"]')?.value || null,
+                payment_terms: {
+                    term: parseInt(form.querySelector('[name="payment_term"]')?.value) || 0,
+                    period: form.querySelector('[name="payment_period"]')?.value || "MONTHS",
+                    applied_from: form.querySelector('[name="payment_applied_from"]')?.value || "INVOICE_DATE"
+                },
+                deliverables_payment_terms: [],
+                incoterm: form.querySelector('[name="incoterm"]')?.value,
+                lead_time: form.querySelector('[name="lead_time"]')?.value || null,
+                lead_time_period: form.querySelector('[name="lead_time_period"]')?.value || null,
+                custom_sections: [],
+                attachments: [],
+                terms_and_conditions: {
+                    data: "",
+                    name: "FactWise Default TNC"
+                },
+                contract_items: []
+            };
 
-            inputs.forEach(input => {
-                if (input.name) {
-                    data[input.name] = input.value;
-                }
-            });
+            // Collect contract-level costs if enabled
+            const contractCostsContainer = form.querySelector('#contract-costs-container-update');
+            if (contractCostsContainer) {
+                const costRows = contractCostsContainer.querySelectorAll('.cc-cost-row');
+                costRows.forEach(row => {
+                    const type = row.querySelector('[name$="_type"]')?.value;
+                    const name = row.querySelector('[name$="_name"]')?.value;
+                    const value = parseFloat(row.querySelector('[name$="_value"]')?.value);
 
-            console.log('Collected update form data:', data);
-            return data;
+                    if (name && !isNaN(value)) {
+                        const costItem = { name, value };
+                        if (type === 'cost') payload.additional_costs.push(costItem);
+                        else if (type === 'tax') payload.taxes.push(costItem);
+                        else if (type === 'discount') payload.discounts.push(costItem);
+                    }
+                });
+            }
+
+            // Collect contract-level custom sections if enabled
+            const contractCustomContainer = form.querySelector('#contract-custom-container-update');
+            if (contractCustomContainer) {
+                const customSections = contractCustomContainer.querySelectorAll('.cc-custom-section');
+                customSections.forEach(section => {
+                    const sectionName = section.querySelector('[name$="_section_name"]')?.value;
+                    if (sectionName) {
+                        payload.custom_sections.push({
+                            name: sectionName,
+                            custom_fields: []
+                        });
+                    }
+                });
+            }
+
+            // Collect contract items (same logic as create)
+            const itemsContainer = form.querySelector('#contract-items-container-update');
+            if (itemsContainer) {
+                const itemCards = itemsContainer.querySelectorAll('.cc-item-card');
+                itemCards.forEach((card, index) => {
+                    const item = {
+                        ERP_item_code: card.querySelector(`[name="item_${index}_erp_code"]`)?.value || null,
+                        factwise_item_code: card.querySelector(`[name="item_${index}_factwise_code"]`)?.value,
+                        currency_code_id: card.querySelector(`[name="item_${index}_currency"]`)?.value,
+                        measurement_unit_id: card.querySelector(`[name="item_${index}_unit"]`)?.value,
+                        attributes: [],
+                        rate: parseFloat(card.querySelector(`[name="item_${index}_rate"]`)?.value) || 0,
+                        quantity: parseFloat(card.querySelector(`[name="item_${index}_quantity"]`)?.value) || 0,
+                        pricing_tiers: [],
+                        prepayment_percentage: parseFloat(card.querySelector(`[name="item_${index}_prepayment"]`)?.value) || 0,
+                        payment_type: card.querySelector(`[name="item_${index}_payment_type"]`)?.value || "PER_INVOICE_ITEM",
+                        payment_terms: {
+                            term: parseInt(card.querySelector(`[name="item_${index}_payment_term"]`)?.value) || 1,
+                            period: card.querySelector(`[name="item_${index}_payment_period"]`)?.value || "MONTHS",
+                            applied_from: card.querySelector(`[name="item_${index}_payment_applied_from"]`)?.value || "INVOICE_DATE"
+                        },
+                        deliverables_payment_terms: [],
+                        incoterm: card.querySelector(`[name="item_${index}_incoterm"]`)?.value || "NA",
+                        lead_time: card.querySelector(`[name="item_${index}_lead_time"]`)?.value || null,
+                        lead_time_period: card.querySelector(`[name="item_${index}_lead_time_period"]`)?.value || null,
+                        additional_costs: [],
+                        taxes: [],
+                        discounts: [],
+                        attachments: [],
+                        custom_sections: []
+                    };
+
+                    // Collect pricing tiers for this item
+                    const tiersContainer = card.querySelector(`#item-${index}-tiers-container`);
+                    if (tiersContainer) {
+                        const tierRows = tiersContainer.querySelectorAll('.cc-tier-row');
+                        tierRows.forEach((tierRow, tierIndex) => {
+                            const tier = {
+                                min_quantity: parseInt(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_min"]`)?.value) || 0,
+                                max_quantity: parseInt(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_max"]`)?.value) || 0,
+                                rate: parseFloat(tierRow.querySelector(`[name="item_${index}_tier_${tierIndex}_rate"]`)?.value) || 0,
+                                additional_costs: [],
+                                taxes: [],
+                                discounts: []
+                            };
+
+                            // Collect tier-level costs if enabled
+                            const tierCostsContainer = tierRow.querySelector(`#item-${index}-tier-${tierIndex}-costs`);
+                            if (tierCostsContainer) {
+                                const costRows = tierCostsContainer.querySelectorAll('.cc-tier-cost-row');
+                                costRows.forEach(costRow => {
+                                    const type = costRow.querySelector('[name$="_type"]')?.value;
+                                    const name = costRow.querySelector('[name$="_name"]')?.value;
+                                    const value = parseFloat(costRow.querySelector('[name$="_value"]')?.value);
+
+                                    if (name && !isNaN(value)) {
+                                        const costItem = { name, value };
+                                        if (type === 'cost') tier.additional_costs.push(costItem);
+                                        else if (type === 'tax') tier.taxes.push(costItem);
+                                        else if (type === 'discount') tier.discounts.push(costItem);
+                                    }
+                                });
+                            }
+
+                            item.pricing_tiers.push(tier);
+                        });
+                    }
+
+                    // Collect item-level costs
+                    const itemCostsContainer = card.querySelector(`#item-${index}-costs`);
+                    if (itemCostsContainer) {
+                        const costRows = itemCostsContainer.querySelectorAll('.cc-item-cost-row');
+                        costRows.forEach(costRow => {
+                            const type = costRow.querySelector('[name$="_type"]')?.value;
+                            const name = costRow.querySelector('[name$="_name"]')?.value;
+                            const value = parseFloat(costRow.querySelector('[name$="_value"]')?.value);
+
+                            if (name && !isNaN(value)) {
+                                const costItem = { name, value };
+                                if (type === 'cost') item.additional_costs.push(costItem);
+                                else if (type === 'tax') item.taxes.push(costItem);
+                                else if (type === 'discount') item.discounts.push(costItem);
+                            }
+                        });
+                    }
+
+                    // Collect item-level custom sections if enabled
+                    const itemCustomContainer = card.querySelector(`#item-${index}-custom`);
+                    if (itemCustomContainer) {
+                        const customSections = itemCustomContainer.querySelectorAll('.cc-item-custom-section');
+                        customSections.forEach(section => {
+                            const sectionName = section.querySelector('[name$="_section_name"]')?.value;
+                            if (sectionName) {
+                                item.custom_sections.push({
+                                    name: sectionName,
+                                    custom_fields: []
+                                });
+                            }
+                        });
+                    }
+
+                    payload.contract_items.push(item);
+                });
+            }
+
+            console.log('Built contract update payload:', payload);
+            return payload;
 
         } else if (operation.id === 'state') {
             const params = {
