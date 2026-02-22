@@ -21,6 +21,7 @@ class EnvironmentManager {
                 id: 'dev',
                 name: 'Development',
                 baseUrl: 'https://n29p4xri95.execute-api.us-east-1.amazonaws.com',
+                factwiseBaseUrl: 'https://poiigw0go0.execute-api.us-east-1.amazonaws.com/dev/',
                 authEndpoint: '/auth/token',
                 deployUrl: 'https://factwise-newdbtest.netlify.app/'
             },
@@ -28,6 +29,7 @@ class EnvironmentManager {
                 id: 'prod',
                 name: 'Production',
                 baseUrl: 'https://qc9s5bz8d7.execute-api.us-east-1.amazonaws.com',
+                factwiseBaseUrl: 'https://poiigw0go0.execute-api.us-east-1.amazonaws.com/prod/',
                 authEndpoint: '/auth/token',
                 deployUrl: 'https://apps.factwise.io/'
             }
@@ -77,6 +79,15 @@ class EnvironmentManager {
             return this.corsProxyUrl + baseUrl;
         }
         return baseUrl;
+    }
+
+    /**
+     * Get the Factwise core API base URL for the current environment
+     * Used for item validation and other Factwise core APIs
+     * @returns {string} Factwise base URL for API requests
+     */
+    getFactwiseBaseUrl() {
+        return this.environments[this.current].factwiseBaseUrl;
     }
 
     /**

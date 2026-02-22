@@ -108,11 +108,9 @@ class ItemValidator {
             const abortController = new AbortController();
             this.pendingRequests.set(inputId, abortController);
 
-            // Construct API URL (ensure proper slash between baseUrl and endpoint)
-            const baseUrl = environment.baseUrl.endsWith('/')
-                ? environment.baseUrl
-                : environment.baseUrl + '/';
-            const url = `${baseUrl}items/admin/exists/?code=${encodeURIComponent(itemCode)}`;
+            // Construct API URL using Factwise base URL
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}organization/items/admin/exists/?code=${encodeURIComponent(itemCode)}`;
 
             // Make API request using fetch with AbortController
             const response = await fetch(url, {
