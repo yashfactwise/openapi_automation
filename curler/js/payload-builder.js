@@ -247,31 +247,35 @@ class PayloadBuilder {
      */
     buildContractStatePayload(account, params) {
         // Phase 2: IMPLEMENTED
+        // Contract State API only supports TERMINATED status
+
         // Validate required fields
-        if (!params.contract_id) throw new Error('contract_id is required');
-        if (!params.action) throw new Error('action is required');
-
-        const validActions = ['update_status', 'terminate'];
-        if (!validActions.includes(params.action)) {
-            throw new Error(`action must be one of: ${validActions.join(', ')}`);
+        if (!params.modified_by_user_email) {
+            throw new Error('modified_by_user_email is required');
         }
 
-        // If action is update_status, status is required
-        if (params.action === 'update_status' && !params.status) {
-            throw new Error('status is required when action is "update_status"');
+        // Either factwise_contract_id or ERP_contract_id is required
+        if (!params.factwise_contract_id && !params.ERP_contract_id) {
+            throw new Error('Either factwise_contract_id or ERP_contract_id is required');
         }
 
-        // Build payload
+        // Status must be TERMINATED (only supported value)
+        if (!params.status || params.status !== 'TERMINATED') {
+            throw new Error('status must be "TERMINATED" (only supported value for Contract State API)');
+        }
+
+        // Build payload matching the exact API format
         const payload = {
-            contract_id: params.contract_id,
-            action: params.action
+            modified_by_user_email: params.modified_by_user_email,
+            factwise_contract_id: params.factwise_contract_id || null,
+            ERP_contract_id: params.ERP_contract_id || null,
+            status: params.status,
+            notes: params.notes || null
         };
-
-        if (params.status) payload.status = params.status;
-        if (params.notes) payload.notes = params.notes;
 
         return payload;
     }
+
 
     // ============================================================================
     // PURCHASE ORDER MODULE METHODS

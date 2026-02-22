@@ -135,8 +135,8 @@ class AccountStore {
                     user_email: 'globalfieldsETE@gmail.com',
                     enterprise_id: '1',
                     buyer_id: '1',
-                    api_id: '1',
-                    api_key: 'b34e0d6295a0f5c5f471c0cc527b5a93',
+                    api_id: 'h7kbdchbl2',
+                    api_key: 'G620jT6lwx3IbKQKFtmlw9zNYvqVZLQQ5HHCexBj',
                     created_at: Date.now(),
                     updated_at: Date.now()
                 }
