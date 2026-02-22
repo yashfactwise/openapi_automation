@@ -149,13 +149,11 @@ class FactwiseIntegration {
         }
 
         const currentEnv = environmentManager.getCurrentEnvironment();
+        const envKey = currentEnv.id; // 'dev' or 'prod'
 
-        // Store the Factwise token directly
-        tokenManager.tokens[currentEnv.id] = {
-            token: this.token,
-            expiresAt: Date.now() + (24 * 60 * 60 * 1000), // 24 hours from now
-            refreshedAt: Date.now()
-        };
+        // Store the Factwise token directly in tokenData structure
+        tokenManager.tokenData[envKey].token = this.token;
+        tokenManager.tokenData[envKey].expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
 
         console.log('Token synchronized with Factwise');
     }
