@@ -338,7 +338,9 @@ class UIController {
 
                 <div class="form-group">
                     <label>Template Name *</label>
-                    <input type="text" name="template_name" class="input-field" required value="Default Template">
+                    <select id="template_name_select" name="template_name" class="input-field" required>
+                        <option value="Default Template">Loading templates...</option>
+                    </select>
                 </div>
 
                 <!-- ③ Buyer Details -->
@@ -619,11 +621,6 @@ class UIController {
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Template Name *</label>
-                    <input type="text" name="template_name" class="input-field" required value="Default Template">
-                </div>
-
                 <!-- ③ Buyer Details -->
                 <div class="form-section-title">
                     <span class="fst-icon">🏢</span>
@@ -890,6 +887,9 @@ class UIController {
     _setupContractCreateListeners() {
         // Store reference to this for use in global functions
         window.uiController = this;
+
+        // Load templates dropdown
+        this._loadTemplates();
 
         // Pricing tiers count change
         const tiersCount = document.getElementById('pricing-tiers-count');
