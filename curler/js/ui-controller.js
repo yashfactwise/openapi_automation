@@ -245,12 +245,16 @@ class UIController {
                         Payload Configuration
                     </p>
                     <div class="cc-config-grid">
-                        <!-- Pricing Tiers counter -->
+                        <!-- Template Selector -->
                         <div class="cc-config-panel">
-                            <span class="cc-config-panel-label">Pricing Tiers per Item</span>
-                            <input type="number" id="pricing-tiers-count" class="cc-tiers-input" value="1" min="1" max="10">
-                            <p class="cc-tiers-hint">Number of price tiers</p>
+                            <span class="cc-config-panel-label">Contract Template</span>
+                            <div style="padding: 4px 0;">
+                                <select id="template_name_select" name="template_name" class="input-field" required style="margin-top: 4px;">
+                                    <option value="Default Template">Loading templates...</option>
+                                </select>
+                            </div>
                         </div>
+
                         <!-- Feature Toggles -->
                         <div class="cc-config-panel">
                             <span class="cc-config-panel-label">Optional Features</span>
@@ -336,12 +340,6 @@ class UIController {
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Template Name *</label>
-                    <select id="template_name_select" name="template_name" class="input-field" required>
-                        <option value="Default Template">Loading templates...</option>
-                    </select>
-                </div>
 
                 <!-- ③ Buyer Details -->
                 <div class="form-section-title">
@@ -530,12 +528,6 @@ class UIController {
                         Payload Configuration
                     </p>
                     <div class="cc-config-grid">
-                        <!-- Pricing Tiers counter -->
-                        <div class="cc-config-panel">
-                            <span class="cc-config-panel-label">Pricing Tiers per Item</span>
-                            <input type="number" id="pricing-tiers-count-update" class="cc-tiers-input" value="1" min="1" max="10">
-                            <p class="cc-tiers-hint">Number of price tiers</p>
-                        </div>
                         <!-- Feature Toggles -->
                         <div class="cc-config-panel">
                             <span class="cc-config-panel-label">Optional Features</span>
@@ -891,12 +883,6 @@ class UIController {
         // Load templates dropdown
         this._loadTemplates();
 
-        // Pricing tiers count change
-        const tiersCount = document.getElementById('pricing-tiers-count');
-        if (tiersCount) {
-            tiersCount.addEventListener('change', () => this._renderContractItems());
-        }
-
         // Toggle listeners
         const toggleContractCosts = document.getElementById('toggle-contract-costs');
         const toggleTierCosts = document.getElementById('toggle-tier-costs');
@@ -932,10 +918,53 @@ class UIController {
             });
         }
 
+        // Event delegation for Add Tier buttons
+        const itemsContainer = document.getElementById('contract-items-container');
+        if (itemsContainer) {
+            itemsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-add-tier')) {
+                    const itemIndex = parseInt(e.target.dataset.itemIndex);
+                    this._addPricingTier(itemIndex);
+                }
+            });
+        }
+
         // Initial render of contract items
         this._renderContractItems();
+
+        // Set default dates after form is ready
+        if (typeof setDefaultDates === 'function') setTimeout(setDefaultDates, 50);
     }
 
+    _addPricingTier(itemIndex) {
+        const itemCard = document.querySelector(`.cc-item-card[data-item-index="${itemIndex}"]`);
+        if (!itemCard) return;
+
+        const currentTiers = parseInt(itemCard.dataset.tiersCount || 1);
+        const newTierCount = currentTiers + 1;
+
+        // Update tier count
+        itemCard.dataset.tiersCount = newTierCount;
+
+        // Get settings
+        const showTierCosts = document.getElementById('toggle-tier-costs')?.checked || false;
+
+        // Read max of the last tier to use as next tier's min
+        const tiersContainer = document.getElementById(`tiers-container-${itemIndex}`);
+        let lastTierMax = 0;
+        if (tiersContainer) {
+            const lastMaxInput = tiersContainer.querySelector(
+                `input[name="item_${itemIndex}_tier_${currentTiers - 1}_max"]`
+            );
+            lastTierMax = lastMaxInput ? (parseFloat(lastMaxInput.value) || 0) : 0;
+        }
+
+        // Render all tiers (pass lastTierMax for new tier's min prefill)
+        if (tiersContainer) {
+            tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showTierCosts, lastTierMax);
+            this._attachTierMaxListeners(tiersContainer, itemIndex, false);
+        }
+    }
 
     _loadContractTemplate(template) {
         // Deprecated - keeping for compatibility
@@ -965,12 +994,12 @@ class UIController {
         if (!container) return;
 
         const itemIndex = container.children.length;
-        const tiersCount = parseInt(document.getElementById('pricing-tiers-count')?.value || 1);
+        const tiersCount = 1; // Start with 1 tier per item
         const showTierCosts = document.getElementById('toggle-tier-costs')?.checked || false;
         const showItemCustom = document.getElementById('toggle-item-custom')?.checked || false;
 
         const itemHtml = `
-                <div class="cc-item-card" data-item-index="${itemIndex}">
+                <div class="cc-item-card" data-item-index="${itemIndex}" data-tiers-count="${tiersCount}">
                     <div class="cc-item-card-header">
                         <div class="cc-item-card-badge">${itemIndex + 1}</div>
                         <div class="cc-item-card-title">Contract Item #${itemIndex + 1}</div>
@@ -1092,8 +1121,15 @@ class UIController {
                             </div>
                         </div>
 
-                        <p class="cc-sub-title">📊 Pricing Tiers (${tiersCount})</p>
-                        ${this._renderPricingTiers(itemIndex, tiersCount, showTierCosts)}
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <p class="cc-sub-title" style="margin: 0;">📊 Pricing Tiers</p>
+                            <button type="button" class="btn-add-tier" data-item-index="${itemIndex}" style="background: #3b82f6; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px;">
+                                + Add Tier
+                            </button>
+                        </div>
+                        <div id="tiers-container-${itemIndex}">
+                            ${this._renderPricingTiers(itemIndex, tiersCount, showTierCosts)}
+                        </div>
 
                         ${showItemCustom ? `
                             <p class="cc-sub-title">🔧 Item Custom Sections</p>
@@ -1110,6 +1146,10 @@ class UIController {
 
         // Attach item validation to the newly added item code input
         this._attachItemValidation(itemIndex);
+
+        // Attach tier max→next-min live link
+        const tiersContainer = document.getElementById(`tiers-container-${itemIndex}`);
+        if (tiersContainer) this._attachTierMaxListeners(tiersContainer, itemIndex, false);
     }
 
     /**
@@ -1136,20 +1176,26 @@ class UIController {
     }
 
 
-    _renderPricingTiers(itemIndex, count, showCosts) {
+    _renderPricingTiers(itemIndex, count, showCosts, lastAddedMax) {
         let html = '';
         for (let i = 0; i < count; i++) {
+            // Tier 1 min is always 0 (locked)
+            // Subsequent tiers: min = previous tier max (readonly, auto-linked)
+            const isFirstTier = i === 0;
+            // For newly appended tier (count > 1 and i is last), prefill min from lastAddedMax
+            const minVal = isFirstTier ? 0 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
+            const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
             html += `
                 <div class="cc-tier-card">
                     <p class="cc-tier-card-title"><span class="tier-dot"></span>Tier ${i + 1}</p>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Min Quantity *</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field" required value="${i === 0 ? 100 : 1000}" step="0.01">
+                            <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(always 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(= prev max)</small>'}</label>
+                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" required value="${minVal}" step="0.01" ${minReadonly}>
                         </div>
                         <div class="form-group">
                             <label>Max Quantity *</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field" required value="${i === 0 ? 200 : 2000}" step="0.01">
+                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" required value="${i === 0 ? 100 : ''}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
                         </div>
                         <div class="form-group">
                             <label>Rate</label>
@@ -1230,12 +1276,6 @@ class UIController {
             btnShowImport.addEventListener('click', () => this._showImportModal());
         }
 
-        // Pricing tiers count change
-        const tiersCount = document.getElementById('pricing-tiers-count-update');
-        if (tiersCount) {
-            tiersCount.addEventListener('change', () => this._renderContractItemsUpdate());
-        }
-
         // Toggle listeners
         const toggleContractCosts = document.getElementById('toggle-contract-costs-update');
         const toggleTierCosts = document.getElementById('toggle-tier-costs-update');
@@ -1271,8 +1311,51 @@ class UIController {
             });
         }
 
+        // Event delegation for Add Tier buttons
+        const itemsContainerUpdate = document.getElementById('contract-items-container-update');
+        if (itemsContainerUpdate) {
+            itemsContainerUpdate.addEventListener('click', (e) => {
+                if (e.target.classList.contains('btn-add-tier-update')) {
+                    const itemIndex = parseInt(e.target.dataset.itemIndex);
+                    this._addPricingTierUpdate(itemIndex);
+                }
+            });
+        }
+
         // Initial render of contract items
         this._renderContractItemsUpdate();
+
+        // Set default dates after form is ready
+        if (typeof setDefaultDates === 'function') setTimeout(setDefaultDates, 50);
+    }
+
+    _addPricingTierUpdate(itemIndex) {
+        const itemCard = document.querySelector(`.cc-item-card[data-item-index="${itemIndex}"]`);
+        if (!itemCard) return;
+
+        const currentTiers = parseInt(itemCard.dataset.tiersCount || 1);
+        const newTierCount = currentTiers + 1;
+
+        // Update tier count
+        itemCard.dataset.tiersCount = newTierCount;
+
+        // Get settings
+        const showTierCosts = document.getElementById('toggle-tier-costs-update')?.checked || false;
+
+        // Read max of the last tier to use as next tier's min
+        const tiersContainer = document.getElementById(`tiers-container-update-${itemIndex}`);
+        let lastTierMax = 0;
+        if (tiersContainer) {
+            const lastMaxInput = tiersContainer.querySelector(
+                `input[name="item_${itemIndex}_tier_${currentTiers - 1}_max"]`
+            );
+            lastTierMax = lastMaxInput ? (parseFloat(lastMaxInput.value) || 0) : 0;
+        }
+
+        if (tiersContainer) {
+            tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showTierCosts, lastTierMax);
+            this._attachTierMaxListeners(tiersContainer, itemIndex, true);
+        }
     }
 
     _renderContractItemsUpdate() {
@@ -1297,12 +1380,12 @@ class UIController {
         if (!container) return;
 
         const itemIndex = container.children.length;
-        const tiersCount = parseInt(document.getElementById('pricing-tiers-count-update')?.value || 1);
+        const tiersCount = 1; // Start with 1 tier per item
         const showTierCosts = document.getElementById('toggle-tier-costs-update')?.checked || false;
         const showItemCustom = document.getElementById('toggle-item-custom-update')?.checked || false;
 
         const itemHtml = `
-                <div class="cc-item-card" data-item-index="${itemIndex}">
+                <div class="cc-item-card" data-item-index="${itemIndex}" data-tiers-count="${tiersCount}">
                     <div class="cc-item-card-header">
                         <div class="cc-item-card-badge">${itemIndex + 1}</div>
                         <div class="cc-item-card-title">Contract Item #${itemIndex + 1}</div>
@@ -1424,8 +1507,15 @@ class UIController {
                             </div>
                         </div>
 
-                        <p class="cc-sub-title">📊 Pricing Tiers (${tiersCount})</p>
-                        ${this._renderPricingTiersUpdate(itemIndex, tiersCount, showTierCosts)}
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <p class="cc-sub-title" style="margin: 0;">📊 Pricing Tiers</p>
+                            <button type="button" class="btn-add-tier-update" data-item-index="${itemIndex}" style="background: #3b82f6; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px;">
+                                + Add Tier
+                            </button>
+                        </div>
+                        <div id="tiers-container-update-${itemIndex}">
+                            ${this._renderPricingTiersUpdate(itemIndex, tiersCount, showTierCosts)}
+                        </div>
 
                         ${showItemCustom ? `
                             <p class="cc-sub-title">🔧 Item Custom Sections</p>
@@ -1442,6 +1532,10 @@ class UIController {
 
         // Attach item validation to the newly added item code input
         this._attachItemValidationUpdate(itemIndex);
+
+        // Attach tier max→next-min live link
+        const tiersContainerU = document.getElementById(`tiers-container-update-${itemIndex}`);
+        if (tiersContainerU) this._attachTierMaxListeners(tiersContainerU, itemIndex, true);
     }
 
     /**
@@ -1467,20 +1561,23 @@ class UIController {
         }, 100);
     }
 
-    _renderPricingTiersUpdate(itemIndex, count, showCosts) {
+    _renderPricingTiersUpdate(itemIndex, count, showCosts, lastAddedMax) {
         let html = '';
         for (let i = 0; i < count; i++) {
+            const isFirstTier = i === 0;
+            const minVal = isFirstTier ? 0 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
+            const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
             html += `
                 <div class="cc-tier-card">
                     <p class="cc-tier-card-title"><span class="tier-dot"></span>Tier ${i + 1}</p>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Min Quantity *</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field" required value="${i === 0 ? 100 : 1000}" step="0.01">
+                            <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(always 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(= prev max)</small>'}</label>
+                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" required value="${minVal}" step="0.01" ${minReadonly}>
                         </div>
                         <div class="form-group">
                             <label>Max Quantity *</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field" required value="${i === 0 ? 200 : 2000}" step="0.01">
+                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" required value="${i === 0 ? 100 : ''}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
                         </div>
                         <div class="form-group">
                             <label>Rate</label>
@@ -1503,6 +1600,31 @@ class UIController {
             `;
         }
         return html;
+    }
+
+    /**
+     * Attaches live listeners so that when a tier's Max changes,
+     * the next tier's Min is automatically updated (readonly field).
+     * @param {HTMLElement} tiersContainer - The container element holding tier cards
+     * @param {number} itemIndex - The item index
+     * @param {boolean} isUpdate - Whether this is the update form variant
+     * @private
+     */
+    _attachTierMaxListeners(tiersContainer, itemIndex, isUpdate) {
+        const maxInputs = tiersContainer.querySelectorAll('.tier-max');
+        maxInputs.forEach((maxInput) => {
+            // Remove any prior listener to avoid duplicates
+            const clone = maxInput.cloneNode(true);
+            maxInput.parentNode.replaceChild(clone, maxInput);
+            clone.addEventListener('input', () => {
+                const tierIndex = parseInt(clone.dataset.tier);
+                const nextTierMinName = `item_${itemIndex}_tier_${tierIndex + 1}_min`;
+                const nextMinInput = tiersContainer.querySelector(`input[name="${nextTierMinName}"]`);
+                if (nextMinInput) {
+                    nextMinInput.value = clone.value;
+                }
+            });
+        });
     }
 
     _addContractCostUpdate() {
