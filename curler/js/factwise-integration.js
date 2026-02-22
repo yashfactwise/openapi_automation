@@ -155,6 +155,9 @@ class FactwiseIntegration {
         tokenManager.tokenData[envKey].token = this.token;
         tokenManager.tokenData[envKey].expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
 
+        // Persist to localStorage
+        tokenManager.saveToStorage();
+
         console.log('Token synchronized with Factwise');
     }
 }
