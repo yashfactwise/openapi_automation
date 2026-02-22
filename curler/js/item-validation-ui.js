@@ -137,11 +137,13 @@ class ItemValidationUI {
         `;
 
         // Auto-fill related fields if provided
-        if (config.currencyField && itemData.currency_code) {
-            config.currencyField.value = itemData.currency_code;
+        if (config.currencyField && itemData.currency_code_id) {
+            config.currencyField.value = itemData.currency_code_id;
+            console.log('✓ Auto-filled currency:', itemData.currency_code_id);
         }
-        if (config.unitField && itemData.unit_code) {
-            config.unitField.value = itemData.unit_code;
+        if (config.unitField && itemData.measurement_unit_id) {
+            config.unitField.value = itemData.measurement_unit_id;
+            console.log('✓ Auto-filled unit:', itemData.measurement_unit_id);
         }
 
         // Call custom callback

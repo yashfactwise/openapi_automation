@@ -292,7 +292,8 @@ class Application {
             this.curlGenerator,
             this.apiClient,
             this.itemValidator,
-            this.itemValidationUI
+            this.itemValidationUI,
+            this.factwiseIntegration
         );
         console.log('✓ UIController created');
 

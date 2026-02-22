@@ -4,7 +4,7 @@
  */
 
 class UIController {
-    constructor(environmentManager, accountStore, tokenManager, moduleRegistry, payloadBuilder, curlGenerator, apiClient, itemValidator, itemValidationUI) {
+    constructor(environmentManager, accountStore, tokenManager, moduleRegistry, payloadBuilder, curlGenerator, apiClient, itemValidator, itemValidationUI, factwiseIntegration) {
         this.environmentManager = environmentManager;
         this.accountStore = accountStore;
         this.tokenManager = tokenManager;
@@ -14,6 +14,7 @@ class UIController {
         this.apiClient = apiClient;
         this.itemValidator = itemValidator;
         this.itemValidationUI = itemValidationUI;
+        this.factwiseIntegration = factwiseIntegration;
 
         // Track current state
         this.currentAccount = null;
@@ -2331,4 +2332,85 @@ class UIController {
         `).join('');
         this.elements.moduleNavigator.innerHTML = html;
     }
+
+
+    async _loadTemplates() {
+        try {
+            // Get token - same logic as item validator
+            let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+
+            if (!token) {
+                console.error('No token available for templates API');
+                const select = document.getElementById('template_name_select');
+                if (select) {
+                    select.innerHTML = '<option value="Default Template">Default Template</option>';
+                }
+                return;
+            }
+
+            let entityId = '20d11e41-5ee0-40f1-9f01-a619d20e74e3'; // Default
+
+            // Try to extract from token
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                entityId = payload.entity_id || payload['custom:entityId'] || entityId;
+            } catch (e) {
+                console.warn('Could not parse token for entity_id');
+            }
+
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}module_templates/?entity_id=${entityId}&template_type=CLM`;
+
+            console.log('✓ Fetching templates from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch templates:', response.status, response.statusText);
+                const select = document.getElementById('template_name_select');
+                if (select) {
+                    select.innerHTML = '<option value="Default Template">Default Template</option>';
+                }
+                return;
+            }
+
+            const data = await response.json();
+            console.log('✓ Loaded templates response:', data);
+
+            // API returns an array with one object containing templates
+            const responseData = Array.isArray(data) ? data[0] : data;
+            const templates = responseData.templates || [];
+            console.log('✓ Templates array:', templates);
+            console.log('✓ First template structure:', templates[0]);
+
+            // Populate dropdown
+            const select = document.getElementById('template_name_select');
+            if (select && templates && templates.length > 0) {
+                select.innerHTML = templates.map(t => {
+                    // Use name field from API response
+                    const name = t.name || t.template_name || 'Unnamed Template';
+                    const value = t.name || t.template_name || t.template_id;
+                    return `<option value="${value}">${name}</option>`;
+                }).join('');
+                select.selectedIndex = 0;
+                console.log('✓ Populated dropdown with', templates.length, 'templates');
+            } else if (select) {
+                select.innerHTML = '<option value="Default Template">Default Template</option>';
+            }
+
+        } catch (error) {
+            console.error('Error loading templates:', error);
+            const select = document.getElementById('template_name_select');
+            if (select) {
+                select.innerHTML = '<option value="Default Template">Default Template</option>';
+            }
+        }
+    }
+
 }
