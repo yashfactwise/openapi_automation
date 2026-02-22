@@ -33,13 +33,25 @@ class FactwiseIntegration {
             this.apiUrl = urlParams.get('api_url');
             this.apiEnv = urlParams.get('api_env');
 
-            // If we have a token, we're embedded in Factwise
+            // If no token in URL, try to get from localStorage (for local development)
+            if (!this.token && typeof localStorage !== 'undefined') {
+                this.token = localStorage.getItem('idToken');
+                if (this.token) {
+                    console.log('Using token from localStorage (local development mode)');
+                }
+            }
+
+            // If we have a token, we're embedded in Factwise (or testing locally)
             this.isEmbedded = !!this.token;
 
             if (this.isEmbedded) {
                 console.log('Curler running in Factwise iframe mode');
-                console.log('API Environment:', this.apiEnv);
-                console.log('API URL:', this.apiUrl);
+                console.log('API Environment:', this.apiEnv || 'dev (default)');
+                console.log('API URL:', this.apiUrl || 'using environment manager default');
+
+                // Set defaults for local development
+                if (!this.apiEnv) this.apiEnv = 'dev';
+                if (!this.apiUrl) this.apiUrl = 'https://poiigw0go0.execute-api.us-east-1.amazonaws.com/dev/';
             } else {
                 console.log('Curler running in standalone mode');
             }
