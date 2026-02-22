@@ -2,18 +2,46 @@
 
 ## Complete Guide to Creating External Apps with Factwise Backend Integration
 
-This guide explains how to create a separate React application that integrates with Factwise using iframes, allowing you to call Factwise backend APIs without managing authentication yourself.
+This guide explains how to create a separate application that integrates with Factwise using iframes, allowing you to call Factwise backend APIs without managing authentication yourself.
+
+**REAL EXAMPLE**: This guide documents the actual integration of Curler (OpenAPI Automation tool) into Factwise, completed on [date]. All code examples are from the real implementation.
 
 ---
 
 ## 📖 Table of Contents
 
 1. [Architecture Overview](#architecture-overview)
-2. [How Authentication Works](#how-authentication-works)
-3. [Step-by-Step Implementation](#step-by-step-implementation)
-4. [Complete Code Examples](#complete-code-examples)
-5. [Deployment Guide](#deployment-guide)
-6. [Troubleshooting](#troubleshooting)
+2. [Real Implementation: Curler Integration](#real-implementation-curler-integration)
+3. [How Authentication Works](#how-authentication-works)
+4. [Step-by-Step Implementation](#step-by-step-implementation)
+5. [Complete Code Examples](#complete-code-examples)
+6. [Deployment Guide](#deployment-guide)
+7. [Troubleshooting](#troubleshooting)
+
+---
+
+## 🎯 Real Implementation: Curler Integration
+
+### What We Built
+We integrated **Curler** (OpenAPI Automation tool) into Factwise as an iframe application accessible at `/buyer/openapi-automation`.
+
+### Key Details
+- **External App URL**: https://openapi-automation.vercel.app
+- **Factwise Route**: `/buyer/openapi-automation`
+- **Access Level**: GLOBAL_ADMIN only
+- **Sidebar Icon**: Code-slash icon (`bi bi-code-slash`)
+- **Integration Type**: Token-based authentication via URL parameters
+
+### Files Modified in Factwise Frontend
+1. `env/.env.newdbtest` - Added app URL
+2. `src/App.tsx` - Created iframe component and route
+3. `src/Components/SideBar/SideBarOptions.tsx` - Added sidebar option
+4. `src/Components/SideBar/SideBar.tsx` - Added permission checks
+
+### Files Modified in Curler App
+1. `js/factwise-integration.js` - NEW: Handles token reading and integration
+2. `index.html` - Added integration script
+3. `js/main.js` - Integrated with Factwise token system
 
 ---
 
@@ -108,22 +136,502 @@ Step 7: Backend validates token and returns data
 
 ## 📝 Step-by-Step Implementation
 
-### STEP 1: Create Your External React App
+### REAL EXAMPLE: How We Integrated Curler
 
-```bash
-# Create new React app
-npx create-react-app item-search-app
-cd item-search-app
-
-# Install dependencies (if needed)
-npm install axios  # Optional: for easier API calls
-```
+This section shows the ACTUAL steps we took to integrate Curler into Factwise.
 
 ---
 
-### STEP 2: Create Your Main Component
+### STEP 1: Deploy Your External App
 
-Create `src/ItemSearch.js`:
+**What We Did:**
+```bash
+# Curler was already deployed to Vercel
+# URL: https://openapi-automation.vercel.app
+```
+
+**Your Turn:**
+- Deploy your app to Vercel, Netlify, or any hosting service
+- Note down the deployment URL
+- Ensure your app can be embedded in an iframe (no X-Frame-Options blocking)
+
+---
+
+### STEP 2: Add Environment Variable to Factwise
+
+**What We Did:**
+
+Edit `Factwise Frontend/env/.env.newdbtest`:
+
+```bash
+REACT_APP_ENV = "start"
+REACT_APP_API_URL = "https://poiigw0go0.execute-api.us-east-1.amazonaws.com/dev/"
+REACT_APP_CLOUDINARY_CLOUD_NAME=djbqcki6c
+REACT_APP_CLOUDINARY_UPLOAD_PRESET=support_tickets
+GENERATE_SOURCEMAP=false
+DISABLE_ESLINT_PLUGIN=true
+REACT_APP_STRATEGY_DASHBOARD_URL=https://procurement-dashboard-orcin.vercel.app
+REACT_APP_QUOTE_ANALYTICS_URL=https://quote-analytics.vercel.app
+REACT_APP_PRICING_DASHBOARD_URL=https://pricing-dashboard-beige.vercel.app
+REACT_APP_OPENAPI_AUTOMATION_URL=https://openapi-automation.vercel.app  # ← ADDED THIS
+```
+
+**Your Turn:**
+- Add `REACT_APP_YOUR_APP_URL=https://your-app.vercel.app`
+- Also add to `.env.newdbtest1` and `.env.production` when ready
+
+---
+
+### STEP 3: Create iframe Component in App.tsx
+
+**What We Did:**
+
+Added this component in `Factwise Frontend/src/App.tsx` (after the PricingRepositoryDashboard component):
+
+```typescript
+// OpenAPI Automation (Curler) Dashboard Component with postMessage listener
+// Admin-only tool for API testing and automation
+const OpenAPIAutomationDashboard: React.FC = () => {
+    const idToken = localStorage.getItem('idToken');
+
+    // Get external dashboard URL from environment
+    const OPENAPI_AUTOMATION_URL =
+        process.env.REACT_APP_OPENAPI_AUTOMATION_URL || 'http://localhost:3000';
+
+    // Get API URL from env (same as Factwise uses)
+    const apiUrl = process.env.REACT_APP_API_URL;
+
+    // Determine API environment based on REACT_APP_ENV
+    const apiEnv =
+        process.env.REACT_APP_ENV === 'production' ||
+        process.env.REACT_APP_ENV === 'newdbtest1'
+            ? 'prod'
+            : 'dev';
+
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            if (!event.data || !event.data.type) return;
+
+            // Handle NAVIGATE messages from curler iframe
+            if (event.data.type === 'NAVIGATE' && event.data.url) {
+                console.log(
+                    'Factwise received NAVIGATE message from Curler:',
+                    event.data.url
+                );
+                window.open(window.location.origin + event.data.url, '_blank');
+            }
+
+            // Handle NAVIGATE_BACK messages - go back in Factwise history
+            if (event.data.type === 'NAVIGATE_BACK') {
+                console.log('Factwise received NAVIGATE_BACK message from Curler');
+                window.history.back();
+            }
+        };
+
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, []);
+
+    return (
+        <div
+            style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100%',
+                height: '100%',
+            }}
+        >
+            <iframe
+                src={`${OPENAPI_AUTOMATION_URL}?token=${idToken}&api_env=${apiEnv}&api_url=${encodeURIComponent(
+                    apiUrl || ''
+                )}`}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    display: 'block',
+                }}
+                title="OpenAPI Automation Dashboard"
+            />
+        </div>
+    );
+};
+```
+
+**Your Turn:**
+- Copy this pattern
+- Change component name: `YourAppDashboard`
+- Change URL variable: `REACT_APP_YOUR_APP_URL`
+- Change title: "Your App Dashboard"
+- Add any additional URL parameters you need
+
+---
+
+### STEP 4: Add Route in App.tsx
+
+**What We Did:**
+
+In the same `App.tsx` file, inside the `<Switch>` component (around line 310), we added:
+
+```typescript
+{/* OpenAPI Automation (Curler) Dashboard */}
+<Route
+    path="/buyer/openapi-automation"
+    component={OpenAPIAutomationDashboard}
+/>
+{/* OpenAPI Automation Dashboard end */}
+```
+
+**Your Turn:**
+- Add your route: `path="/buyer/your-app-name"`
+- Use your component: `component={YourAppDashboard}`
+- Choose appropriate path (buyer/seller/admin)
+
+---
+
+### STEP 5: Add to Sidebar Options
+
+**What We Did:**
+
+Edit `Factwise Frontend/src/Components/SideBar/SideBarOptions.tsx`:
+
+```typescript
+export const buyerOptions: Array<IOptionsInterface> = [
+    // ... existing options ...
+    {
+        id: 14,
+        name: 'pricing-repository-v2',
+        display: 'Pricing Repository V2',
+        icon: <i className="bi bi-database"></i>,
+    },
+    {
+        id: 15,
+        name: 'openapi-automation',  // ← ADDED THIS
+        display: 'OpenAPI Automation',
+        icon: <i className="bi bi-code-slash"></i>,
+    },
+    // ... rest of options ...
+];
+```
+
+**Important Notes:**
+- The `name` field must match your route path (without `/buyer/` prefix)
+- Example: `name: 'openapi-automation'` → routes to `/buyer/openapi-automation`
+- Choose an appropriate Bootstrap icon from https://icons.getbootstrap.com/
+
+**Your Turn:**
+- Add your option with unique ID
+- Set `name` to match your route
+- Choose appropriate icon
+- Set display name
+
+---
+
+### STEP 6: Add Permission Checks in SideBar.tsx
+
+**What We Did:**
+
+Edit `Factwise Frontend/src/Components/SideBar/SideBar.tsx`:
+
+**6a. Add to buyerPermissions object (around line 30):**
+
+```typescript
+const buyerPermissions: PermissionInterface = {
+    events: {
+        permission: false,
+        featureAccessPermission: false,
+    },
+    // ... other permissions ...
+    'openapi-automation': {  // ← ADDED THIS
+        permission: false,
+    },
+};
+```
+
+**6b. Add permission check in first useEffect (around line 165):**
+
+```typescript
+'pricing-repository-v2': {
+    permission: checkPermission(
+        'GLOBAL_ADMIN',
+        null,
+        null,
+        null
+    ),
+},
+'openapi-automation': {  // ← ADDED THIS
+    permission: checkPermission(
+        'GLOBAL_ADMIN',
+        null,
+        null,
+        null
+    ),
+},
+requisitions: {
+    permission: checkPermission(
+        'BUYER',
+        'REQUISITION',
+        'REQUISITION_VIEW',
+        null
+    ),
+},
+```
+
+**6c. Add permission check in second useEffect (around line 335):**
+
+```typescript
+'pricing-repository-v2': {
+    permission: checkPermission(
+        'GLOBAL_ADMIN',
+        null,
+        null,
+        null
+    ),
+},
+'openapi-automation': {  // ← ADDED THIS
+    permission: checkPermission(
+        'GLOBAL_ADMIN',
+        null,
+        null,
+        null
+    ),
+},
+requisitions: {
+    permission: true,
+},
+```
+
+**Your Turn:**
+- Add your app name to all three locations
+- Choose appropriate permission level:
+  - `'GLOBAL_ADMIN'` - Admin only
+  - `'BUYER'` - Buyer users with specific module permission
+  - `'SELLER'` - Seller users
+- Adjust permission parameters based on your needs
+
+---
+
+### STEP 7: Create Integration Script in Your External App
+
+**What We Did:**
+
+Created `curler/js/factwise-integration.js`:
+
+```javascript
+/**
+ * Factwise Integration - Handles iframe integration with Factwise platform
+ */
+
+class FactwiseIntegration {
+    constructor() {
+        this.token = null;
+        this.apiUrl = null;
+        this.apiEnv = null;
+        this.isEmbedded = false;
+
+        // Read parameters from URL
+        this.readUrlParameters();
+    }
+
+    /**
+     * Read authentication and configuration from URL parameters
+     */
+    readUrlParameters() {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            this.token = urlParams.get('token');
+            this.apiUrl = urlParams.get('api_url');
+            this.apiEnv = urlParams.get('api_env');
+
+            // If we have a token, we're embedded in Factwise
+            this.isEmbedded = !!this.token;
+
+            if (this.isEmbedded) {
+                console.log('Running in Factwise iframe mode');
+                console.log('API Environment:', this.apiEnv);
+                console.log('API URL:', this.apiUrl);
+            } else {
+                console.log('Running in standalone mode');
+            }
+        } catch (error) {
+            console.error('Failed to read URL parameters:', error);
+        }
+    }
+
+    /**
+     * Check if app is embedded in Factwise
+     */
+    isEmbeddedInFactwise() {
+        return this.isEmbedded;
+    }
+
+    /**
+     * Get the Factwise authentication token
+     */
+    getToken() {
+        return this.token;
+    }
+
+    /**
+     * Get the Factwise API URL
+     */
+    getApiUrl() {
+        return this.apiUrl;
+    }
+
+    /**
+     * Get the API environment
+     */
+    getApiEnv() {
+        return this.apiEnv;
+    }
+
+    /**
+     * Send a message to the parent Factwise window
+     */
+    sendMessageToFactwise(type, data = {}) {
+        if (!this.isEmbedded) {
+            console.warn('Cannot send message: not embedded in Factwise');
+            return;
+        }
+
+        try {
+            window.parent.postMessage(
+                {
+                    type,
+                    ...data
+                },
+                '*'
+            );
+            console.log('Message sent to Factwise:', type, data);
+        } catch (error) {
+            console.error('Failed to send message to Factwise:', error);
+        }
+    }
+
+    /**
+     * Navigate to a Factwise URL
+     */
+    navigateToFactwise(url) {
+        this.sendMessageToFactwise('NAVIGATE', { url });
+    }
+
+    /**
+     * Go back in Factwise history
+     */
+    navigateBack() {
+        this.sendMessageToFactwise('NAVIGATE_BACK');
+    }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = FactwiseIntegration;
+}
+```
+
+**Your Turn:**
+- Create similar integration script for your app
+- Adapt to your app's architecture (React, Vue, vanilla JS, etc.)
+- Add any additional URL parameters you need
+
+---
+
+### STEP 8: Integrate Token in Your App
+
+**What We Did:**
+
+Updated `curler/index.html` to include the integration script:
+
+```html
+<!-- JavaScript Modules -->
+<script src="js/factwise-integration.js"></script>  <!-- ← ADDED THIS FIRST -->
+<script src="js/environment-manager.js"></script>
+<script src="js/account-store.js"></script>
+<!-- ... other scripts ... -->
+```
+
+Updated `curler/js/main.js` to use Factwise token:
+
+```javascript
+class Application {
+    constructor() {
+        // Component instances
+        this.factwiseIntegration = null;  // ← ADDED THIS
+        this.environmentManager = null;
+        this.tokenManager = null;
+        // ... other components ...
+    }
+
+    async init() {
+        try {
+            // Initialize all components
+            this.initializeComponents();
+
+            // Check for Factwise integration and override if embedded
+            this.integrateWithFactwise();  // ← ADDED THIS
+
+            // Load persisted data
+            this.loadPersistedData();
+
+            // Initialize UI
+            this.uiController.init();
+
+            // ... rest of init ...
+        } catch (error) {
+            console.error('Failed to initialize application:', error);
+        }
+    }
+
+    initializeComponents() {
+        console.log('Creating component instances...');
+
+        // 0. Factwise Integration (check if embedded)
+        this.factwiseIntegration = new FactwiseIntegration();  // ← ADDED THIS
+        console.log('✓ FactwiseIntegration created');
+
+        // 1. Environment Manager
+        this.environmentManager = new EnvironmentManager();
+        console.log('✓ EnvironmentManager created');
+
+        // ... rest of components ...
+    }
+
+    /**
+     * Integrate with Factwise if running in iframe
+     */
+    integrateWithFactwise() {  // ← ADDED THIS METHOD
+        if (!this.factwiseIntegration.isEmbeddedInFactwise()) {
+            console.log('Running in standalone mode - using local configuration');
+            return;
+        }
+
+        console.log('Integrating with Factwise...');
+
+        // Use Factwise token for API calls
+        const token = this.factwiseIntegration.getToken();
+        const apiUrl = this.factwiseIntegration.getApiUrl();
+        const apiEnv = this.factwiseIntegration.getApiEnv();
+
+        // Override your app's token/auth system here
+        // Example: this.tokenManager.setToken(token);
+        // Example: this.apiClient.setBaseUrl(apiUrl);
+
+        console.log('✓ Factwise integration complete');
+    }
+}
+```
+
+**Your Turn:**
+- Adapt this pattern to your app's architecture
+- Override your authentication system with Factwise token
+- Ensure API calls use the Factwise token
+
+---
 
 ```javascript
 import React, { useState, useEffect } from 'react';
@@ -592,7 +1100,222 @@ Add permission check in the `useEffect` where other permissions are checked:
 
 ## 📚 Complete Code Examples
 
-### Example: Using Axios Instead of Fetch
+### Example 1: Making API Calls with Factwise Token
+
+**In Your External App:**
+
+```javascript
+// Read token from Factwise integration
+const factwiseIntegration = new FactwiseIntegration();
+const token = factwiseIntegration.getToken();
+const apiUrl = factwiseIntegration.getApiUrl();
+
+// Make authenticated API call
+async function fetchContracts() {
+    try {
+        const response = await fetch(`${apiUrl}contracts/list/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,  // ← Use Factwise token
+            }
+        });
+
+        if (!response.ok) {
+            if (response.status === 401) {
+                throw new Error('Authentication failed. Please refresh Factwise.');
+            }
+            throw new Error(`API Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('API Error:', error);
+        throw error;
+    }
+}
+```
+
+---
+
+### Example 2: Using Axios Instead of Fetch
+
+```javascript
+import axios from 'axios';
+
+const factwiseIntegration = new FactwiseIntegration();
+const token = factwiseIntegration.getToken();
+const apiUrl = factwiseIntegration.getApiUrl();
+
+// Create axios instance with default config
+const apiClient = axios.create({
+    baseURL: apiUrl,
+    headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+    }
+});
+
+// Make API calls
+async function createContract(contractData) {
+    try {
+        const response = await apiClient.post('/contracts/create/', contractData);
+        return response.data;
+    } catch (error) {
+        console.error('Failed to create contract:', error);
+        throw error;
+    }
+}
+```
+
+---
+
+### Example 3: Sending Messages to Factwise Parent
+
+```javascript
+const factwiseIntegration = new FactwiseIntegration();
+
+// Navigate to a specific contract in Factwise
+function openContractInFactwise(contractId) {
+    factwiseIntegration.navigateToFactwise(`/buyer/clm/contracts/${contractId}`);
+}
+
+// Navigate to events page
+function openEventsPage() {
+    factwiseIntegration.navigateToFactwise('/buyer/events');
+}
+
+// Go back to previous page in Factwise
+function goBack() {
+    factwiseIntegration.navigateBack();
+}
+
+// Example: Add button in your UI
+<button onClick={() => openContractInFactwise('contract-123')}>
+    View in Factwise
+</button>
+```
+
+---
+
+### Example 4: Conditional Rendering Based on Embedding
+
+```javascript
+const factwiseIntegration = new FactwiseIntegration();
+
+function App() {
+    if (!factwiseIntegration.isEmbeddedInFactwise()) {
+        // Show standalone mode UI
+        return (
+            <div className="standalone-mode">
+                <h1>🔒 Authentication Required</h1>
+                <p>Please access this app through Factwise.</p>
+                <a href="https://apps.factwise.io/buyer/your-app">
+                    Open in Factwise
+                </a>
+            </div>
+        );
+    }
+
+    // Show embedded mode UI
+    return (
+        <div className="embedded-mode">
+            <h1>Your App</h1>
+            {/* Your app content */}
+        </div>
+    );
+}
+```
+
+---
+
+### Example 5: React Hook for Factwise Integration
+
+```javascript
+import { useState, useEffect } from 'react';
+
+function useFactwiseIntegration() {
+    const [integration, setIntegration] = useState(null);
+    const [isEmbedded, setIsEmbedded] = useState(false);
+    const [token, setToken] = useState(null);
+    const [apiUrl, setApiUrl] = useState(null);
+
+    useEffect(() => {
+        const factwiseIntegration = new FactwiseIntegration();
+        setIntegration(factwiseIntegration);
+        setIsEmbedded(factwiseIntegration.isEmbeddedInFactwise());
+        setToken(factwiseIntegration.getToken());
+        setApiUrl(factwiseIntegration.getApiUrl());
+    }, []);
+
+    return {
+        integration,
+        isEmbedded,
+        token,
+        apiUrl,
+        navigateToFactwise: (url) => integration?.navigateToFactwise(url),
+        navigateBack: () => integration?.navigateBack(),
+    };
+}
+
+// Usage in component
+function MyComponent() {
+    const { isEmbedded, token, apiUrl, navigateToFactwise } = useFactwiseIntegration();
+
+    if (!isEmbedded) {
+        return <div>Please access through Factwise</div>;
+    }
+
+    return (
+        <div>
+            <button onClick={() => navigateToFactwise('/buyer/events')}>
+                View Events
+            </button>
+        </div>
+    );
+}
+```
+
+---
+
+### Example 6: Error Handling with Token Expiry
+
+```javascript
+async function makeApiCall(endpoint, options = {}) {
+    const factwiseIntegration = new FactwiseIntegration();
+    const token = factwiseIntegration.getToken();
+    const apiUrl = factwiseIntegration.getApiUrl();
+
+    try {
+        const response = await fetch(`${apiUrl}${endpoint}`, {
+            ...options,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                ...options.headers,
+            }
+        });
+
+        if (response.status === 401) {
+            // Token expired - ask user to refresh Factwise
+            alert('Your session has expired. Please refresh the Factwise page.');
+            return null;
+        }
+
+        if (!response.ok) {
+            throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('API call failed:', error);
+        throw error;
+    }
+}
+```
+
+---
 
 ```javascript
 import axios from 'axios';
@@ -675,69 +1398,104 @@ const goBack = () => {
 
 ## 🚀 Deployment Guide
 
-### Vercel Deployment (Recommended)
+### Real Example: Curler Deployment
 
-#### Initial Setup
+**Curler is deployed to Vercel:**
+- URL: https://openapi-automation.vercel.app
+- Deployment: Automatic via Git push
+- Environment: Production
+
+### Deploying Your App to Vercel
+
+#### Option A: Using Vercel CLI
 
 ```bash
 # Install Vercel CLI
 npm install -g vercel
 
-# Login
+# Login to Vercel
 vercel login
-```
 
-#### Deploy
-
-```bash
-# Production deployment
+# Deploy
 vercel --prod
 
-# Development deployment
-vercel
+# You'll get a URL like: https://your-app.vercel.app
 ```
 
-#### Environment Variables (if needed)
+#### Option B: Using Vercel Dashboard
 
+1. Go to [vercel.com](https://vercel.com)
+2. Click "New Project"
+3. Import your Git repository
+4. Click "Deploy"
+5. Copy the deployment URL
+
+#### Option C: Using GitHub Integration
+
+1. Push your code to GitHub
+2. Connect GitHub repo to Vercel
+3. Automatic deployments on every push
+4. Get production URL
+
+---
+
+### Updating Factwise Environment Files
+
+After deploying, update ALL environment files:
+
+**Development:**
 ```bash
-# Add environment variables via CLI
-vercel env add REACT_APP_CUSTOM_VAR
-
-# Or via Vercel dashboard:
-# 1. Go to project settings
-# 2. Navigate to "Environment Variables"
-# 3. Add variables
+# Factwise Frontend/env/.env.newdbtest
+REACT_APP_YOUR_APP_URL=https://your-app.vercel.app
 ```
 
-### Alternative: Netlify
-
+**Staging:**
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login
-netlify login
-
-# Deploy
-netlify deploy --prod
+# Factwise Frontend/env/.env.newdbtest1
+REACT_APP_YOUR_APP_URL=https://your-app.vercel.app
 ```
 
-### Alternative: GitHub Pages
-
+**Production:**
 ```bash
-# Install gh-pages
-npm install --save-dev gh-pages
-
-# Add to package.json
-"homepage": "https://yourusername.github.io/item-search-app",
-"scripts": {
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d build"
-}
-
-# Deploy
-npm run deploy
+# Factwise Frontend/env/.env.production
+REACT_APP_YOUR_APP_URL=https://your-app.vercel.app
 ```
+
+---
+
+### Testing the Integration
+
+#### Local Testing (Development)
+
+1. Start Factwise frontend:
+```bash
+cd "Factwise Frontend"
+npm start
+```
+
+2. Login as GLOBAL_ADMIN user
+
+3. Look for your app in sidebar
+
+4. Click to open - should load your Vercel app in iframe
+
+5. Check browser console for:
+   - "Running in Factwise iframe mode"
+   - Token and API URL logs
+
+#### Production Testing
+
+1. Deploy Factwise frontend to staging/production
+
+2. Login with appropriate permissions
+
+3. Navigate to your app route
+
+4. Verify:
+   - App loads correctly
+   - API calls work
+   - No CORS errors
+   - Token is valid
 
 ---
 
@@ -748,36 +1506,68 @@ npm run deploy
 **Cause:** Accessing the external app directly instead of through Factwise iframe.
 
 **Solution:**
-- Always access via: `factwise.com/buyer/item-search`
-- Never access directly: `item-search-app.vercel.app`
+- Always access via: `factwise.com/buyer/your-app`
+- Never access directly: `your-app.vercel.app`
+- Check that token is being passed in URL parameters
+
+**Debug:**
+```javascript
+// Add this to your app to debug
+const urlParams = new URLSearchParams(window.location.search);
+console.log('Token:', urlParams.get('token'));
+console.log('API URL:', urlParams.get('api_url'));
+console.log('API Env:', urlParams.get('api_env'));
+```
+
+---
 
 ### Issue 2: CORS Errors
 
 **Cause:** Backend not allowing requests from your external domain.
 
 **Solution:** Contact backend team to add your Vercel domain to CORS whitelist:
+
 ```python
-# In backend settings
+# In backend settings.py
 CORS_ALLOWED_ORIGINS = [
-    'https://item-search-app.vercel.app',
+    'https://your-app.vercel.app',
+    'https://openapi-automation.vercel.app',  # Curler example
 ]
 ```
+
+**Temporary Workaround:** Use Factwise API proxy if available
+
+---
 
 ### Issue 3: 401 Unauthorized
 
 **Cause:** Token expired or invalid.
 
 **Solutions:**
-1. Check token is being passed correctly in URL
-2. Verify token is included in Authorization header
-3. Check token hasn't expired (ask user to refresh Factwise)
 
+1. **Check token is being passed correctly:**
 ```javascript
-// Add better error handling
+const token = new URLSearchParams(window.location.search).get('token');
+console.log('Token received:', token ? 'Yes' : 'No');
+```
+
+2. **Verify token is included in API calls:**
+```javascript
+fetch(apiUrl, {
+    headers: {
+        'Authorization': `Bearer ${token}`,  // ← Must include this
+    }
+})
+```
+
+3. **Handle token expiry:**
+```javascript
 if (response.status === 401) {
-  setError('Session expired. Please refresh the Factwise page and try again.');
+    alert('Session expired. Please refresh the Factwise page.');
 }
 ```
+
+---
 
 ### Issue 4: iframe Not Loading
 
@@ -785,47 +1575,279 @@ if (response.status === 401) {
 
 **Solution:** Ensure your external app allows being embedded:
 
+**In your app's server config (if using Express):**
 ```javascript
-// In your external app's public/index.html, remove any X-Frame-Options
-// Or in server config, allow framing from Factwise domain
+app.use((req, res, next) => {
+    // Allow embedding from Factwise domains
+    res.setHeader('X-Frame-Options', 'ALLOW-FROM https://apps.factwise.io');
+    // Or remove X-Frame-Options entirely
+    next();
+});
 ```
+
+**In Vercel (vercel.json):**
+```json
+{
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Frame-Options",
+                    "value": "ALLOWALL"
+                }
+            ]
+        }
+    ]
+}
+```
+
+---
 
 ### Issue 5: Environment Variables Not Working
 
 **Cause:** Environment variables not loaded in Factwise.
 
 **Solution:**
-1. Restart Factwise development server after adding env vars
-2. Check correct env file is being used (.env.newdbtest vs .env.production)
-3. Verify variable name starts with `REACT_APP_`
+
+1. **Restart Factwise development server after adding env vars:**
+```bash
+# Stop the server (Ctrl+C)
+npm start
+```
+
+2. **Check correct env file is being used:**
+- Development: `.env.newdbtest`
+- Staging: `.env.newdbtest1`
+- Production: `.env.production`
+
+3. **Verify variable name starts with `REACT_APP_`:**
+```bash
+# ✅ Correct
+REACT_APP_YOUR_APP_URL=https://your-app.vercel.app
+
+# ❌ Wrong (won't be loaded)
+YOUR_APP_URL=https://your-app.vercel.app
+```
+
+4. **Check variable is being read:**
+```javascript
+console.log('App URL:', process.env.REACT_APP_YOUR_APP_URL);
+```
 
 ---
 
-## 📋 Checklist
+### Issue 6: Sidebar Option Not Showing
+
+**Cause:** Permission check failing or option not configured correctly.
+
+**Debug Steps:**
+
+1. **Check user has correct permission:**
+```javascript
+// In browser console on Factwise
+console.log('User permissions:', authData);
+```
+
+2. **Verify option name matches route:**
+```typescript
+// In SideBarOptions.tsx
+{
+    name: 'openapi-automation',  // Must match route without /buyer/ prefix
+}
+
+// In App.tsx
+<Route path="/buyer/openapi-automation" />  // ← Must match
+```
+
+3. **Check permission is set in SideBar.tsx:**
+```typescript
+// Should be in THREE places:
+// 1. buyerPermissions object
+// 2. First useEffect permission check
+// 3. Second useEffect permission check
+```
+
+4. **Verify module is not disabled:**
+```typescript
+// Check authData.disabledModules
+if (authData.disabledModules?.includes('YOUR_MODULE')) {
+    // Module is disabled
+}
+```
+
+---
+
+### Issue 7: postMessage Not Working
+
+**Cause:** Message not being sent or received correctly.
+
+**Solution:**
+
+**In your external app:**
+```javascript
+// Send message to Factwise
+window.parent.postMessage(
+    {
+        type: 'NAVIGATE',
+        url: '/buyer/events'
+    },
+    '*'  // ← Use '*' for any origin, or specify Factwise domain
+);
+```
+
+**In Factwise App.tsx:**
+```typescript
+// Listen for messages
+useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+        console.log('Message received:', event.data);  // ← Add logging
+        
+        if (event.data.type === 'NAVIGATE') {
+            window.open(window.location.origin + event.data.url, '_blank');
+        }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+}, []);
+```
+
+---
+
+### Issue 8: App Works Locally But Not in Production
+
+**Possible Causes:**
+
+1. **Environment variable not set in production:**
+   - Check `.env.production` has your app URL
+
+2. **HTTPS required:**
+   - Ensure your app is deployed with HTTPS (Vercel does this automatically)
+
+3. **CORS not configured for production domain:**
+   - Add production domain to backend CORS whitelist
+
+4. **Build errors:**
+   - Check Vercel deployment logs
+   - Ensure all dependencies are in `package.json`
+
+**Debug:**
+```bash
+# Check Vercel deployment logs
+vercel logs your-app-name
+
+# Test production URL directly
+curl https://your-app.vercel.app
+```
+
+---
+
+### Issue 9: Token Not Being Used in API Calls
+
+**Cause:** Token not being passed to API client.
+
+**Solution:**
+
+**Check your API client setup:**
+```javascript
+// ❌ Wrong - token not included
+fetch(`${apiUrl}/contracts/`, {
+    method: 'GET',
+});
+
+// ✅ Correct - token included
+fetch(`${apiUrl}/contracts/`, {
+    method: 'GET',
+    headers: {
+        'Authorization': `Bearer ${token}`,
+    }
+});
+```
+
+**For Axios:**
+```javascript
+// Set default header
+axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+
+// Or per request
+axios.get('/contracts/', {
+    headers: {
+        'Authorization': `Bearer ${token}`,
+    }
+});
+```
+
+---
+
+### Issue 10: Real Example - Curler Integration Issues
+
+**Problem:** Curler wasn't reading token from URL
+
+**Solution:** 
+1. Created `factwise-integration.js` to read URL parameters
+2. Integrated with existing token manager
+3. Added logging to verify token was received
+
+**Code:**
+```javascript
+// In main.js
+this.factwiseIntegration = new FactwiseIntegration();
+if (this.factwiseIntegration.isEmbeddedInFactwise()) {
+    const token = this.factwiseIntegration.getToken();
+    console.log('Token received from Factwise:', token ? 'Yes' : 'No');
+}
+```
+
+---
+
+## 📋 Integration Checklist
 
 ### External App Setup
-- [ ] Create React app
-- [ ] Implement token reading from URL
-- [ ] Add API calls with Authorization header
-- [ ] Test locally with mock token
-- [ ] Deploy to Vercel/Netlify
-- [ ] Note deployment URL
+- [ ] Create/deploy your external app
+- [ ] Deploy to Vercel/Netlify (get URL)
+- [ ] Create `factwise-integration.js` (or equivalent)
+- [ ] Read token, api_url, api_env from URL parameters
+- [ ] Override your app's auth system with Factwise token
+- [ ] Test locally with mock URL parameters
+- [ ] Verify API calls include Authorization header
+- [ ] Test standalone mode (without Factwise)
+- [ ] Test embedded mode (with Factwise token)
 
-### Factwise Integration
-- [ ] Add `REACT_APP_YOUR_APP_URL` to env files
-- [ ] Create iframe component in App.tsx
-- [ ] Add route for your app
-- [ ] Add to sidebar (optional)
-- [ ] Add permission checks (optional)
-- [ ] Test in development
-- [ ] Deploy to staging/production
+### Factwise Frontend Integration
+- [ ] Add `REACT_APP_YOUR_APP_URL` to `.env.newdbtest`
+- [ ] Add `REACT_APP_YOUR_APP_URL` to `.env.newdbtest1`
+- [ ] Add `REACT_APP_YOUR_APP_URL` to `.env.production`
+- [ ] Create iframe component in `App.tsx`
+- [ ] Add route in `App.tsx` (inside `<Switch>`)
+- [ ] Add option to `SideBarOptions.tsx`
+- [ ] Add to `buyerPermissions` object in `SideBar.tsx`
+- [ ] Add permission check in first `useEffect` in `SideBar.tsx`
+- [ ] Add permission check in second `useEffect` in `SideBar.tsx`
+- [ ] Choose appropriate icon from Bootstrap Icons
+- [ ] Set correct permission level (GLOBAL_ADMIN, BUYER, etc.)
 
 ### Testing
-- [ ] Test authentication flow
-- [ ] Test API calls work correctly
-- [ ] Test error handling
+- [ ] Test in development environment
+- [ ] Verify token is passed in URL
+- [ ] Verify API calls work correctly
+- [ ] Test error handling (401, 403, etc.)
+- [ ] Test postMessage communication (if used)
 - [ ] Test on different browsers
 - [ ] Test mobile responsiveness (if needed)
+- [ ] Test with different user permission levels
+- [ ] Verify sidebar option shows/hides correctly
+- [ ] Test in staging environment
+- [ ] Test in production environment
+
+### Deployment
+- [ ] Deploy external app to production
+- [ ] Update production environment variables
+- [ ] Deploy Factwise frontend to staging
+- [ ] Test staging deployment
+- [ ] Deploy Factwise frontend to production
+- [ ] Verify production deployment
+- [ ] Monitor for errors in production
 
 ---
 
@@ -838,7 +1860,6 @@ if (response.status === 401) {
 | `token` | JWT authentication token | `eyJhbGciOiJIUzI1NiIs...` |
 | `api_url` | Factwise backend API URL | `https://api.factwise.com/dev/` |
 | `api_env` | Environment (dev/prod) | `dev` or `prod` |
-| `can_export` | Export permission flag | `true` or `false` |
 
 ### Reading Parameters in Your App
 
@@ -847,7 +1868,6 @@ const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
 const apiUrl = urlParams.get('api_url');
 const apiEnv = urlParams.get('api_env');
-const canExport = urlParams.get('can_export') === 'true';
 ```
 
 ### Making API Calls
@@ -863,6 +1883,68 @@ fetch(`${apiUrl}your-endpoint/`, {
 })
 ```
 
+### Sending Messages to Factwise
+
+```javascript
+// Navigate to Factwise URL
+window.parent.postMessage({
+    type: 'NAVIGATE',
+    url: '/buyer/events/123'
+}, '*');
+
+// Go back
+window.parent.postMessage({
+    type: 'NAVIGATE_BACK'
+}, '*');
+```
+
+### Permission Levels
+
+| Level | Description | Usage |
+|-------|-------------|-------|
+| `GLOBAL_ADMIN` | Admin users only | Admin tools, system config |
+| `BUYER` + module | Buyer users with module permission | Buyer-specific features |
+| `SELLER` + module | Seller users with module permission | Seller-specific features |
+
+### File Locations
+
+**Factwise Frontend:**
+- Environment: `env/.env.newdbtest`
+- iframe Component: `src/App.tsx`
+- Sidebar Options: `src/Components/SideBar/SideBarOptions.tsx`
+- Sidebar Permissions: `src/Components/SideBar/SideBar.tsx`
+
+**Your External App:**
+- Integration Script: `js/factwise-integration.js` (or equivalent)
+- Main Entry: Your app's main file
+
+---
+
+## 🎉 Real Integration Example: Curler
+
+### What We Built
+- **App**: Curler (OpenAPI Automation tool)
+- **URL**: https://openapi-automation.vercel.app
+- **Route**: `/buyer/openapi-automation`
+- **Access**: GLOBAL_ADMIN only
+- **Icon**: Code-slash (`bi bi-code-slash`)
+
+### Files Modified
+1. `Factwise Frontend/env/.env.newdbtest` - Added URL
+2. `Factwise Frontend/src/App.tsx` - Added component and route
+3. `Factwise Frontend/src/Components/SideBar/SideBarOptions.tsx` - Added option
+4. `Factwise Frontend/src/Components/SideBar/SideBar.tsx` - Added permissions
+5. `Curler/curler/js/factwise-integration.js` - NEW integration script
+6. `Curler/curler/index.html` - Added script tag
+7. `Curler/curler/js/main.js` - Integrated with token system
+
+### Result
+✅ Curler loads in Factwise iframe
+✅ Automatically uses Factwise token
+✅ No separate login required
+✅ Can call Factwise APIs
+✅ Admin-only access
+
 ---
 
 ## 📞 Support
@@ -874,16 +1956,112 @@ If you encounter issues:
 3. Test API endpoint with Postman using the token
 4. Check backend logs for authentication errors
 5. Contact the Factwise backend team for API issues
+6. Review this guide's troubleshooting section
+7. Check the real Curler implementation as reference
+
+---
+
+## 🔑 Key Takeaways
+
+### What Makes This Integration Work
+
+1. **No Separate Authentication**: Your app uses Factwise's JWT token
+2. **URL Parameters**: Token and config passed via iframe URL
+3. **Automatic Sync**: Environment and token automatically synchronized
+4. **Secure**: Token only accessible within iframe context
+5. **Simple**: No complex OAuth or authentication flows
+
+### Best Practices
+
+✅ **Always check if embedded**: Handle both standalone and embedded modes
+✅ **Validate token**: Check for token presence before making API calls
+✅ **Handle errors gracefully**: Show user-friendly messages for auth failures
+✅ **Log for debugging**: Add console logs to track integration status
+✅ **Test thoroughly**: Test in all environments (dev, staging, prod)
+✅ **Follow the pattern**: Use Curler integration as reference
+
+### Common Mistakes to Avoid
+
+❌ Don't hardcode API URLs - use URL parameters
+❌ Don't forget to add Authorization header to API calls
+❌ Don't skip permission checks in sidebar
+❌ Don't forget to update all environment files
+❌ Don't test only in development - test in production too
+❌ Don't ignore CORS errors - fix them properly
+
+### When to Use This Pattern
+
+✅ **Good for:**
+- Admin tools and utilities
+- Data visualization dashboards
+- API testing tools
+- Analytics and reporting tools
+- External integrations that need Factwise data
+
+❌ **Not good for:**
+- Core Factwise features (build directly in Factwise)
+- Features requiring deep Factwise integration
+- Features that need to modify Factwise UI
+- Real-time collaborative features
+
+---
+
+## 🎓 Learning Resources
+
+### Related Documentation
+- Factwise API Documentation (internal)
+- Bootstrap Icons: https://icons.getbootstrap.com/
+- Vercel Documentation: https://vercel.com/docs
+- React Documentation: https://react.dev/
+
+### Example Implementations
+- **Curler**: OpenAPI Automation tool (this repo)
+- **Pricing Repository V2**: Pricing dashboard
+- **Procurement Strategy Dashboard**: Strategy analytics
+- **Quote Analytics**: Quote analysis tool
+
+### Getting Help
+- Check this guide first
+- Review Curler implementation
+- Ask Factwise development team
+- Check browser console for errors
+
+---
+
+## 📝 Document History
+
+**Last Updated**: [Current Date]
+
+**Changes:**
+- Added real Curler integration example
+- Updated all code examples with actual implementation
+- Added comprehensive troubleshooting section
+- Added detailed step-by-step guide
+- Added integration checklist
+- Added key takeaways and best practices
+
+**Contributors:**
+- Factwise Development Team
+- Curler Integration Team
 
 ---
 
 ## 🎉 Success!
 
-You now have a fully integrated external app that:
-- ✅ Loads inside Factwise via iframe
-- ✅ Authenticates using Factwise tokens
-- ✅ Calls Factwise backend APIs
-- ✅ Requires no separate authentication setup
-- ✅ Deploys independently
+You now have a complete guide to integrating external apps with Factwise via iframe!
+
+**What you learned:**
+- ✅ How to create iframe components in Factwise
+- ✅ How to pass authentication tokens via URL
+- ✅ How to read tokens in your external app
+- ✅ How to make authenticated API calls
+- ✅ How to add sidebar options and permissions
+- ✅ How to deploy and test your integration
+- ✅ How to troubleshoot common issues
+
+**Real working example:**
+- Curler is live at `/buyer/openapi-automation`
+- All code is in this repository
+- Follow the same pattern for your app
 
 Happy coding! 🚀

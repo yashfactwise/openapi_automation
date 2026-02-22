@@ -33,6 +33,10 @@ class EnvironmentManager {
             }
         };
 
+        // CORS proxy configuration for local development
+        this.useCorsProxy = true; // Enable by default
+        this.corsProxyUrl = 'http://localhost:8080/'; // Local proxy server
+
         // Load current environment from localStorage or default to dev
         this.current = this.loadCurrentEnvironment();
     }
@@ -64,10 +68,39 @@ class EnvironmentManager {
 
     /**
      * Get the base URL for the current environment
+     * Optionally prepends CORS proxy if enabled
      * @returns {string} Base URL for API requests
      */
     getBaseUrl() {
+        const baseUrl = this.environments[this.current].baseUrl;
+        if (this.useCorsProxy) {
+            return this.corsProxyUrl + baseUrl;
+        }
+        return baseUrl;
+    }
+
+    /**
+     * Get the raw base URL without CORS proxy
+     * @returns {string} Raw base URL
+     */
+    getRawBaseUrl() {
         return this.environments[this.current].baseUrl;
+    }
+
+    /**
+     * Toggle CORS proxy on/off
+     * @param {boolean} enabled - Whether to use CORS proxy
+     */
+    setCorsProxy(enabled) {
+        this.useCorsProxy = enabled;
+    }
+
+    /**
+     * Check if CORS proxy is enabled
+     * @returns {boolean} True if CORS proxy is enabled
+     */
+    isCorsProxyEnabled() {
+        return this.useCorsProxy;
     }
 
     /**

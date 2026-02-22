@@ -203,6 +203,9 @@ class Application {
             // Initialize all components in dependency order
             this.initializeComponents();
 
+            // Check for Factwise integration and override if embedded
+            this.integrateWithFactwise();
+
             // Load persisted data from localStorage
             this.loadPersistedData();
 
@@ -233,6 +236,10 @@ class Application {
      */
     initializeComponents() {
         console.log('Creating component instances...');
+
+        // 0. Factwise Integration (check if embedded)
+        this.factwiseIntegration = new FactwiseIntegration();
+        console.log('✓ FactwiseIntegration created');
 
         // 1. Environment Manager (no dependencies)
         this.environmentManager = new EnvironmentManager();
@@ -275,6 +282,31 @@ class Application {
         console.log('✓ UIController created');
 
         console.log('All components created successfully');
+    }
+
+    /**
+     * Integrate with Factwise if running in iframe
+     * Overrides environment and token with Factwise configuration
+     * @private
+     */
+    integrateWithFactwise() {
+        if (!this.factwiseIntegration.isEmbeddedInFactwise()) {
+            console.log('Running in standalone mode - using local configuration');
+            return;
+        }
+
+        console.log('Integrating with Factwise...');
+
+        // Override environment to match Factwise
+        this.factwiseIntegration.overrideEnvironment(this.environmentManager);
+
+        // Override token with Factwise token
+        this.factwiseIntegration.overrideToken(
+            this.tokenManager,
+            this.environmentManager
+        );
+
+        console.log('✓ Factwise integration complete');
     }
 
     /**
