@@ -269,11 +269,12 @@ class Application {
         this.apiClient = new ApiClient();
         console.log('✓ ApiClient created');
 
-        // 8. Item Validator (depends on ApiClient, TokenManager, EnvironmentManager)
+        // 8. Item Validator (depends on ApiClient, TokenManager, EnvironmentManager, FactwiseIntegration)
         this.itemValidator = new ItemValidator(
             this.apiClient,
             this.tokenManager,
-            this.environmentManager
+            this.environmentManager,
+            this.factwiseIntegration
         );
         console.log('✓ ItemValidator created');
 

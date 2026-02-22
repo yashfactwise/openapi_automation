@@ -17,10 +17,11 @@
  */
 
 class ItemValidator {
-    constructor(apiClient, tokenManager, environmentManager) {
+    constructor(apiClient, tokenManager, environmentManager, factwiseIntegration) {
         this.apiClient = apiClient;
         this.tokenManager = tokenManager;
         this.environmentManager = environmentManager;
+        this.factwiseIntegration = factwiseIntegration;
 
         // Track pending requests for cancellation
         this.pendingRequests = new Map(); // inputId -> AbortController
@@ -92,14 +93,32 @@ class ItemValidator {
         try {
             // Get current environment and token
             const environment = this.environmentManager.getCurrentEnvironment();
-            const token = this.tokenManager.getToken();
 
-            if (!environment || !environment.baseUrl) {
+            // Use Factwise token if embedded, otherwise use TokenManager token
+            let token;
+            if (this.factwiseIntegration && this.factwiseIntegration.isEmbeddedInFactwise()) {
+                token = this.factwiseIntegration.getToken();
+                console.log('✓ Using Factwise token for item validation');
+                console.log('✓ Token exists:', !!token, 'Length:', token ? token.length : 0);
+            } else {
+                // Only use TokenManager if NOT in Factwise iframe
+                try {
+                    token = this.tokenManager.getToken();
+                    console.log('✓ Using TokenManager token for item validation');
+                    console.log('✓ Token exists:', !!token, 'Length:', token ? token.length : 0);
+                } catch (error) {
+                    console.error('❌ TokenManager error:', error);
+                    token = null;
+                }
+            }
+
+            if (!environment || !environment.factwiseBaseUrl) {
                 if (onError) onError('Environment not configured');
                 return;
             }
 
             if (!token) {
+                console.error('❌ TOKEN IS NULL! Cannot proceed with API call.');
                 if (onError) onError('Authentication token not found');
                 return;
             }
@@ -111,6 +130,11 @@ class ItemValidator {
             // Construct API URL using Factwise base URL
             const baseUrl = this.environmentManager.getFactwiseBaseUrl();
             const url = `${baseUrl}organization/items/admin/exists/?code=${encodeURIComponent(itemCode)}`;
+
+            console.log('✓ Validating item:', itemCode);
+            console.log('✓ API URL:', url);
+            console.log('✓ Token preview:', token.substring(0, 30) + '...');
+            console.log('✓ Authorization header:', `Bearer ${token.substring(0, 30)}...`);
 
             // Make API request using fetch with AbortController
             const response = await fetch(url, {
