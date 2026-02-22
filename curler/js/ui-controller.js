@@ -4,7 +4,7 @@
  */
 
 class UIController {
-    constructor(environmentManager, accountStore, tokenManager, moduleRegistry, payloadBuilder, curlGenerator, apiClient) {
+    constructor(environmentManager, accountStore, tokenManager, moduleRegistry, payloadBuilder, curlGenerator, apiClient, itemValidator, itemValidationUI) {
         this.environmentManager = environmentManager;
         this.accountStore = accountStore;
         this.tokenManager = tokenManager;
@@ -12,6 +12,8 @@ class UIController {
         this.payloadBuilder = payloadBuilder;
         this.curlGenerator = curlGenerator;
         this.apiClient = apiClient;
+        this.itemValidator = itemValidator;
+        this.itemValidationUI = itemValidationUI;
 
         // Track current state
         this.currentAccount = null;
@@ -983,7 +985,14 @@ class UIController {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Factwise Item Code</label>
-                                <input type="text" name="item_${itemIndex}_factwise_code" class="input-field" value="ITEM_00${itemIndex + 1}">
+                                <input type="text" 
+                                       id="item_${itemIndex}_factwise_code" 
+                                       name="item_${itemIndex}_factwise_code" 
+                                       class="input-field item-code-input" 
+                                       data-validate-item="true"
+                                       data-currency-field="item_${itemIndex}_currency_id"
+                                       data-unit-field="item_${itemIndex}_unit_id"
+                                       value="ITEM_00${itemIndex + 1}">
                             </div>
                             <div class="form-group">
                                 <label>ERP Item Code</label>
@@ -994,11 +1003,21 @@ class UIController {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Currency Code ID *</label>
-                                <input type="text" name="item_${itemIndex}_currency_id" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                                <input type="text" 
+                                       id="item_${itemIndex}_currency_id" 
+                                       name="item_${itemIndex}_currency_id" 
+                                       class="input-field" 
+                                       required 
+                                       value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
                             </div>
                             <div class="form-group">
                                 <label>Measurement Unit ID *</label>
-                                <input type="text" name="item_${itemIndex}_unit_id" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                                <input type="text" 
+                                       id="item_${itemIndex}_unit_id" 
+                                       name="item_${itemIndex}_unit_id" 
+                                       class="input-field" 
+                                       required 
+                                       value="f16d124e-db59-48fe-a2b8-19f625745cbf">
                             </div>
                         </div>
 
@@ -1087,6 +1106,32 @@ class UIController {
             `;
 
         container.insertAdjacentHTML('beforeend', itemHtml);
+
+        // Attach item validation to the newly added item code input
+        this._attachItemValidation(itemIndex);
+    }
+
+    /**
+     * Attach item validation to item code input
+     * @private
+     */
+    _attachItemValidation(itemIndex) {
+        // Wait for DOM to update
+        setTimeout(() => {
+            const itemCodeInput = document.getElementById(`item_${itemIndex}_factwise_code`);
+            const currencyField = document.getElementById(`item_${itemIndex}_currency_id`);
+            const unitField = document.getElementById(`item_${itemIndex}_unit_id`);
+
+            if (itemCodeInput && this.itemValidationUI) {
+                this.itemValidationUI.attachToInput(itemCodeInput, {
+                    currencyField: currencyField,
+                    unitField: unitField,
+                    onValidated: (isValid, itemData) => {
+                        console.log(`Item ${itemIndex} validation:`, isValid, itemData);
+                    }
+                });
+            }
+        }, 100);
     }
 
 
@@ -1272,7 +1317,14 @@ class UIController {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Factwise Item Code</label>
-                                <input type="text" name="item_${itemIndex}_factwise_code" class="input-field" value="ITEM_00${itemIndex + 1}">
+                                <input type="text" 
+                                       id="item_update_${itemIndex}_factwise_code" 
+                                       name="item_${itemIndex}_factwise_code" 
+                                       class="input-field item-code-input" 
+                                       data-validate-item="true"
+                                       data-currency-field="item_update_${itemIndex}_currency_id"
+                                       data-unit-field="item_update_${itemIndex}_unit_id"
+                                       value="ITEM_00${itemIndex + 1}">
                             </div>
                             <div class="form-group">
                                 <label>ERP Item Code</label>
@@ -1283,11 +1335,21 @@ class UIController {
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Currency Code ID *</label>
-                                <input type="text" name="item_${itemIndex}_currency_id" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                                <input type="text" 
+                                       id="item_update_${itemIndex}_currency_id" 
+                                       name="item_${itemIndex}_currency_id" 
+                                       class="input-field" 
+                                       required 
+                                       value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
                             </div>
                             <div class="form-group">
                                 <label>Measurement Unit ID *</label>
-                                <input type="text" name="item_${itemIndex}_unit_id" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                                <input type="text" 
+                                       id="item_update_${itemIndex}_unit_id" 
+                                       name="item_${itemIndex}_unit_id" 
+                                       class="input-field" 
+                                       required 
+                                       value="f16d124e-db59-48fe-a2b8-19f625745cbf">
                             </div>
                         </div>
 
@@ -1376,6 +1438,32 @@ class UIController {
             `;
 
         container.insertAdjacentHTML('beforeend', itemHtml);
+
+        // Attach item validation to the newly added item code input
+        this._attachItemValidationUpdate(itemIndex);
+    }
+
+    /**
+     * Attach item validation to item code input (Update form)
+     * @private
+     */
+    _attachItemValidationUpdate(itemIndex) {
+        // Wait for DOM to update
+        setTimeout(() => {
+            const itemCodeInput = document.getElementById(`item_update_${itemIndex}_factwise_code`);
+            const currencyField = document.getElementById(`item_update_${itemIndex}_currency_id`);
+            const unitField = document.getElementById(`item_update_${itemIndex}_unit_id`);
+
+            if (itemCodeInput && this.itemValidationUI) {
+                this.itemValidationUI.attachToInput(itemCodeInput, {
+                    currencyField: currencyField,
+                    unitField: unitField,
+                    onValidated: (isValid, itemData) => {
+                        console.log(`Item Update ${itemIndex} validation:`, isValid, itemData);
+                    }
+                });
+            }
+        }, 100);
     }
 
     _renderPricingTiersUpdate(itemIndex, count, showCosts) {
@@ -1849,66 +1937,46 @@ class UIController {
         const form = this.elements.operationForm;
 
         if (operation.id === 'create') {
-            // Collect tier data
-            const tiers = [];
-            const tierSections = form.querySelectorAll('.tier-section');
+            // Collect all input values from the form
+            const inputs = form.querySelectorAll('input, select, textarea');
+            const data = {};
 
-            tierSections.forEach((tierSection, tierIndex) => {
-                const tier = {
-                    tier_number: tierIndex + 1,
-                    min_quantity: parseInt(form.querySelector(`[name="tier_${tierIndex}_min"]`).value),
-                    max_quantity: parseInt(form.querySelector(`[name="tier_${tierIndex}_max"]`).value),
-                    items: []
-                };
-
-                // Collect items for this tier
-                const itemInputs = tierSection.querySelectorAll('.item-section');
-                itemInputs.forEach((itemSection, itemIndex) => {
-                    tier.items.push({
-                        item_id: form.querySelector(`[name="tier_${tierIndex}_item_${itemIndex}_id"]`).value,
-                        item_name: form.querySelector(`[name="tier_${tierIndex}_item_${itemIndex}_name"]`).value,
-                        unit_price: parseFloat(form.querySelector(`[name="tier_${tierIndex}_item_${itemIndex}_price"]`).value),
-                        quantity: parseInt(form.querySelector(`[name="tier_${tierIndex}_item_${itemIndex}_qty"]`).value)
-                    });
-                });
-
-                tiers.push(tier);
+            inputs.forEach(input => {
+                if (input.name) {
+                    data[input.name] = input.value;
+                }
             });
 
-            return this.payloadBuilder.buildContractCreatePayload(this.currentAccount, {
-                contract_name: form.querySelector('[name="contract_name"]').value,
-                vendor_id: form.querySelector('[name="vendor_id"]').value,
-                start_date: form.querySelector('[name="start_date"]').value,
-                end_date: form.querySelector('[name="end_date"]').value,
-                tiers: tiers
-            });
+            console.log('Collected form data:', data);
+
+            // For now, return the collected data as-is
+            // The payload builder will need to be updated to handle this format
+            return data;
+
         } else if (operation.id === 'update') {
-            const params = {
-                contract_id: form.querySelector('[name="contract_id"]').value
-            };
+            // Collect all input values from the update form
+            const inputs = form.querySelectorAll('input, select, textarea');
+            const data = {};
 
-            // Add optional fields if provided
-            const contractName = form.querySelector('[name="contract_name"]').value;
-            const vendorId = form.querySelector('[name="vendor_id"]').value;
-            const startDate = form.querySelector('[name="start_date"]').value;
-            const endDate = form.querySelector('[name="end_date"]').value;
+            inputs.forEach(input => {
+                if (input.name) {
+                    data[input.name] = input.value;
+                }
+            });
 
-            if (contractName) params.contract_name = contractName;
-            if (vendorId) params.vendor_id = vendorId;
-            if (startDate) params.start_date = startDate;
-            if (endDate) params.end_date = endDate;
+            console.log('Collected update form data:', data);
+            return data;
 
-            return this.payloadBuilder.buildContractUpdatePayload(this.currentAccount, params);
         } else if (operation.id === 'state') {
             const params = {
-                modified_by_user_email: form.querySelector('[name="modified_by_user_email"]').value,
-                status: form.querySelector('[name="status"]').value
+                modified_by_user_email: form.querySelector('[name="modified_by_user_email"]')?.value,
+                status: form.querySelector('[name="status"]')?.value
             };
 
             // Add contract IDs
-            const factwiseId = form.querySelector('[name="factwise_contract_id"]').value;
-            const erpId = form.querySelector('[name="ERP_contract_id"]').value;
-            const notes = form.querySelector('[name="notes"]').value;
+            const factwiseId = form.querySelector('[name="factwise_contract_id"]')?.value;
+            const erpId = form.querySelector('[name="ERP_contract_id"]')?.value;
+            const notes = form.querySelector('[name="notes"]')?.value;
 
             if (factwiseId) params.factwise_contract_id = factwiseId;
             if (erpId) params.ERP_contract_id = erpId;

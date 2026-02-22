@@ -269,7 +269,19 @@ class Application {
         this.apiClient = new ApiClient();
         console.log('✓ ApiClient created');
 
-        // 8. UI Controller (depends on all other components)
+        // 8. Item Validator (depends on ApiClient, TokenManager, EnvironmentManager)
+        this.itemValidator = new ItemValidator(
+            this.apiClient,
+            this.tokenManager,
+            this.environmentManager
+        );
+        console.log('✓ ItemValidator created');
+
+        // 9. Item Validation UI (depends on ItemValidator)
+        this.itemValidationUI = new ItemValidationUI(this.itemValidator);
+        console.log('✓ ItemValidationUI created');
+
+        // 10. UI Controller (depends on all other components)
         this.uiController = new UIController(
             this.environmentManager,
             this.accountStore,
@@ -277,7 +289,9 @@ class Application {
             this.moduleRegistry,
             this.payloadBuilder,
             this.curlGenerator,
-            this.apiClient
+            this.apiClient,
+            this.itemValidator,
+            this.itemValidationUI
         );
         console.log('✓ UIController created');
 
