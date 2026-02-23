@@ -143,7 +143,7 @@ class EntityItemSerializer(serializers.Serializer):
     )
 
 
-class ItemBaseInputSerializer(serializers.Serializer):
+class CreateItemBaseInputSerializer(serializers.Serializer):
     created_by_user_email = serializers.EmailField(
         required=True,
         error_messages={
@@ -314,6 +314,171 @@ class ItemBaseInputSerializer(serializers.Serializer):
         return data
 
 
+class UpdateItemBaseInputSerializer(serializers.Serializer):
+    modified_by_user_email = serializers.EmailField(
+        required=True,
+        error_messages={
+            "required": "modified_by_user_email is required.",
+            "invalid": "Enter a valid email address.",
+        },
+    )
+    name = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "name is required.",
+            "blank": "name cannot be blank.",
+        },
+    )
+    factwise_item_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    ERP_item_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    description = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    notes = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    internal_notes = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+    )
+    measurement_units = serializers.ListField(
+        child=serializers.UUIDField(),
+        required=True,
+        min_length=1,
+        error_messages={
+            "required": "measurement_units is required.",
+            "min_length": "At least one measurement_unit is required.",
+        },
+    )
+    item_type = serializers.ChoiceField(
+        choices=states_as_list(EnterpriseItemType),  # type: ignore
+        default=EnterpriseItemType.RAW_MATERIAL.value,
+        error_messages={
+            "invalid_choice": "Invalid item_type.",
+        },
+    )
+    attributes = AttributeInputSerializer(
+        many=True,
+        required=False,
+        default=[],
+    )
+    is_buyer = serializers.BooleanField(
+        required=False,
+        default=False,  # type: ignore
+        error_messages={
+            "invalid": "is_buyer must be true or false.",
+        },
+    )
+    buyer_pricing_information = PricingInformationSerializer(
+        required=False,
+        allow_null=True,
+    )
+    is_seller = serializers.BooleanField(
+        required=False,
+        default=False,  # type: ignore
+        error_messages={
+            "invalid": "is_seller must be true or false.",
+        },
+    )
+    seller_pricing_information = PricingInformationSerializer(
+        required=False,
+        allow_null=True,
+    )
+    custom_ids = CustomIdSerializer(
+        many=True,
+        required=False,
+        default=list,
+    )
+    tags = serializers.ListField(
+        child=serializers.CharField(
+            allow_blank=False,
+            trim_whitespace=True,
+            error_messages={
+                "blank": "Tag cannot be blank.",
+            },
+        ),
+        required=False,
+        default=list,
+        error_messages={
+            "not_a_list": "tags must be a list.",
+        },
+    )
+    entities = EntityItemSerializer(
+        many=True,
+        required=False,
+        default=list,
+    )
+    custom_sections = CustomSectionsOpenAPIInputSerializer(
+        many=True,
+        required=False,
+        default=list,
+    )
+
+    def validate(self, data):  # type: ignore
+        # Validate buyer pricing information
+        buyer_pricing_info = data.get("buyer_pricing_information")
+        if buyer_pricing_info:
+            price = buyer_pricing_info.get("price")
+            currency_code_id = buyer_pricing_info.get("currency_code_id")
+            if price is not None and currency_code_id is None:
+                raise ValidationError(
+                    {
+                        "buyer_pricing_information": "currency_code_id is required when price is specified."
+                    }
+                )
+
+        # Validate seller pricing information
+        seller_pricing_info = data.get("seller_pricing_information")
+        if seller_pricing_info:
+            price = seller_pricing_info.get("price")
+            currency_code_id = seller_pricing_info.get("currency_code_id")
+            if price is not None and currency_code_id is None:
+                raise ValidationError(
+                    {
+                        "seller_pricing_information": "currency_code_id is required when price is specified."
+                    }
+                )
+
+        attributes = data.get("attributes", [])
+        for attribute in attributes:
+            if (
+                (
+                    attribute.get("attribute_name")
+                    and attribute.get("attribute_type")
+                    and not attribute.get("attribute_value", [])
+                )
+                or (
+                    not attribute.get("attribute_name")
+                    and attribute.get("attribute_type")
+                    and attribute.get("attribute_value", [])
+                )
+                or (
+                    attribute.get("attribute_name")
+                    and not attribute.get("attribute_type")
+                    and attribute.get("attribute_value", [])
+                )
+            ):
+                raise ValidationError(
+                    "attribute_name, attribute_type and attribute_value is required"
+                )
+
+        return data
+
+
 class EnterpriseItemListAPI(APIView):
     @extend_schema_serializer(
         many=True,
@@ -411,7 +576,7 @@ class EnterpriseItemListAPI(APIView):
 
 
 class CreateItemAPI(APIView):
-    class InputSerializer(ItemBaseInputSerializer):
+    class InputSerializer(CreateItemBaseInputSerializer):
         class Meta:
             ref_name = "CreateEnterpriseItemAPIInputSerializer"
 
@@ -444,7 +609,7 @@ class BulkCreateItemAPI(APIView):
         validation_errors = []
 
         for index, item_data in enumerate(items):
-            serializer = ItemBaseInputSerializer(data=item_data)
+            serializer = CreateItemBaseInputSerializer(data=item_data)
             if serializer.is_valid():
                 validated_items.append(
                     {"index": index, "data": serializer.validated_data}
@@ -519,95 +684,9 @@ class BulkCreateItemAPI(APIView):
 
 
 class UpdateItemAPI(APIView):
-    class InputSerializer(serializers.Serializer):
-        modified_by_user_email = serializers.EmailField()
-        name = serializers.CharField()
-        ERP_item_code = serializers.CharField(
-            allow_null=True, default=None, required=False
-        )
-        factwise_item_code = serializers.CharField(
-            allow_null=True, default=None, required=False
-        )
-        description = serializers.CharField(
-            allow_blank=True, allow_null=True, default=None
-        )
-        notes = serializers.CharField(allow_blank=True, allow_null=True, default=None)
-        internal_notes = serializers.CharField(
-            allow_blank=True, allow_null=True, default=None
-        )
-        measurement_units = serializers.ListSerializer(
-            child=serializers.UUIDField(), min_length=1
-        )
-        item_type = serializers.ChoiceField(
-            choices=states_as_list(EnterpriseItemType),
-            default=EnterpriseItemType.RAW_MATERIAL.value,
-        )
-        attributes = AttributeInputSerializer(many=True)
-        is_buyer = serializers.BooleanField()
-        buyer_pricing_information = PricingInformationSerializer(allow_null=True)
-        is_seller = serializers.BooleanField()
-        seller_pricing_information = PricingInformationSerializer(allow_null=True)
-        custom_ids = CustomIdSerializer(
-            allow_null=True, required=False, default=[], many=True
-        )
-        tags = serializers.ListField(
-            child=serializers.CharField(), min_length=0, default=[]
-        )
-        entities = EntityItemSerializer(many=True, default=[])
-        custom_sections = CustomSectionsOpenAPIInputSerializer(many=True)
-
+    class InputSerializer(UpdateItemBaseInputSerializer):
         class Meta:
             ref_name = "UpdateItemAPIInputSerializer"
-
-        def validate(self, data):
-            # Validate buyer pricing information
-            buyer_pricing_info = data.get("buyer_pricing_information")
-            if buyer_pricing_info:
-                price = buyer_pricing_info.get("price")
-                currency_code_id = buyer_pricing_info.get("currency_code_id")
-                if price is not None and currency_code_id is None:
-                    raise ValidationError(
-                        {
-                            "buyer_pricing_information": "currency_code_id is required when price is specified."
-                        }
-                    )
-
-            # Validate seller pricing information
-            seller_pricing_info = data.get("seller_pricing_information")
-            if seller_pricing_info:
-                price = seller_pricing_info.get("price")
-                currency_code_id = seller_pricing_info.get("currency_code_id")
-                if price is not None and currency_code_id is None:
-                    raise ValidationError(
-                        {
-                            "seller_pricing_information": "currency_code_id is required when price is specified."
-                        }
-                    )
-
-            attributes = data.get("attributes", [])
-            for attribute in attributes:
-                if (
-                    (
-                        attribute.get("attribute_name")
-                        and attribute.get("attribute_type")
-                        and not attribute.get("attribute_value", [])
-                    )
-                    or (
-                        not attribute.get("attribute_name")
-                        and attribute.get("attribute_type")
-                        and attribute.get("attribute_value", [])
-                    )
-                    or (
-                        attribute.get("attribute_name")
-                        and not attribute.get("attribute_type")
-                        and attribute.get("attribute_value", [])
-                    )
-                ):
-                    raise ValidationError(
-                        "attribute_name, attribute_type and attribute_value is required"
-                    )
-
-            return data
 
     @extend_schema(
         description="Update an item for an enterprise",
@@ -622,6 +701,96 @@ class UpdateItemAPI(APIView):
             enterprise_id=request.enterprise_id, **serializer.validated_data
         )
         return Response(status=status.HTTP_200_OK)
+
+
+class BulkUpdateItemAPI(APIView):
+    def put(self, request):
+        if not isinstance(request.data, dict) or "items" not in request.data:
+            raise ValidationError("'items' must be provided")
+
+        items = request.data["items"]
+        if not isinstance(items, list):
+            raise ValidationError("'items' must be a list")
+
+        validated_items = []
+        validation_errors = []
+
+        for index, item_data in enumerate(items):
+            serializer = UpdateItemBaseInputSerializer(data=item_data)
+            if serializer.is_valid():
+                validated_items.append(
+                    {
+                        "index": index,
+                        "data": serializer.validated_data,
+                        "erp_item_code": item_data.get("ERP_item_code"),
+                    }
+                )
+            else:
+                validation_errors.append(
+                    {
+                        "index": index,
+                        "erp_item_code": item_data.get("ERP_item_code"),
+                        "error": "; ".join(
+                            f"{field}: {', '.join(map(str, msgs))}"
+                            for field, msgs in serializer.errors.items()  # type: ignore
+                        ),
+                    }
+                )
+
+        service_result = item_services.update_items_bulk(
+            enterprise_id=request.enterprise_id,
+            items_payload=[i["data"] for i in validated_items],
+            total_len=len(items),
+            validation_errors=validation_errors,
+        )
+
+        if service_result.get("mode") == "async":
+            return Response(
+                {
+                    "mode": "async",
+                    "status": "accepted",
+                    "task_id": service_result["task_id"],
+                    "total_items": len(items),
+                    "message": "Item count exceeds synchronous limit. Processing asynchronously.",
+                    "status_url": request.build_absolute_uri(
+                        reverse(
+                            "openapi:bulk_task_status",
+                            kwargs={"task_id": service_result["task_id"]},
+                        )
+                    ),
+                },
+                status=status.HTTP_202_ACCEPTED,
+            )
+
+        results = service_result["results"]
+
+        final_failed = validation_errors + [
+            {
+                "index": r["index"],  # type: ignore
+                "erp_item_code": r.get("erp_item_code"),  # type: ignore
+                "error": r["error"],  # type: ignore
+            }
+            for r in results
+            if r["status"] == "failed"  # type: ignore
+        ]
+
+        return Response(
+            {
+                "total": len(items),
+                "successful_count": service_result["success"],
+                "failed_count": len(final_failed),
+                "successful": [
+                    {
+                        "erp_item_code": str(r.get("erp_item_code", "")),  # type: ignore
+                        "item_id": str(r.get("item_id", "")),  # type: ignore
+                    }
+                    for r in results
+                    if r["status"] == "success"  # type: ignore
+                ],
+                "failed": final_failed,
+            },
+            status=status.HTTP_207_MULTI_STATUS,
+        )
 
 
 class UpdateItemStateAPI(APIView):

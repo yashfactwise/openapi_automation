@@ -1,4 +1,5 @@
 import operator
+import uuid
 from datetime import datetime
 from functools import reduce
 
@@ -40,6 +41,7 @@ from organization.structures import EntityItemRequest, PricingInformation
 
 from factwise.additional_costs.structures import AdditionalCostDataClass
 from factwise.exception import BadRequestException, ValidationException
+from factwise.openapi.service import make_json_safe
 from factwise.openapi.services.project_services import JsonbConcat
 
 
@@ -1026,7 +1028,9 @@ def _create_items_bulk_impl(*, enterprise_id, items_payload, task_id=None):
     }
 
 
-@shared_task(bind=True)
+@shared_task(
+    bind=True, name="factwise.openapi.services.item_services.create_items_bulk_task"
+)
 def create_items_bulk_task(self, *, enterprise_id, items_payload, task_id):
     try:
         return _create_items_bulk_impl(
@@ -1042,7 +1046,7 @@ def create_items_bulk_task(self, *, enterprise_id, items_payload, task_id):
         raise
 
 
-ASYNC_ITEM_THRESHOLD = 70
+ASYNC_ITEM_THRESHOLD = 150
 
 
 def create_items_bulk(*, enterprise_id, items_payload, total_len, validation_errors):
@@ -1066,40 +1070,40 @@ def create_items_bulk(*, enterprise_id, items_payload, total_len, validation_err
 
     total = len(items_payload)
 
-    # if total >= ASYNC_ITEM_THRESHOLD:
-    #     task_id = uuid.uuid4()
-    #     BulkTask.objects.create(
-    #         task_id=task_id,
-    #         task_type="item",
-    #         enterprise_id=enterprise_id,
-    #         status="pending",
-    #         total=total_len,
-    #         processed=len(validation_errors),
-    #         success=0,
-    #         failed=len(validation_errors),
-    #         results=[
-    #             {
-    #                 "index": e["index"],
-    #                 "status": "failed",
-    #                 "erp_item_code": e.get("erp_item_code"),
-    #                 "error": e["error"],
-    #             }
-    #             for e in validation_errors
-    #         ],
-    #     )
-    #
-    #     create_items_bulk_task.delay(  # type: ignore
-    #         enterprise_id=enterprise_id,
-    #         items_payload=make_json_safe(items_payload),
-    #         task_id=str(task_id),
-    #     )
-    #
-    #     return {
-    #         "status": "accepted",
-    #         "mode": "async",
-    #         "task_id": str(task_id),
-    #     }
-    #
+    if total >= ASYNC_ITEM_THRESHOLD:
+        task_id = uuid.uuid4()
+        BulkTask.objects.create(
+            task_id=task_id,
+            task_type="item",
+            enterprise_id=enterprise_id,
+            status="pending",
+            total=total_len,
+            processed=len(validation_errors),
+            success=0,
+            failed=len(validation_errors),
+            results=[
+                {
+                    "index": e["index"],
+                    "status": "failed",
+                    "erp_item_code": e.get("erp_item_code"),
+                    "error": e["error"],
+                }
+                for e in validation_errors
+            ],
+        )
+
+        create_items_bulk_task.delay(  # type: ignore
+            enterprise_id=enterprise_id,
+            items_payload=make_json_safe(items_payload),
+            task_id=str(task_id),
+        )
+
+        return {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str(task_id),
+        }
+
     return _create_items_bulk_impl(
         enterprise_id=enterprise_id,
         items_payload=items_payload,
@@ -1151,11 +1155,14 @@ def update_item(
     (
         attribute_names,
         cost_names,
+        tax_names,
         item_attributes,
         buyer_additional_costs,
+        buyer_taxes,
         seller_additional_costs,
-    ) = ([], [], [], [], [])
-    attributes_map, costs_map = {}, {}
+        seller_taxes,
+    ) = ([], [], [], [], [], [], [], [])
+    attributes_map, costs_map, taxes_map = {}, {}, {}
 
     for attribute in attributes:
         attribute_names.append(attribute["attribute_name"])
@@ -1195,6 +1202,11 @@ def update_item(
     for cost in seller_pricing_information["additional_costs"]:
         cost_names.append(cost["name"])
 
+    for tax in buyer_pricing_information["taxes"]:
+        tax_names.append(tax["name"])
+    for tax in seller_pricing_information["taxes"]:
+        tax_names.append(tax["name"])
+
     template = ModuleTemplate.objects.get(
         ~Q(status=TemplateStatus.DEPRECATED.value),
         type=ModuleTemplateType.ITEM_TEMPLATE.value,
@@ -1221,15 +1233,16 @@ def update_item(
         template_section_map=template_section_map,
         template_section_item_map=template_section_item_map,
     )
-    section_items = (
+
+    additional_costs_section_items = (
         module_template_service.get_template_section_items(template_id=template_id)
         .select_related("section", "parent_section_item")
         .filter(parent_section_item__name__in=["Additional costs"])
     )
 
     additional_costs_from_template = {}
-    if section_items:
-        for section_item in section_items:
+    if additional_costs_section_items:
+        for section_item in additional_costs_section_items:
             additional_costs_from_template[section_item.name] = True
 
     costs_not_in_template = []
@@ -1246,19 +1259,62 @@ def update_item(
             f"Additional cost(s) {costs_not_in_template} not found in template"
         )
 
-    if not is_buyer and not is_seller:
-        is_buyer = True
-
     existing_additional_costs = additional_cost_service.get_additional_costs_from_names(
         enterprise_id=enterprise_id, additional_cost_names=cost_names
     )
     for additional_cost in existing_additional_costs:
         costs_map[additional_cost.cost_name] = additional_cost
 
+    taxes_section_items = (
+        module_template_service.get_template_section_items(template_id=template_id)
+        .select_related("section", "parent_section_item")
+        .filter(parent_section_item__name__in=["Taxes"])
+    )
+
+    taxes_from_template = {}
+    if taxes_section_items:
+        for section_item in taxes_section_items:
+            taxes_from_template[section_item.name] = True
+
+    taxes_not_in_template = []
+    for tax in buyer_pricing_information["taxes"]:
+        if tax["name"] not in taxes_from_template:
+            taxes_not_in_template.append(tax["name"])
+
+    for tax in seller_pricing_information["taxes"]:
+        if tax["name"] not in taxes_from_template:
+            taxes_not_in_template.append(tax["name"])
+
+    if taxes_not_in_template:
+        raise ValidationException(
+            f"Tax(es) {taxes_not_in_template} not found in template"
+        )
+
+    existing_taxes = additional_cost_service.get_additional_costs_from_names(
+        enterprise_id=enterprise_id, additional_cost_names=tax_names
+    )
+    for additional_cost in existing_taxes:
+        taxes_map[additional_cost.cost_name] = additional_cost
+
+    if not is_buyer and not is_seller:
+        is_buyer = True
+
     if is_buyer:
         for cost in buyer_pricing_information["additional_costs"]:
             additional_cost = costs_map[cost["name"]]
             buyer_additional_costs.append(
+                AdditionalCostDataClass(
+                    additional_cost_id=additional_cost.additional_cost_id,
+                    cost_name=cost["name"],
+                    cost_type=additional_cost.cost_type,
+                    allocation_type=additional_cost.allocation_type,
+                    cost_source=AdditionalCostSource.ITEM.value,
+                    cost_value=cost["value"],
+                )
+            )
+        for cost in buyer_pricing_information["taxes"]:
+            additional_cost = taxes_map[cost["name"]]
+            buyer_taxes.append(
                 AdditionalCostDataClass(
                     additional_cost_id=additional_cost.additional_cost_id,
                     cost_name=cost["name"],
@@ -1282,16 +1338,30 @@ def update_item(
                     cost_value=cost["value"],
                 )
             )
+        for cost in seller_pricing_information["taxes"]:
+            additional_cost = taxes_map[cost["name"]]
+            seller_taxes.append(
+                AdditionalCostDataClass(
+                    additional_cost_id=additional_cost.additional_cost_id,
+                    cost_name=cost["name"],
+                    cost_type=additional_cost.cost_type,
+                    allocation_type=additional_cost.allocation_type,
+                    cost_source=AdditionalCostSource.ITEM.value,
+                    cost_value=cost["value"],
+                )
+            )
 
     buyer_pricing_info = PricingInformation(
         currency_code_id=buyer_pricing_information["currency_code_id"],
         price=buyer_pricing_information["price"],
         additional_costs=buyer_additional_costs,
+        taxes=buyer_taxes,
     )
     seller_pricing_info = PricingInformation(
         currency_code_id=seller_pricing_information["currency_code_id"],
         price=seller_pricing_information["price"],
         additional_costs=seller_additional_costs,
+        taxes=seller_taxes,
     )
 
     if factwise_item_code:
@@ -1470,6 +1540,586 @@ def update_item(
                 ]
                 entity_vendor_master.status = EntityVendorMasterStatus.PREFERRED.value
                 entity_vendor_master.save()
+
+
+def _update_items_bulk_impl(*, enterprise_id, items_payload, task_id=None):
+    results = []
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="running")
+
+    # ---------------- USERS ----------------
+    emails = {p["modified_by_user_email"] for p in items_payload}
+    user_obj_map = enterprise_user_service.get_users_by_enterprise_emails(
+        enterprise_id=enterprise_id,
+        emails=emails,
+    )
+
+    # ---------------- ENTITIES ----------------
+    input_entity_names = {
+        e["entity_name"] for p in items_payload for e in p.get("entities", [])
+    }
+
+    entity_objs = entity_service.get_entities_via_names(
+        entity_names=list(input_entity_names),
+        enterprise_id=enterprise_id,
+    )
+
+    found_entities = {e.entity_name for e in entity_objs}
+    missing_entities = input_entity_names - found_entities
+    if missing_entities:
+        raise ValidationException(
+            f"Input entity(s) not found in the enterprise: {sorted(missing_entities)}"
+        )
+
+    entity_map = {e.entity_name: e for e in entity_objs}
+
+    # ---------------- ATTRIBUTES ----------------
+    attribute_names = {
+        a["attribute_name"] for p in items_payload for a in p.get("attributes", [])
+    }
+
+    existing_attributes = attribute_service.get_attributes_via_names(
+        enterprise_id=enterprise_id,
+        attribute_names=list(attribute_names),
+    )
+    attribute_map = {a.attribute_name: a for a in existing_attributes}
+
+    # ---------------- TEMPLATE ----------------
+    template = (
+        ModuleTemplate.objects.filter(
+            enterprise_id=enterprise_id,
+            type=ModuleTemplateType.ITEM_TEMPLATE.value,
+            deleted_datetime__isnull=True,
+        )
+        .exclude(status=TemplateStatus.DEPRECATED.value)
+        .first()
+    )
+
+    if not template:
+        raise ValidationException("Active item template not found")
+
+    template_sections = module_template_service.get_template_sections(
+        template_id=template.template_id
+    )
+    template_section_map = {s.alternate_name: s for s in template_sections}
+
+    template_section_items = (
+        module_template_service.get_template_section_items(
+            template_id=template.template_id
+        )
+        .select_related("section", "parent_section_item")
+        .filter(is_builtin_field=False)
+    )
+
+    template_section_item_map = {
+        (i.section.alternate_name, i.alternate_name): i for i in template_section_items
+    }
+
+    additional_cost_items = (
+        module_template_service.get_template_section_items(
+            template_id=template.template_id
+        )
+        .select_related("section", "parent_section_item")
+        .filter(parent_section_item__name__in=["Additional costs"])
+    )
+    additional_costs_from_template = {i.name: True for i in additional_cost_items}
+
+    taxes_items = (
+        module_template_service.get_template_section_items(
+            template_id=template.template_id
+        )
+        .select_related("section", "parent_section_item")
+        .filter(parent_section_item__name__in=["Taxes"])
+    )
+    taxes_from_template = {i.name: True for i in taxes_items}
+
+    # ---------------- ADDITIONAL COST MASTERS ----------------
+    additional_cost_names = set()
+    for p in items_payload:
+        for c in p.get("buyer_pricing_information", {}).get("additional_costs", []):
+            additional_cost_names.add(c["name"])
+        for c in p.get("seller_pricing_information", {}).get("additional_costs", []):
+            additional_cost_names.add(c["name"])
+
+    existing_costs = additional_cost_service.get_additional_costs_from_names(
+        enterprise_id=enterprise_id,
+        additional_cost_names=list(additional_cost_names),
+    )
+    costs_map = {c.cost_name: c for c in existing_costs}
+
+    # ---------------- TAXES MASTERS ----------------
+    taxes_names = set()
+    for p in items_payload:
+        for c in p.get("buyer_pricing_information", {}).get("taxes", []):
+            taxes_names.add(c["name"])
+        for c in p.get("seller_pricing_information", {}).get("taxes", []):
+            taxes_names.add(c["name"])
+
+    existing_taxes = additional_cost_service.get_additional_costs_from_names(
+        enterprise_id=enterprise_id,
+        additional_cost_names=list(taxes_names),
+    )
+    taxes_map = {c.cost_name: c for c in existing_taxes}
+
+    # ---------------- PROCESS EACH ITEM ----------------
+    for index, payload in enumerate(items_payload):
+        try:
+            with transaction.atomic():
+                user = user_obj_map.get(payload["modified_by_user_email"])
+                if not user:
+                    raise ValidationException(
+                        "User email does not exist in the enterprise"
+                    )
+
+                if user.role != UserRole.ADMIN_ROLE.value:
+                    raise ValidationException(
+                        "Only admin users can perform the actions. Please change the user's email"
+                    )
+
+                # -------- Lookup Item --------
+                factwise_code = payload.get("factwise_item_code")
+                if factwise_code:
+                    try:
+                        enterprise_item = item_service.get_enterprise_item_via_code(
+                            enterprise_id=enterprise_id,
+                            code=factwise_code,
+                        )
+                    except EnterpriseItem.DoesNotExist:
+                        raise ValidationException(
+                            "Item with Factwise item Code does not exist"
+                        )
+                else:
+                    enterprise_item = item_service.validate_and_get_enterprise_item(
+                        enterprise_id=enterprise_id,
+                        ERP_item_code=payload.get("ERP_item_code"),
+                    )
+
+                # -------- Buyer / Seller --------
+                is_buyer = payload.get("is_buyer", True)
+                is_seller = payload.get("is_seller", False)
+                if not is_buyer and not is_seller:
+                    is_buyer = True
+
+                # -------- Attributes --------
+                item_attributes = []
+                for attr in payload.get("attributes", []):
+                    attr_obj = attribute_map.get(attr["attribute_name"])
+                    if not attr_obj:
+                        raise ValidationException(
+                            f"Attribute {attr['attribute_name']} not found in spec directory"
+                        )
+
+                    item_attributes.append(
+                        AttributeLinkageInputStruct(
+                            attribute_name=attr_obj.attribute_name,
+                            attribute_type=attr_obj.attribute_type,
+                            attribute_id=attr_obj.attribute_id,
+                            attribute_values=[
+                                AttributeValueLinkageInputStruct(value=v["value"])
+                                for v in attr["attribute_value"]
+                            ],
+                        )
+                    )
+
+                # -------- Additional Costs --------
+                buyer_costs, seller_costs = [], []
+
+                buyer_pi = payload.get("buyer_pricing_information")
+                seller_pi = payload.get("seller_pricing_information")
+
+                if is_buyer and buyer_pi:
+                    for cost in buyer_pi.get("additional_costs", []):
+                        if cost["name"] not in additional_costs_from_template:
+                            raise ValidationException(
+                                f"Additional cost {cost['name']} not found in template"
+                            )
+                        c = costs_map[cost["name"]]
+                        buyer_costs.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=c.additional_cost_id,
+                                cost_name=c.cost_name,
+                                cost_type=c.cost_type,
+                                allocation_type=c.allocation_type,
+                                cost_source=AdditionalCostSource.ITEM.value,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                if is_seller and seller_pi:
+                    for cost in seller_pi.get("additional_costs", []):
+                        if cost["name"] not in additional_costs_from_template:
+                            raise ValidationException(
+                                f"Additional cost {cost['name']} not found in template"
+                            )
+                        c = costs_map[cost["name"]]
+                        seller_costs.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=c.additional_cost_id,
+                                cost_name=c.cost_name,
+                                cost_type=c.cost_type,
+                                allocation_type=c.allocation_type,
+                                cost_source=AdditionalCostSource.ITEM.value,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                # -------- Taxes --------
+                buyer_taxes, seller_taxes = [], []
+
+                buyer_pi = payload.get("buyer_pricing_information")
+                seller_pi = payload.get("seller_pricing_information")
+
+                if is_buyer and buyer_pi:
+                    for cost in buyer_pi.get("taxes", []):
+                        if cost["name"] not in taxes_from_template:
+                            raise ValidationException(
+                                f"Tax {cost['name']} not found in template"
+                            )
+                        c = taxes_map[cost["name"]]
+                        buyer_taxes.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=c.additional_cost_id,
+                                cost_name=c.cost_name,
+                                cost_type=c.cost_type,
+                                allocation_type=c.allocation_type,
+                                cost_source=AdditionalCostSource.ITEM.value,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                if is_seller and seller_pi:
+                    for cost in seller_pi.get("taxes", []):
+                        if cost["name"] not in taxes_from_template:
+                            raise ValidationException(
+                                f"Tax {cost['name']} not found in template"
+                            )
+                        c = taxes_map[cost["name"]]
+                        seller_taxes.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=c.additional_cost_id,
+                                cost_name=c.cost_name,
+                                cost_type=c.cost_type,
+                                allocation_type=c.allocation_type,
+                                cost_source=AdditionalCostSource.ITEM.value,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                buyer_pricing_info = (
+                    PricingInformation(
+                        currency_code_id=buyer_pi["currency_code_id"],
+                        price=buyer_pi["price"],
+                        additional_costs=buyer_costs,
+                        taxes=buyer_taxes,
+                    )
+                    if is_buyer and buyer_pi
+                    else None
+                )
+
+                seller_pricing_info = (
+                    PricingInformation(
+                        currency_code_id=seller_pi["currency_code_id"],
+                        price=seller_pi["price"],
+                        additional_costs=seller_costs,
+                        taxes=seller_taxes,
+                    )
+                    if is_seller and seller_pi
+                    else None
+                )
+
+                # -------- Custom Sections --------
+                custom_sections = (
+                    custom_services.validate_and_autofill_custom_sections_from_template(
+                        custom_sections=payload.get("custom_sections", []),
+                        template_section_map=template_section_map,
+                        template_section_item_map=template_section_item_map,
+                    )
+                )
+
+                # -------- Update Item --------
+                item_service.admin_update_enterprise_item(
+                    user_id=user.user_id,
+                    enterprise_id=enterprise_id,
+                    item_id=enterprise_item.enterprise_item_id,
+                    code=enterprise_item.code,
+                    name=payload["name"],
+                    description=payload.get("description"),
+                    notes=payload.get("notes"),
+                    internal_notes=payload.get("internal_notes"),
+                    measurement_units=payload.get("measurement_units"),
+                    attributes=item_attributes,
+                    item_type=payload["item_type"],
+                    is_buyer=is_buyer,
+                    is_seller=is_seller,
+                    custom_ids={"custom_ids": payload.get("custom_ids", [])},
+                    custom_sections=custom_sections,
+                    buyer_pricing_information=buyer_pricing_info,
+                    seller_pricing_information=seller_pricing_info,
+                    tags=payload.get("tags", []),
+                    status=EnterpriseItemState.ITEM_ACTIVE.value,
+                )
+
+                # ---------------- VENDOR + ENTITY ----------------
+
+                entity_item_vendors = []
+                fw_vendor_codes = []
+                erp_vendor_codes = []
+                erp_vendor_code_list = []
+
+                vendor_obj_map = {}
+                entity_item_vendor_obj_map = {}
+
+                for entity_item in payload.get("entities", []):
+                    entity_name = entity_item["entity_name"]
+
+                    for vendor_code in entity_item.get(
+                        "factwise_preferred_vendors", []
+                    ):
+                        fw_vendor_codes.append(vendor_code)
+                        entity_item_vendors.append((entity_name, vendor_code))
+
+                    for erp_code in entity_item.get("ERP_preferred_vendors", []):
+                        vendor = vendor_master_service.get_enterprise_vendor_master_via_ERP_vendor_code(
+                            buyer_enterprise_id=enterprise_id,
+                            ERP_vendor_code=erp_code,
+                        )
+                        erp_vendor_codes.append(erp_code)
+                        erp_vendor_code_list.append(vendor.vendor_code)
+                        entity_item_vendors.append((entity_name, vendor.vendor_code))
+
+                if fw_vendor_codes:
+                    vendors_in = vendor_master_service.get_enterprise_vendor_master_via_code_list(
+                        vendor_code_list=fw_vendor_codes,
+                        buyer_enterprise_id=enterprise_id,
+                    )
+                else:
+                    vendors_in = vendor_master_service.get_enterprise_vendor_master_via_ERP_vendor_code_list(
+                        ERP_vendor_code_list=erp_vendor_codes,
+                        buyer_enterprise_id=enterprise_id,
+                    )
+
+                for vendor in vendors_in:
+                    vendor_obj_map[vendor.vendor_code] = vendor
+
+                if entity_item_vendors:
+                    query = reduce(
+                        operator.or_,
+                        (
+                            Q(
+                                enterprise_vendor_master=vendor_obj_map[vendor_code],
+                                buyer_entity_id=entity_map[entity].entity_id,
+                                enterprise_item_id=enterprise_item.enterprise_item_id,
+                                deleted_datetime__isnull=True,
+                            )
+                            for entity, vendor_code in entity_item_vendors
+                        ),
+                        Q(),
+                    )
+
+                    existing = EntityVendorMaster.objects.filter(query).select_related(
+                        "buyer_entity", "enterprise_vendor_master"
+                    )
+
+                    for evm in existing:
+                        entity_item_vendor_obj_map[
+                            (
+                                evm.buyer_entity.entity_name,
+                                evm.enterprise_vendor_master.vendor_code,
+                            )
+                        ] = evm
+
+                # -------- Entity Activation --------
+                active_entity_ids = {
+                    entity_map[e["entity_name"]].entity_id
+                    for e in payload.get("entities", [])
+                }
+
+                all_entities = entity_service.get_entities_count(enterprise_id)
+                entity_item_list = [
+                    EntityItemRequest(
+                        entity_id=e.entity_id,
+                        item_status=(
+                            EntityItemState.ITEM_ACTIVE.value
+                            if e.entity_id in active_entity_ids
+                            else EntityItemState.ITEM_INACTIVE.value
+                        ),
+                    )
+                    for e in all_entities
+                ]
+
+                item_service.admin_update_entity_item(
+                    user_id=user.user_id,
+                    item_id=enterprise_item.enterprise_item_id,
+                    entity_item_list=entity_item_list,
+                )
+
+                # ---------------- SAVE / UPDATE VENDORS ----------------
+                for entity_item in payload.get("entities", []):
+                    entity_name = entity_item["entity_name"]
+                    buyer_entity_id = entity_map[entity_name].entity_id
+
+                    for vendor_code in entity_item.get(
+                        "factwise_preferred_vendors", []
+                    ):
+                        key = (entity_name, vendor_code)
+
+                        if key not in entity_item_vendor_obj_map:
+                            evm = vendor_master_service.save_vendor_buyer_entity_item(
+                                user_id=user.user_id,
+                                enterprise_vendor_master=vendor_obj_map[vendor_code],
+                                buyer_entity_id=buyer_entity_id,
+                                enterprise_item_id=enterprise_item.enterprise_item_id,
+                                status=EntityVendorMasterStatus.PREFERRED.value,
+                            )
+                            evm.save()
+                        else:
+                            evm = entity_item_vendor_obj_map[key]
+                            evm.status = EntityVendorMasterStatus.PREFERRED.value
+                            evm.save()
+
+                    for vendor_code in erp_vendor_code_list:
+                        key = (entity_name, vendor_code)
+
+                        if key not in entity_item_vendor_obj_map:
+                            evm = vendor_master_service.save_vendor_buyer_entity_item(
+                                user_id=user.user_id,
+                                enterprise_vendor_master=vendor_obj_map[vendor_code],
+                                buyer_entity_id=buyer_entity_id,
+                                enterprise_item_id=enterprise_item.enterprise_item_id,
+                                status=EntityVendorMasterStatus.PREFERRED.value,
+                            )
+                            evm.save()
+                        else:
+                            evm = entity_item_vendor_obj_map[key]
+                            evm.status = EntityVendorMasterStatus.PREFERRED.value
+                            evm.save()
+
+            results.append(
+                {
+                    "index": index,
+                    "status": "success",
+                    "erp_item_code": enterprise_item.ERP_item_code,
+                    "item_code": enterprise_item.code,
+                    "item_id": enterprise_item.enterprise_item_id,
+                }
+            )
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    success=F("success") + 1,
+                    results=JsonbConcat(
+                        F("results"), Value([results[-1]], output_field=JSONField())
+                    ),
+                )
+
+        except Exception as exc:
+            failure = {
+                "index": index,
+                "status": "failed",
+                "erp_item_code": payload.get("ERP_item_code"),
+                "error": str(exc),
+            }
+            results.append(failure)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    failed=F("failed") + 1,
+                    results=JsonbConcat(
+                        F("results"), Value([failure], output_field=JSONField())
+                    ),
+                )
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="success")
+
+    return {
+        "total": len(items_payload),
+        "success": sum(r["status"] == "success" for r in results),
+        "failed": sum(r["status"] == "failed" for r in results),
+        "results": results,
+    }
+
+
+@shared_task(
+    bind=True, name="factwise.openapi.services.item_services.update_items_bulk_task"
+)
+def update_items_bulk_task(self, *, enterprise_id, items_payload, task_id):
+    try:
+        return _update_items_bulk_impl(
+            enterprise_id=enterprise_id,
+            items_payload=items_payload,
+            task_id=task_id,
+        )
+    except Exception as exc:
+        BulkTask.objects.filter(task_id=task_id).update(
+            status="failed",
+            error=str(exc),
+        )
+        raise
+
+
+def update_items_bulk(*, enterprise_id, items_payload, total_len, validation_errors):
+    """
+    Returns:
+    - Sync:
+        {
+            "total": int,
+            "success": int,
+            "failed": int,
+            "results": [...]
+        }
+
+    - Async:
+        {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str,
+        }
+    """
+
+    total = len(items_payload)
+
+    if total >= ASYNC_ITEM_THRESHOLD:
+        task_id = uuid.uuid4()
+        BulkTask.objects.create(
+            task_id=task_id,
+            task_type="item",
+            enterprise_id=enterprise_id,
+            status="pending",
+            total=total_len,
+            processed=len(validation_errors),
+            success=0,
+            failed=len(validation_errors),
+            results=[
+                {
+                    "index": e["index"],
+                    "status": "failed",
+                    "erp_item_code": e.get("erp_item_code"),
+                    "error": e["error"],
+                }
+                for e in validation_errors
+            ],
+        )
+
+        update_items_bulk_task.delay(  # type: ignore
+            enterprise_id=enterprise_id,
+            items_payload=make_json_safe(items_payload),
+            task_id=str(task_id),
+        )
+
+        return {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str(task_id),
+        }
+
+    return _update_items_bulk_impl(
+        enterprise_id=enterprise_id,
+        items_payload=items_payload,
+    )
 
 
 @transaction.atomic

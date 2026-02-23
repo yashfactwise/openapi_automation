@@ -141,9 +141,9 @@ class ModuleRegistry {
                         id: "bulk_create",
                         name: "Items Bulk Create",
                         description: "Create multiple items",
-                        endpoint: "/openapi/items/bulk-create/",
+                        endpoint: "/dev/api/items/bulk-create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "update",

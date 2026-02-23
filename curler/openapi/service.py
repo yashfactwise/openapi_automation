@@ -1,11 +1,14 @@
 import secrets
 import string
 import uuid
-from datetime import date, datetime
+from dataclasses import asdict, is_dataclass
+from datetime import date, datetime, time
+from decimal import Decimal
+from enum import Enum
 
 from additional_costs.structures import AdditionalCostDataClass
 from django.db import transaction
-from django.db.models import Func, JSONField
+from django.db.models import Func, JSONField, Model, QuerySet
 from module_templates.types import ModuleTemplateSectionItemLevel
 from openapi.models import BulkTask, CustomTokens
 from organization.services import enterprise_user_service
@@ -103,15 +106,31 @@ def _format_costs(*, additional_costs, taxes, discounts, costs_map, level):
 
 
 def make_json_safe(obj):
+    if obj is None:
+        return None
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
     if isinstance(obj, uuid.UUID):
         return str(obj)
-    if isinstance(obj, dict):
-        return {k: make_json_safe(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [make_json_safe(v) for v in obj]
-    if isinstance(obj, (datetime, date)):
+    if isinstance(obj, Decimal):
+        return str(obj)
+    if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
-    return obj
+    if isinstance(obj, Enum):
+        return obj.value
+    if isinstance(obj, (bytes, bytearray)):
+        return obj.decode("utf-8", errors="replace")
+    if isinstance(obj, (list, tuple, set, frozenset)):
+        return [make_json_safe(v) for v in obj]
+    if isinstance(obj, dict):
+        return {str(k): make_json_safe(v) for k, v in obj.items()}
+    if is_dataclass(obj):
+        return make_json_safe(asdict(obj))
+    if isinstance(obj, QuerySet):
+        return [make_json_safe(v) for v in obj]
+    if isinstance(obj, Model):
+        return obj.pk
+    return str(obj)
 
 
 class JsonbConcat(Func):

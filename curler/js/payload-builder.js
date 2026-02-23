@@ -663,15 +663,23 @@ class PayloadBuilder {
      * @returns {Object} Placeholder payload for Phase 1
      */
     buildItemsBulkCreatePayload(account, params) {
-        // Phase 1: Return placeholder data
-        return {
-            _placeholder: true,
-            _phase: "Phase 3+",
-            _operation: "Items Bulk Create",
-            _message: "This payload will be implemented in Phase 3+",
-            enterprise_id: account?.enterprise_id || "placeholder_enterprise",
-            buyer_id: account?.buyer_id || "placeholder_buyer"
-        };
+        // Phase 3: IMPLEMENTED
+        // params.items is an array of item objects collected from the form
+        const items = params.items || [];
+
+        if (items.length === 0) {
+            throw new Error('At least one item is required for bulk create');
+        }
+
+        // Validate each item has name
+        items.forEach((item, i) => {
+            if (!item.name) {
+                throw new Error(`Item ${i + 1}: name is required`);
+            }
+        });
+
+        // Bulk-create endpoint expects { items: [...] }
+        return { items };
     }
 
     /**

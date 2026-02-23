@@ -121,6 +121,10 @@ item_urls = [
         item_views.UpdateItemAPI.as_view(),
     ),
     path(
+        "items/bulk-update/",
+        item_views.BulkUpdateItemAPI.as_view(),
+    ),
+    path(
         "items/update/state/",
         item_views.UpdateItemStateAPI.as_view(),
     ),

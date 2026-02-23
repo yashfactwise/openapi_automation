@@ -53,6 +53,7 @@ class UIController {
             bottomBar: document.querySelector('.bottom-bar'),
             btnReset: document.getElementById('btn-reset'),
             btnGenerate: document.getElementById('btn-generate'),
+            btnGenerateScript: document.getElementById('btn-generate-script'),
             btnExecute: document.getElementById('btn-execute'),
 
             // Panel Actions
@@ -107,6 +108,7 @@ class UIController {
         // Footer Actions
         if (this.elements.btnReset) this.elements.btnReset.addEventListener('click', () => this.handleReset());
         if (this.elements.btnGenerate) this.elements.btnGenerate.addEventListener('click', () => this.handleGenerate());
+        if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.addEventListener('click', () => this.handleGenerateScript());
         if (this.elements.btnExecute) this.elements.btnExecute.addEventListener('click', () => this.handleExecute());
 
         // Form Validation Monitoring
@@ -839,6 +841,120 @@ class UIController {
                     <textarea name="notes" class="form-textarea" rows="3" placeholder="Reason for termination..."></textarea>
                 </div>
             `;
+        } else if (module.id === 'items' && operation.id === 'bulk_create') {
+            bodyInputsHtml = `
+                <!-- ① Shared Config -->
+                <div class="cc-config-box">
+                    <p class="cc-config-box-title">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        Shared Configuration
+                    </p>
+                    <div class="cc-config-grid">
+                        <!-- Column 1: Identifiers -->
+                        <div class="cc-config-panel">
+                            <span class="cc-config-panel-label">Shared Fields (applied to all items)</span>
+                            <div class="form-group" style="margin-top:8px;">
+                                <label>Created By Email *</label>
+                                <input type="email" name="bi_created_by" class="input-field" required
+                                    value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Measurement Unit ID *</label>
+                                    <input type="text" name="bi_measurement_unit_id" class="input-field" required
+                                        placeholder="66d42245-5a0d-4801-..." value="66d42245-5a0d-4801-8cb2-43bf627f7cbe">
+                                </div>
+                                <div class="form-group">
+                                    <label>Currency Code ID *</label>
+                                    <input type="text" name="bi_currency_code_id" class="input-field" required
+                                        placeholder="0f6c64c3-0ec3-..." value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Item Type</label>
+                                    <select name="bi_item_type" class="input-field">
+                                        <option value="RAW_MATERIAL" selected>RAW_MATERIAL</option>
+                                        <option value="FINISHED_GOODS">FINISHED_GOODS</option>
+                                        <option value="SERVICES">SERVICES</option>
+                                        <option value="CAPITAL_GOODS">CAPITAL_GOODS</option>
+                                        <option value="CONSUMABLES">CONSUMABLES</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status</label>
+                                    <select name="bi_status" class="input-field">
+                                        <option value="ACTIVE" selected>ACTIVE</option>
+                                        <option value="INACTIVE">INACTIVE</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Entity Name</label>
+                                    <input type="text" name="bi_entity_name" class="input-field" value="FactWise">
+                                </div>
+                                <div class="form-group">
+                                    <label>Preferred Vendor Code</label>
+                                    <input type="text" name="bi_preferred_vendor" class="input-field" value="V0029" placeholder="V0029">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Column 2: Toggles + Pricing Summary -->
+                        <div class="cc-config-panel">
+                            <span class="cc-config-panel-label">Buyer / Seller Pricing</span>
+                            <div class="cc-toggles-grid" style="margin-top:8px;">
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="bi-toggle-buyer" checked>
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Is Buyer</span>
+                                </label>
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="bi-toggle-seller" checked>
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Is Seller</span>
+                                </label>
+                            </div>
+                            <div class="form-row" style="margin-top:10px;">
+                                <div class="form-group">
+                                    <label>Buyer Price</label>
+                                    <input type="number" name="bi_buyer_price" class="input-field" value="1000" step="0.01">
+                                </div>
+                                <div class="form-group">
+                                    <label>Seller Price</label>
+                                    <input type="number" name="bi_seller_price" class="input-field" value="1200" step="0.01">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Tags (comma-separated)</label>
+                                <input type="text" name="bi_tags" class="input-field" value="API, NG_TEST" placeholder="API, NG_TEST">
+                            </div>
+                            <div class="form-group">
+                                <label>HSN Code (custom_ids)</label>
+                                <input type="text" name="bi_hsn" class="input-field" value="8471" placeholder="8471">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ② Items List Header -->
+                <div style="display:flex; align-items:center; justify-content:space-between; margin: 20px 0 10px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+                    <h4 style="margin:0; color:#334155;">📦 Items <span id="bulk-item-count" style="font-size:13px;font-weight:400;color:#64748b;"></span></h4>
+                    <button type="button" class="btn-secondary" onclick="window.uiController._addBulkItem()"
+                        style="font-size:13px; padding:6px 14px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">
+                        + Add Item
+                    </button>
+                </div>
+
+                <!-- ③ Item Cards Container -->
+                <div id="bulk-items-container"></div>
+            `;
+            // After HTML is set we'll add first item automatically (done in renderFormInputs post-inject)
         } else {
             // Generic placeholder for other operations
             bodyInputsHtml = `
@@ -873,6 +989,301 @@ class UIController {
             this._setupContractCreateListeners();
         } else if (module.id === 'contract' && operation.id === 'update') {
             this._setupContractUpdateListeners();
+        } else if (module.id === 'items' && operation.id === 'bulk_create') {
+            // Show the Generate Script button only for this operation
+            if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.classList.remove('hidden');
+            // Auto-add first item
+            this._addBulkItem();
+        }
+
+        // Hide Generate Script button on non-applicable operations
+        if (!(module.id === 'items' && operation.id === 'bulk_create')) {
+            if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.classList.add('hidden');
+        }
+    }
+
+    // ============================================================
+    // ITEMS BULK CREATE HELPERS
+    // ============================================================
+
+    /**
+     * Adds a new item card to the bulk-items-container.
+     * Each card has the per-item differentiating fields; shared fields
+     * come from the config box at the top of the form.
+     */
+    _addBulkItem() {
+        const container = document.getElementById('bulk-items-container');
+        if (!container) return;
+
+        const itemIndex = container.querySelectorAll('.bi-item-card').length;
+
+        const card = document.createElement('div');
+        card.className = 'bi-item-card cc-item-card';
+        card.dataset.itemIndex = itemIndex;
+        card.innerHTML = `
+            <div class="cc-item-card-header">
+                <span class="cc-item-label">Item ${itemIndex + 1}</span>
+                <button type="button" class="btn-remove-item"
+                    onclick="this.closest('.bi-item-card').remove(); window.uiController._refreshBulkItemLabels();"
+                    title="Remove item">&times;</button>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" name="bi_item_${itemIndex}_name" class="input-field" required
+                        placeholder="e.g. Steel Bucket" value="Test Item ${itemIndex + 1}">
+                </div>
+                <div class="form-group">
+                    <label>ERP Item Code</label>
+                    <input type="text" name="bi_item_${itemIndex}_erp_code" class="input-field"
+                        placeholder="ERP-ITEM-001" value="ERP-ITEM-00${itemIndex + 1}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Factwise Item Code</label>
+                    <input type="text" name="bi_item_${itemIndex}_fw_code" class="input-field"
+                        placeholder="BKT-1088" value="BKT-${1088 + itemIndex}">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" name="bi_item_${itemIndex}_description" class="input-field"
+                        placeholder="Item description" value="Item created via open API">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" name="bi_item_${itemIndex}_notes" class="input-field"
+                        placeholder="Notes" value="Testing taxes and additional costs">
+                </div>
+                <div class="form-group">
+                    <label>Internal Notes</label>
+                    <input type="text" name="bi_item_${itemIndex}_internal_notes" class="input-field"
+                        placeholder="Internal notes" value="Internal testing item">
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+
+        // Update counter
+        this._refreshBulkItemLabels();
+    }
+
+    /** Re-numbers item cards after removal */
+    _refreshBulkItemLabels() {
+        const container = document.getElementById('bulk-items-container');
+        if (!container) return;
+        const cards = container.querySelectorAll('.bi-item-card');
+        cards.forEach((card, i) => {
+            const label = card.querySelector('.cc-item-label');
+            if (label) label.textContent = `Item ${i + 1}`;
+        });
+        const counter = document.getElementById('bulk-item-count');
+        if (counter) counter.textContent = `(${cards.length} item${cards.length !== 1 ? 's' : ''})`;
+    }
+
+    /**
+     * Collects per-item data + shared config from the form
+     * and returns { items: [...] } ready for buildItemsBulkCreatePayload.
+     */
+    _buildItemsBulkCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+        const getNum = (name) => parseFloat(get(name)) || 0;
+        const getChecked = (id) => !!document.getElementById(id)?.checked;
+
+        // Shared config
+        const createdBy = get('bi_created_by');
+        const measureUnitId = get('bi_measurement_unit_id');
+        const currencyId = get('bi_currency_code_id');
+        const itemType = get('bi_item_type') || 'RAW_MATERIAL';
+        const status = get('bi_status') || 'ACTIVE';
+        const entityName = get('bi_entity_name') || 'FactWise';
+        const prefVendor = get('bi_preferred_vendor');
+        const isBuyer = getChecked('bi-toggle-buyer');
+        const isSeller = getChecked('bi-toggle-seller');
+        const buyerPrice = getNum('bi_buyer_price');
+        const sellerPrice = getNum('bi_seller_price');
+        const tagsRaw = get('bi_tags');
+        const hsnCode = get('bi_hsn');
+
+        const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+        const pricingBlock = (price) => ({
+            price,
+            currency_code_id: currencyId,
+            additional_costs: [],
+            taxes: []
+        });
+
+        const entityBlock = {
+            entity_name: entityName,
+            ERP_preferred_vendors: [],
+            factwise_preferred_vendors: prefVendor ? [prefVendor] : []
+        };
+
+        const customIds = hsnCode ? [{ name: 'HSN', value: hsnCode }] : [];
+
+        // Per-item cards
+        const container = document.getElementById('bulk-items-container');
+        const cards = container ? container.querySelectorAll('.bi-item-card') : [];
+
+        const items = [];
+        cards.forEach((card, i) => {
+            const cardGet = (suffix) => card.querySelector(`[name="bi_item_${i}_${suffix}"]`)?.value?.trim() || '';
+
+            const item = {
+                created_by_user_email: createdBy,
+                name: cardGet('name'),
+                ERP_item_code: cardGet('erp_code') || null,
+                factwise_item_code: cardGet('fw_code') || null,
+                description: cardGet('description'),
+                notes: cardGet('notes'),
+                internal_notes: cardGet('internal_notes'),
+                measurement_units: measureUnitId ? [measureUnitId] : [],
+                item_type: itemType,
+                status,
+                attributes: [],
+                is_buyer: isBuyer,
+                is_seller: isSeller,
+                custom_ids: customIds,
+                tags,
+                entities: [entityBlock],
+                custom_sections: []
+            };
+
+            if (isBuyer) item.buyer_pricing_information = pricingBlock(buyerPrice);
+            if (isSeller) item.seller_pricing_information = pricingBlock(sellerPrice);
+
+            items.push(item);
+        });
+
+        return this.payloadBuilder.buildItemsBulkCreatePayload(this.currentAccount, { items });
+    }
+
+    /**
+     * Generates a Postman pre-request script that dynamically builds the bulk payload.
+     * Reads shared config + first item card as the template, then generates a loop.
+     */
+    _generateBulkItemScript() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+        const getNum = (name) => parseFloat(get(name)) || 0;
+        const getChecked = (id) => !!document.getElementById(id)?.checked;
+
+        const createdBy = get('bi_created_by');
+        const measureUnitId = get('bi_measurement_unit_id');
+        const currencyId = get('bi_currency_code_id');
+        const itemType = get('bi_item_type') || 'RAW_MATERIAL';
+        const status = get('bi_status') || 'ACTIVE';
+        const entityName = get('bi_entity_name') || 'FactWise';
+        const prefVendor = get('bi_preferred_vendor');
+        const isBuyer = getChecked('bi-toggle-buyer');
+        const isSeller = getChecked('bi-toggle-seller');
+        const buyerPrice = getNum('bi_buyer_price');
+        const sellerPrice = getNum('bi_seller_price');
+        const tagsRaw = get('bi_tags');
+        const hsnCode = get('bi_hsn');
+
+        const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+        const container = document.getElementById('bulk-items-container');
+        const cards = container ? container.querySelectorAll('.bi-item-card') : [];
+        const count = cards.length || 10;
+
+        // Build the generateItem function body as a string
+        let buyerBlock = '';
+        let sellerBlock = '';
+        if (isBuyer) {
+            buyerBlock = `
+        is_buyer: true,
+        buyer_pricing_information: {
+            price: ${buyerPrice},
+            currency_code_id: "${currencyId}",
+            additional_costs: [],
+            taxes: []
+        },`;
+        }
+        if (isSeller) {
+            sellerBlock = `
+        is_seller: true,
+        seller_pricing_information: {
+            price: ${sellerPrice},
+            currency_code_id: "${currencyId}",
+            additional_costs: [],
+            taxes: []
+        },`;
+        }
+
+        const tagsLine = JSON.stringify(tags);
+        const customIds = hsnCode ? `[{ name: "HSN", value: "${hsnCode}" }]` : '[]';
+
+        const script = `// Postman Pre-request Script — Items Bulk Create
+// Generated by The cURLer at ${new Date().toISOString()}
+// Change startIndex and endIndex to control the range of items.
+
+const startIndex = 1;
+const endIndex = ${count}; // total items to generate
+
+function generateItem(i) {
+    return {
+        created_by_user_email: "${createdBy}",
+        name: \`Test Item Bulk \${i}\`,
+        ERP_item_code: \`ERP-ITEM-BULK-\${Date.now()}-\${i}\`,
+        factwise_item_code: \`BKT-BULK-\${Date.now()}-\${i}\`,
+        description: "Item created via open API",
+        notes: "Testing taxes and additional costs",
+        internal_notes: "Internal testing item",
+        measurement_units: ["${measureUnitId}"],
+        item_type: "${itemType}",
+        status: "${status}",
+        attributes: [],${buyerBlock}${sellerBlock}
+        custom_ids: ${customIds},
+        tags: ${tagsLine},
+        entities: [
+            {
+                entity_name: "${entityName}",
+                ERP_preferred_vendors: [],
+                factwise_preferred_vendors: ["${prefVendor}"]
+            }
+        ],
+        custom_sections: []
+    };
+}
+
+const items = [];
+for (let i = startIndex; i <= endIndex; i++) {
+    items.push(generateItem(i));
+}
+
+pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
+// In your request body use: {{bulkPayload}}
+`;
+        return script;
+    }
+
+    /**
+     * Handles the "Generate Script" button click.
+     * Shows the generated Postman script in the cURL output panel.
+     */
+    handleGenerateScript() {
+        try {
+            const script = this._generateBulkItemScript();
+
+            // Show in the cURL panel (re-using it for script output)
+            const panel = this.elements.actionsSection;
+            const display = this.elements.curlDisplay;
+            const header = panel.querySelector('h3');
+            if (header) header.textContent = 'Generated Postman Script';
+
+            display.innerHTML = `<pre><code>${this._escapeHtml(script)}</code></pre>`;
+            panel.classList.remove('hidden');
+            this.elements.responseSection.classList.add('hidden');
+
+            panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (err) {
+            this._displayError(err.message);
         }
     }
 
@@ -2054,6 +2465,8 @@ class UIController {
             let payload = null;
             if (this.currentModule === 'contract') {
                 payload = this._buildContractPayload(op);
+            } else if (this.currentModule === 'items' && this.currentOperation === 'bulk_create') {
+                payload = this._buildItemsBulkCreatePayload();
             } else {
                 // For non-Contract operations, use form inputs (Phase 1 behavior)
                 payload = this._collectFormData();
@@ -2627,6 +3040,12 @@ class UIController {
         if (this.currentModule === 'contract') {
             try {
                 body = this._buildContractPayload(op);
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'items' && this.currentOperation === 'bulk_create') {
+            try {
+                body = this._buildItemsBulkCreatePayload();
             } catch (error) {
                 return `Error: ${error.message}`;
             }

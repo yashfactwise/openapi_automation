@@ -1774,6 +1774,15 @@ def update_purchase_order(
             notes=None,
             purchase_order_items=[],
         )
+
+    # Delete pricing entries for ALL previous revisions, then sync new PO
+    _queue_po_revisions_pricing_delete(
+        base_purchase_order_id=old_purchase_order.base_purchase_order_id,
+        enterprise_id=enterprise_id,
+        exclude_po_id=purchase_order_id,
+    )
+    _queue_po_pricing_sync(str(purchase_order_id), str(enterprise_id))
+
     return purchase_order.custom_purchase_order_id
 
 
@@ -1890,6 +1899,14 @@ def update_purchase_order_status(
                 quota_type=QuantityType.FEATURE_PO_EVENTS_COUNT.value,
                 value_change=-1,
             )
+
+    # Explicit pricing repo sync/delete based on new status
+    from pricing_repository.sync_services.po_sync import POSyncService
+    active_statuses = POSyncService.ACTIVE_PO_STATUSES
+    if next_status in active_statuses:
+        _queue_po_pricing_sync(str(purchase_order.purchase_order_id), str(purchase_order.buyer_enterprise_id))
+    else:
+        _queue_po_pricing_delete(str(purchase_order.purchase_order_id), str(purchase_order.buyer_enterprise_id))
 
 
 @transaction.atomic
@@ -2294,3 +2311,50 @@ def _queue_po_pricing_sync(purchase_order_id, enterprise_id):
         print(f"[OPENAPI-SYNC] ERROR queueing PO sync: {e}", flush=True)
         import traceback
         traceback.print_exc()
+
+
+def _queue_po_pricing_delete(purchase_order_id, enterprise_id):
+    """Queue pricing repo delete for a PO after transaction commits."""
+    try:
+        from pricing_repository.tasks import sync_po_all_items
+        _pid = str(purchase_order_id)
+        _eid = str(enterprise_id)
+
+        def _do_delete():
+            sync_po_all_items.delay(_pid, _eid, action='delete')
+            print(f"[OPENAPI-SYNC] Queued pricing DELETE for PO {_pid}", flush=True)
+
+        transaction.on_commit(_do_delete)
+    except Exception as e:
+        print(f"[OPENAPI-SYNC] ERROR queueing PO pricing delete: {e}", flush=True)
+
+
+def _queue_po_revisions_pricing_delete(base_purchase_order_id, enterprise_id, exclude_po_id=None):
+    """Delete pricing entries for ALL revised versions of a PO after transaction commits."""
+    try:
+        from pricing_repository.models import PricingRepositoryEntry, SourceType
+
+        _base_id = str(base_purchase_order_id)
+        _eid = str(enterprise_id)
+        _exclude = str(exclude_po_id) if exclude_po_id else None
+
+        def _do_delete():
+            revised_po_ids = list(
+                PurchaseOrder.objects.filter(
+                    base_purchase_order_id=_base_id,
+                    status=PurchaseOrderState.PO_REVISED.value,
+                ).values_list('purchase_order_id', flat=True)
+            )
+            if _exclude:
+                revised_po_ids = [pid for pid in revised_po_ids if str(pid) != _exclude]
+
+            if revised_po_ids:
+                deleted = PricingRepositoryEntry.objects.filter(
+                    source=SourceType.PO,
+                    source_parent_id__in=revised_po_ids,
+                ).delete()
+                print(f"[OPENAPI-SYNC] Deleted {deleted[0]} pricing entries for {len(revised_po_ids)} revised PO versions (base={_base_id})", flush=True)
+
+        transaction.on_commit(_do_delete)
+    except Exception as e:
+        print(f"[OPENAPI-SYNC] ERROR deleting revision pricing: {e}", flush=True)
