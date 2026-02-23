@@ -849,112 +849,101 @@ class UIController {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                         Shared Configuration
                     </p>
-                    <div class="cc-config-grid">
-                        <!-- Column 1: Identifiers -->
-                        <div class="cc-config-panel">
-                            <span class="cc-config-panel-label">Shared Fields (applied to all items)</span>
-                            <div class="form-group" style="margin-top:8px;">
-                                <label>Created By Email *</label>
-                                <input type="email" name="bi_created_by" class="input-field" required
-                                    value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Measurement Unit ID *</label>
-                                    <input type="text" name="bi_measurement_unit_id" class="input-field" required
-                                        placeholder="66d42245-5a0d-4801-..." value="66d42245-5a0d-4801-8cb2-43bf627f7cbe">
-                                </div>
-                                <div class="form-group">
-                                    <label>Currency Code ID *</label>
-                                    <input type="text" name="bi_currency_code_id" class="input-field" required
-                                        placeholder="0f6c64c3-0ec3-..." value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Item Type</label>
-                                    <select name="bi_item_type" class="input-field">
-                                        <option value="RAW_MATERIAL" selected>RAW_MATERIAL</option>
-                                        <option value="FINISHED_GOODS">FINISHED_GOODS</option>
-                                        <option value="SERVICES">SERVICES</option>
-                                        <option value="CAPITAL_GOODS">CAPITAL_GOODS</option>
-                                        <option value="CONSUMABLES">CONSUMABLES</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label>Status</label>
-                                    <select name="bi_status" class="input-field">
-                                        <option value="ACTIVE" selected>ACTIVE</option>
-                                        <option value="INACTIVE">INACTIVE</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label>Entity Name</label>
-                                    <input type="text" name="bi_entity_name" class="input-field" value="FactWise">
-                                </div>
-                                <div class="form-group">
-                                    <label>Preferred Vendor Code</label>
-                                    <input type="text" name="bi_preferred_vendor" class="input-field" value="V0029" placeholder="V0029">
-                                </div>
-                            </div>
-                        </div>
 
-                        <!-- Column 2: Toggles + Pricing Summary -->
-                        <div class="cc-config-panel">
-                            <span class="cc-config-panel-label">Buyer / Seller Pricing</span>
-                            <div class="cc-toggles-grid" style="margin-top:8px;">
-                                <label class="cc-toggle-row">
-                                    <span class="cc-toggle-switch">
-                                        <input type="checkbox" id="bi-toggle-buyer" checked>
-                                        <span class="cc-toggle-slider"></span>
-                                    </span>
-                                    <span class="cc-toggle-text">Is Buyer</span>
-                                </label>
-                                <label class="cc-toggle-row">
-                                    <span class="cc-toggle-switch">
-                                        <input type="checkbox" id="bi-toggle-seller" checked>
-                                        <span class="cc-toggle-slider"></span>
-                                    </span>
-                                    <span class="cc-toggle-text">Is Seller</span>
-                                </label>
-                            </div>
-                            <div class="form-row" style="margin-top:10px;">
-                                <div class="form-group">
-                                    <label>Buyer Price</label>
-                                    <input type="number" name="bi_buyer_price" class="input-field" value="1000" step="0.01">
-                                </div>
-                                <div class="form-group">
-                                    <label>Seller Price</label>
-                                    <input type="number" name="bi_seller_price" class="input-field" value="1200" step="0.01">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label>Tags (comma-separated)</label>
-                                <input type="text" name="bi_tags" class="input-field" value="API, NG_TEST" placeholder="API, NG_TEST">
-                            </div>
-                            <div class="form-group">
-                                <label>HSN Code (custom_ids)</label>
-                                <input type="text" name="bi_hsn" class="input-field" value="8471" placeholder="8471">
-                            </div>
+                    <!-- Top row: email + entity + count -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Created By Email *</label>
+                            <input type="email" name="bi_created_by" class="input-field" required
+                                value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                        </div>
+                        <div class="form-group">
+                            <label>Entity Name *</label>
+                            <input type="text" name="bi_entity_name" class="input-field" required value="FactWise">
+                        </div>
+                        <div class="form-group" style="max-width:120px;">
+                            <label>No. of Items</label>
+                            <input type="number" name="bi_item_count" class="input-field" value="1" min="1" max="500"
+                                style="text-align:center;">
+                        </div>
+                        <div class="form-group" style="align-self:flex-end;">
+                            <button type="button"
+                                onclick="window.uiController._generateBulkItemCards()"
+                                style="width:100%; padding:9px 14px; background:#6366f1; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:500; font-size:13px;">
+                                &#9889; Generate Items
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Section toggles -->
+                    <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0;">
+                        <p style="margin:0 0 8px; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Include Sections (toggle off to hide fields &amp; send null in payload)</p>
+                        <div class="cc-toggles-grid">
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-buyer" checked
+                                        onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Buyer Pricing</span>
+                            </label>
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-seller" checked
+                                        onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Seller Pricing</span>
+                            </label>
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-tags" checked
+                                        onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Tags</span>
+                            </label>
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-attributes"
+                                        onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Attributes</span>
+                            </label>
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-hsn" checked
+                                        onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">HSN / Custom IDs</span>
+                            </label>
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-vendor" checked
+                                        onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Preferred Vendor</span>
+                            </label>
                         </div>
                     </div>
                 </div>
 
-                <!-- ② Items List Header -->
+                <!-- ② Items Header -->
                 <div style="display:flex; align-items:center; justify-content:space-between; margin: 20px 0 10px 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
-                    <h4 style="margin:0; color:#334155;">📦 Items <span id="bulk-item-count" style="font-size:13px;font-weight:400;color:#64748b;"></span></h4>
-                    <button type="button" class="btn-secondary" onclick="window.uiController._addBulkItem()"
-                        style="font-size:13px; padding:6px 14px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">
+                    <h4 style="margin:0; color:#334155;">&#x1F4E6; Items <span id="bulk-item-count" style="font-size:13px;font-weight:400;color:#64748b;"></span></h4>
+                    <button type="button" onclick="window.uiController._addBulkItem()"
+                        style="font-size:13px; padding:6px 14px; background:#3b82f6; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:500;">
                         + Add Item
                     </button>
                 </div>
 
-                <!-- ③ Item Cards Container -->
+                <!-- ③ Item Cards -->
                 <div id="bulk-items-container"></div>
             `;
-            // After HTML is set we'll add first item automatically (done in renderFormInputs post-inject)
+
         } else {
             // Generic placeholder for other operations
             bodyInputsHtml = `
@@ -990,6 +979,8 @@ class UIController {
         } else if (module.id === 'contract' && operation.id === 'update') {
             this._setupContractUpdateListeners();
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
+            // Expose this instance globally so inline onclick handlers can call methods on it
+            window.uiController = this;
             // Show the Generate Script button only for this operation
             if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.classList.remove('hidden');
             // Auto-add first item
@@ -1007,36 +998,90 @@ class UIController {
     // ============================================================
 
     /**
-     * Adds a new item card to the bulk-items-container.
-     * Each card has the per-item differentiating fields; shared fields
-     * come from the config box at the top of the form.
+     * Reads the global section toggles and returns an object of booleans.
+     * Used by item card generation and payload collection.
+     */
+    _getBulkToggles() {
+        return {
+            buyer: !!document.getElementById('bi-global-buyer')?.checked,
+            seller: !!document.getElementById('bi-global-seller')?.checked,
+            tags: !!document.getElementById('bi-global-tags')?.checked,
+            attributes: !!document.getElementById('bi-global-attributes')?.checked,
+            hsn: !!document.getElementById('bi-global-hsn')?.checked,
+            vendor: !!document.getElementById('bi-global-vendor')?.checked,
+        };
+    }
+
+    /**
+     * After a global toggle changes, show/hide the relevant sections
+     * in ALL existing item cards.
+     */
+    _updateBulkItemSections() {
+        const t = this._getBulkToggles();
+        const container = document.getElementById('bulk-items-container');
+        if (!container) return;
+        container.querySelectorAll('.bi-item-card').forEach(card => {
+            const show = (cls, visible) => {
+                card.querySelectorAll(`.bi-section-${cls}`).forEach(el => {
+                    el.style.display = visible ? '' : 'none';
+                });
+            };
+            show('buyer', t.buyer);
+            show('seller', t.seller);
+            show('tags', t.tags);
+            show('attributes', t.attributes);
+            show('hsn', t.hsn);
+            show('vendor', t.vendor);
+        });
+    }
+
+    /**
+     * Reads the "No. of Items" input and generates that many item cards,
+     * clearing existing cards first.
+     */
+    _generateBulkItemCards() {
+        const container = document.getElementById('bulk-items-container');
+        if (!container) return;
+        const countEl = document.querySelector('[name="bi_item_count"]');
+        const count = Math.max(1, Math.min(500, parseInt(countEl?.value) || 1));
+        container.innerHTML = '';
+        for (let i = 0; i < count; i++) {
+            this._addBulkItem();
+        }
+    }
+
+    /**
+     * Adds a single item card. Sections are shown/hidden per global toggles.
      */
     _addBulkItem() {
         const container = document.getElementById('bulk-items-container');
         if (!container) return;
 
         const itemIndex = container.querySelectorAll('.bi-item-card').length;
+        const n = itemIndex + 1;
 
         const card = document.createElement('div');
         card.className = 'bi-item-card cc-item-card';
         card.dataset.itemIndex = itemIndex;
         card.innerHTML = `
             <div class="cc-item-card-header">
-                <span class="cc-item-label">Item ${itemIndex + 1}</span>
+                <span class="cc-item-label">Item ${n}</span>
                 <button type="button" class="btn-remove-item"
                     onclick="this.closest('.bi-item-card').remove(); window.uiController._refreshBulkItemLabels();"
                     title="Remove item">&times;</button>
             </div>
+
+            <!-- Row 1: Identifying fields -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Item Name *</label>
                     <input type="text" name="bi_item_${itemIndex}_name" class="input-field" required
-                        placeholder="e.g. Steel Bucket" value="Test Item ${itemIndex + 1}">
+                        placeholder="e.g. Steel Bucket" value="Test Item ${n}">
                 </div>
                 <div class="form-group">
                     <label>ERP Item Code</label>
                     <input type="text" name="bi_item_${itemIndex}_erp_code" class="input-field"
-                        placeholder="ERP-ITEM-001" value="ERP-ITEM-00${itemIndex + 1}">
+                        placeholder="ERP-ITEM-001" value="ERP-ITEM-00${n}">
                 </div>
             </div>
             <div class="form-row">
@@ -1051,22 +1096,123 @@ class UIController {
                         placeholder="Item description" value="Item created via open API">
                 </div>
             </div>
+
+            <!-- Row 2: Type / Status / Unit / Currency -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Item Type</label>
+                    <select name="bi_item_${itemIndex}_item_type" class="input-field">
+                        <option value="RAW_MATERIAL" selected>RAW_MATERIAL</option>
+                        <option value="FINISHED_GOODS">FINISHED_GOODS</option>
+                        <option value="SERVICES">SERVICES</option>
+                        <option value="CAPITAL_GOODS">CAPITAL_GOODS</option>
+                        <option value="CONSUMABLES">CONSUMABLES</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="bi_item_${itemIndex}_status" class="input-field">
+                        <option value="ACTIVE" selected>ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Measurement Unit ID *</label>
+                    <input type="text" name="bi_item_${itemIndex}_unit_id" class="input-field" required
+                        placeholder="UUID" value="66d42245-5a0d-4801-8cb2-43bf627f7cbe">
+                </div>
+                <div class="form-group">
+                    <label>Currency Code ID *</label>
+                    <input type="text" name="bi_item_${itemIndex}_currency_id" class="input-field" required
+                        placeholder="UUID" value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                </div>
+            </div>
+
+            <!-- Buyer Pricing (global-toggle-controlled) -->
+            <div class="bi-section-buyer">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buyer Price</label>
+                        <input type="number" name="bi_item_${itemIndex}_buyer_price" class="input-field" value="1000" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Buyer Currency ID</label>
+                        <input type="text" name="bi_item_${itemIndex}_buyer_currency" class="input-field"
+                            value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Seller Pricing (global-toggle-controlled) -->
+            <div class="bi-section-seller">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seller Price</label>
+                        <input type="number" name="bi_item_${itemIndex}_seller_price" class="input-field" value="1200" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Seller Currency ID</label>
+                        <input type="text" name="bi_item_${itemIndex}_seller_currency" class="input-field"
+                            value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tags (global-toggle-controlled) -->
+            <div class="bi-section-tags">
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" name="bi_item_${itemIndex}_tags" class="input-field" value="API, NG_TEST">
+                </div>
+            </div>
+
+            <!-- Attributes (global-toggle-controlled, off by default) -->
+            <div class="bi-section-attributes" style="display:none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Attribute Name</label>
+                        <input type="text" name="bi_item_${itemIndex}_attr_name" class="input-field" value="color">
+                    </div>
+                    <div class="form-group">
+                        <label>Attribute Value</label>
+                        <input type="text" name="bi_item_${itemIndex}_attr_value" class="input-field" value="Red">
+                    </div>
+                </div>
+            </div>
+
+            <!-- HSN / Custom IDs (global-toggle-controlled) -->
+            <div class="bi-section-hsn">
+                <div class="form-group">
+                    <label>HSN Code (custom_ids)</label>
+                    <input type="text" name="bi_item_${itemIndex}_hsn" class="input-field" value="8471">
+                </div>
+            </div>
+
+            <!-- Preferred Vendor (global-toggle-controlled) -->
+            <div class="bi-section-vendor">
+                <div class="form-group">
+                    <label>Preferred Vendor Code</label>
+                    <input type="text" name="bi_item_${itemIndex}_vendor" class="input-field" value="V0029">
+                </div>
+            </div>
+
+            <!-- Notes (always shown) -->
             <div class="form-row">
                 <div class="form-group">
                     <label>Notes</label>
                     <input type="text" name="bi_item_${itemIndex}_notes" class="input-field"
-                        placeholder="Notes" value="Testing taxes and additional costs">
+                        value="Testing taxes and additional costs">
                 </div>
                 <div class="form-group">
                     <label>Internal Notes</label>
                     <input type="text" name="bi_item_${itemIndex}_internal_notes" class="input-field"
-                        placeholder="Internal notes" value="Internal testing item">
+                        value="Internal testing item">
                 </div>
             </div>
         `;
         container.appendChild(card);
-
-        // Update counter
         this._refreshBulkItemLabels();
     }
 
@@ -1090,71 +1236,76 @@ class UIController {
     _buildItemsBulkCreatePayload() {
         const form = this.elements.operationForm;
         const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
-        const getNum = (name) => parseFloat(get(name)) || 0;
-        const getChecked = (id) => !!document.getElementById(id)?.checked;
 
-        // Shared config
         const createdBy = get('bi_created_by');
-        const measureUnitId = get('bi_measurement_unit_id');
-        const currencyId = get('bi_currency_code_id');
-        const itemType = get('bi_item_type') || 'RAW_MATERIAL';
-        const status = get('bi_status') || 'ACTIVE';
         const entityName = get('bi_entity_name') || 'FactWise';
-        const prefVendor = get('bi_preferred_vendor');
-        const isBuyer = getChecked('bi-toggle-buyer');
-        const isSeller = getChecked('bi-toggle-seller');
-        const buyerPrice = getNum('bi_buyer_price');
-        const sellerPrice = getNum('bi_seller_price');
-        const tagsRaw = get('bi_tags');
-        const hsnCode = get('bi_hsn');
+        const t = this._getBulkToggles();
 
-        const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
-
-        const pricingBlock = (price) => ({
-            price,
-            currency_code_id: currencyId,
-            additional_costs: [],
-            taxes: []
-        });
-
-        const entityBlock = {
-            entity_name: entityName,
-            ERP_preferred_vendors: [],
-            factwise_preferred_vendors: prefVendor ? [prefVendor] : []
-        };
-
-        const customIds = hsnCode ? [{ name: 'HSN', value: hsnCode }] : [];
-
-        // Per-item cards
         const container = document.getElementById('bulk-items-container');
         const cards = container ? container.querySelectorAll('.bi-item-card') : [];
 
         const items = [];
         cards.forEach((card, i) => {
-            const cardGet = (suffix) => card.querySelector(`[name="bi_item_${i}_${suffix}"]`)?.value?.trim() || '';
+            const cget = (suffix) => card.querySelector(`[name="bi_item_${i}_${suffix}"]`)?.value?.trim() || '';
+            const cnum = (suffix) => parseFloat(cget(suffix)) || 0;
+
+            const tags = t.tags
+                ? (cget('tags') ? cget('tags').split(',').map(s => s.trim()).filter(Boolean) : [])
+                : null;
+
+            const attributes = t.attributes
+                ? [{ attribute_name: cget('attr_name'), attribute_type: 'TEXT', attribute_value: [{ value: cget('attr_value') }] }]
+                : null;
+
+            const customIds = t.hsn && cget('hsn') ? [{ name: 'HSN', value: cget('hsn') }] : null;
+
+            const entity = {
+                entity_name: entityName,
+                ERP_preferred_vendors: [],
+                factwise_preferred_vendors: (t.vendor && cget('vendor')) ? [cget('vendor')] : []
+            };
 
             const item = {
                 created_by_user_email: createdBy,
-                name: cardGet('name'),
-                ERP_item_code: cardGet('erp_code') || null,
-                factwise_item_code: cardGet('fw_code') || null,
-                description: cardGet('description'),
-                notes: cardGet('notes'),
-                internal_notes: cardGet('internal_notes'),
-                measurement_units: measureUnitId ? [measureUnitId] : [],
-                item_type: itemType,
-                status,
-                attributes: [],
-                is_buyer: isBuyer,
-                is_seller: isSeller,
+                name: cget('name'),
+                ERP_item_code: cget('erp_code') || null,
+                factwise_item_code: cget('fw_code') || null,
+                description: cget('description'),
+                notes: cget('notes'),
+                internal_notes: cget('internal_notes'),
+                measurement_units: cget('unit_id') ? [cget('unit_id')] : [],
+                item_type: cget('item_type') || 'RAW_MATERIAL',
+                status: cget('status') || 'ACTIVE',
+                attributes: attributes,
+                is_buyer: t.buyer,
+                is_seller: t.seller,
                 custom_ids: customIds,
-                tags,
-                entities: [entityBlock],
+                tags: tags,
+                entities: [entity],
                 custom_sections: []
             };
 
-            if (isBuyer) item.buyer_pricing_information = pricingBlock(buyerPrice);
-            if (isSeller) item.seller_pricing_information = pricingBlock(sellerPrice);
+            if (t.buyer) {
+                item.buyer_pricing_information = {
+                    price: cnum('buyer_price'),
+                    currency_code_id: cget('buyer_currency') || cget('currency_id'),
+                    additional_costs: [],
+                    taxes: []
+                };
+            } else {
+                item.buyer_pricing_information = null;
+            }
+
+            if (t.seller) {
+                item.seller_pricing_information = {
+                    price: cnum('seller_price'),
+                    currency_code_id: cget('seller_currency') || cget('currency_id'),
+                    additional_costs: [],
+                    taxes: []
+                };
+            } else {
+                item.seller_pricing_information = null;
+            }
 
             items.push(item);
         });
@@ -1169,62 +1320,69 @@ class UIController {
     _generateBulkItemScript() {
         const form = this.elements.operationForm;
         const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
-        const getNum = (name) => parseFloat(get(name)) || 0;
-        const getChecked = (id) => !!document.getElementById(id)?.checked;
+        const t = this._getBulkToggles();
 
         const createdBy = get('bi_created_by');
-        const measureUnitId = get('bi_measurement_unit_id');
-        const currencyId = get('bi_currency_code_id');
-        const itemType = get('bi_item_type') || 'RAW_MATERIAL';
-        const status = get('bi_status') || 'ACTIVE';
         const entityName = get('bi_entity_name') || 'FactWise';
-        const prefVendor = get('bi_preferred_vendor');
-        const isBuyer = getChecked('bi-toggle-buyer');
-        const isSeller = getChecked('bi-toggle-seller');
-        const buyerPrice = getNum('bi_buyer_price');
-        const sellerPrice = getNum('bi_seller_price');
-        const tagsRaw = get('bi_tags');
-        const hsnCode = get('bi_hsn');
 
-        const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+        // Use the item count field for the script range
+        const count = Math.max(1, parseInt(get('bi_item_count')) || 1);
 
+        // Pull default values from first item card
         const container = document.getElementById('bulk-items-container');
         const cards = container ? container.querySelectorAll('.bi-item-card') : [];
-        const count = cards.length || 10;
+        const cget = (suffix) => cards[0]?.querySelector(`[name="bi_item_0_${suffix}"]`)?.value?.trim() || '';
 
-        // Build the generateItem function body as a string
-        let buyerBlock = '';
-        let sellerBlock = '';
-        if (isBuyer) {
-            buyerBlock = `
+        const unitId = cget('unit_id') || '66d42245-5a0d-4801-8cb2-43bf627f7cbe';
+        const currencyId = cget('buyer_currency') || cget('currency_id') || '0f6c64c3-0ec3-482e-9dc2-7e20b6431bda';
+        const itemType = cget('item_type') || 'RAW_MATERIAL';
+        const status = cget('status') || 'ACTIVE';
+        const buyerPrice = parseFloat(cget('buyer_price')) || 1000;
+        const sellerPrice = parseFloat(cget('seller_price')) || 1200;
+        const tagsRaw = cget('tags') || 'API, NG_TEST';
+        const hsn = cget('hsn') || '8471';
+        const vendor = cget('vendor') || 'V0029';
+        const attrName = cget('attr_name') || 'color';
+        const attrValue = cget('attr_value') || 'Red';
+
+        const tags = tagsRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+        // Build conditional blocks
+        const buyerBlock = t.buyer ? `
         is_buyer: true,
         buyer_pricing_information: {
             price: ${buyerPrice},
             currency_code_id: "${currencyId}",
             additional_costs: [],
             taxes: []
-        },`;
-        }
-        if (isSeller) {
-            sellerBlock = `
+        },` : `
+        is_buyer: false,
+        buyer_pricing_information: null,`;
+
+        const sellerBlock = t.seller ? `
         is_seller: true,
         seller_pricing_information: {
             price: ${sellerPrice},
             currency_code_id: "${currencyId}",
             additional_costs: [],
             taxes: []
-        },`;
-        }
+        },` : `
+        is_seller: false,
+        seller_pricing_information: null,`;
 
-        const tagsLine = JSON.stringify(tags);
-        const customIds = hsnCode ? `[{ name: "HSN", value: "${hsnCode}" }]` : '[]';
+        const tagsLine = t.tags ? JSON.stringify(tags) : 'null';
+        const attrLine = t.attributes
+            ? `[{ attribute_name: "${attrName}", attribute_type: "TEXT", attribute_value: [{ value: "${attrValue}" }] }]`
+            : 'null';
+        const customIds = (t.hsn && hsn) ? `[{ name: "HSN", value: "${hsn}" }]` : 'null';
+        const vendorArr = (t.vendor && vendor) ? `["${vendor}"]` : '[]';
 
         const script = `// Postman Pre-request Script — Items Bulk Create
 // Generated by The cURLer at ${new Date().toISOString()}
-// Change startIndex and endIndex to control the range of items.
+// Adjust startIndex and endIndex to control how many items are created.
 
 const startIndex = 1;
-const endIndex = ${count}; // total items to generate
+const endIndex = ${count};
 
 function generateItem(i) {
     return {
@@ -1235,17 +1393,17 @@ function generateItem(i) {
         description: "Item created via open API",
         notes: "Testing taxes and additional costs",
         internal_notes: "Internal testing item",
-        measurement_units: ["${measureUnitId}"],
+        measurement_units: ["${unitId}"],
         item_type: "${itemType}",
         status: "${status}",
-        attributes: [],${buyerBlock}${sellerBlock}
+        attributes: ${attrLine},${buyerBlock}${sellerBlock}
         custom_ids: ${customIds},
         tags: ${tagsLine},
         entities: [
             {
                 entity_name: "${entityName}",
                 ERP_preferred_vendors: [],
-                factwise_preferred_vendors: ["${prefVendor}"]
+                factwise_preferred_vendors: ${vendorArr}
             }
         ],
         custom_sections: []
@@ -1258,7 +1416,7 @@ for (let i = startIndex; i <= endIndex; i++) {
 }
 
 pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
-// In your request body use: {{bulkPayload}}
+// In your Postman request body, set Body > raw > JSON to: {{bulkPayload}}
 `;
         return script;
     }
@@ -2435,6 +2593,10 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         const curl = this._generateCurlCommand();
         this.elements.curlDisplay.innerHTML = `<pre><code>${this._escapeHtml(curl)}</code></pre>`;
 
+        // Reset panel header (may have been changed by Generate Script)
+        const panelHeader = this.elements.actionsSection.querySelector('h3');
+        if (panelHeader) panelHeader.textContent = 'Generated cURL';
+
         // Clear response meta
         const responseMeta = document.getElementById('response-meta');
         if (responseMeta) responseMeta.innerHTML = '';
@@ -2480,8 +2642,8 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             this.elements.actionsSection.classList.remove('hidden');
             this.elements.responseSection.classList.remove('hidden');
 
-            // Execute real API call for Contract operations
-            if (this.currentModule === 'contract') {
+            // Execute real API call for Contract + Items Bulk Create
+            if (this.currentModule === 'contract' || (this.currentModule === 'items' && this.currentOperation === 'bulk_create')) {
                 this._executeRealApiCall(env, op, payload);
             } else {
                 // Mock response for other operations (Phase 1 behavior)
@@ -2931,7 +3093,6 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             if (this.currentAccount) {
                 if (this.currentAccount.api_id) headers['api-id'] = this.currentAccount.api_id;
                 if (this.currentAccount.api_key) headers['x-api-key'] = this.currentAccount.api_key;
-                if (this.currentAccount.enterprise_id) headers['enterprise-id'] = this.currentAccount.enterprise_id;
             }
 
             // Construct URL
