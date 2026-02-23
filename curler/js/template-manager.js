@@ -245,4 +245,199 @@ class TemplateManager {
         const levelKey = level + 'Level';
         return config[levelKey]?.customSections || [];
     }
+
+    /**
+     * Parse item template to extract field configuration
+     * @param {Object} template - Item template with section_list
+     * @returns {Object} Configuration object with fields
+     */
+    parseItemTemplateConfig(template) {
+        const config = {
+            builtInFields: [],
+            customFields: [],
+            additionalCosts: [],
+            taxes: [],
+            hasHSN: false,
+            hasMPN: false,
+            hasCPN: false,
+            hasERPCode: false,
+            hasCustomIds: false,
+            hasTags: false,
+            hasAttributes: false,
+            hasAdditionalCosts: false,
+            hasTaxes: false
+        };
+
+        if (!template || !template.section_list) {
+            return config;
+        }
+
+        // Parse sections
+        template.section_list.forEach(section => {
+            section.section_items.forEach(item => {
+                const isHidden = item.additional_information?.is_hidden;
+                const isVisible = !isHidden;
+
+                if (!isVisible) return; // Skip hidden fields
+
+                // Built-in fields
+                if (item.is_builtin_field) {
+                    const fieldName = item.name;
+
+                    // Check for specific built-in fields
+                    if (fieldName === 'HSN Code') config.hasHSN = true;
+                    if (fieldName === 'MPN Code') config.hasMPN = true;
+                    if (fieldName === 'CPN Code') config.hasCPN = true;
+                    if (fieldName === 'ERP Code') config.hasERPCode = true;
+                    if (fieldName === 'Custom identification') config.hasCustomIds = true;
+                    if (fieldName === 'Tag') config.hasTags = true;
+                    if (fieldName === 'Specification') config.hasAttributes = true;
+                    if (fieldName === 'Additional costs') config.hasAdditionalCosts = true;
+                    if (fieldName === 'Taxes') config.hasTaxes = true;
+
+                    config.builtInFields.push({
+                        id: item.section_item_id,
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        constraints: item.constraints,
+                        parent: item.parent_section_item
+                    });
+                }
+                // Custom fields
+                else {
+                    const fieldInfo = {
+                        id: item.section_item_id,
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        constraints: item.constraints,
+                        parent: item.parent_section_item
+                    };
+
+                    // Check if it's an additional cost or tax
+                    if (item.additional_information?.additional_cost_information) {
+                        config.additionalCosts.push({
+                            ...fieldInfo,
+                            cost_info: item.additional_information.additional_cost_information
+                        });
+                    } else if (item.additional_information?.taxes_information) {
+                        config.taxes.push({
+                            ...fieldInfo,
+                            tax_info: item.additional_information.taxes_information
+                        });
+                    } else {
+                        config.customFields.push(fieldInfo);
+                    }
+                }
+            });
+        });
+
+        return config;
+    }
+
+    /**
+     * Generate HTML input field based on field type
+     * @param {Object} field - Field configuration
+     * @param {number} itemIndex - Item index for name attribute
+     * @returns {string} HTML string for the input field
+     */
+    generateFieldHTML(field, itemIndex) {
+        const fieldName = `bi_item_${itemIndex}_${field.id}`;
+        const label = field.alternate_name || field.name;
+        const constraints = field.constraints || {};
+
+        switch (field.field_type) {
+            case 'SHORTTEXT':
+            case 'LONGTEXT':
+                const maxLength = constraints.max_limit || 200;
+                return `
+                        <div class="form-group">
+                            <label>${label}</label>
+                            <input type="text" name="${fieldName}" class="input-field" 
+                                   maxlength="${maxLength}" placeholder="${label}">
+                        </div>
+                    `;
+
+            case 'FLOAT':
+            case 'PERCENTAGE':
+                const min = constraints.min_limit || 0;
+                const max = constraints.max_limit || 999999999;
+                const step = field.field_type === 'PERCENTAGE' ? '0.01' : '0.01';
+                return `
+                        <div class="form-group">
+                            <label>${label}${field.field_type === 'PERCENTAGE' ? ' (%)' : ''}</label>
+                            <input type="number" name="${fieldName}" class="input-field" 
+                                   min="${min}" max="${max}" step="${step}" placeholder="${label}">
+                        </div>
+                    `;
+
+            case 'DATE':
+                return `
+                        <div class="form-group">
+                            <label>${label}</label>
+                            <input type="date" name="${fieldName}" class="input-field">
+                        </div>
+                    `;
+
+            case 'BOOLEAN':
+                return `
+                        <div class="form-group">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                <input type="checkbox" name="${fieldName}" value="true">
+                                <span>${label}</span>
+                            </label>
+                        </div>
+                    `;
+
+            case 'CHOICE':
+                const choices = constraints.choices || [];
+                const isMulti = constraints.choice_type === 'MULTI_SELECT';
+
+                if (isMulti) {
+                    const optionsHTML = choices.map(choice =>
+                        `<label style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+                                <input type="checkbox" name="${fieldName}" value="${choice}">
+                                <span>${choice}</span>
+                            </label>`
+                    ).join('');
+                    return `
+                            <div class="form-group">
+                                <label>${label}</label>
+                                <div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; max-height: 150px; overflow-y: auto;">
+                                    ${optionsHTML}
+                                </div>
+                            </div>
+                        `;
+                } else {
+                    const optionsHTML = choices.map(choice =>
+                        `<option value="${choice}">${choice}</option>`
+                    ).join('');
+                    return `
+                            <div class="form-group">
+                                <label>${label}</label>
+                                <select name="${fieldName}" class="input-field">
+                                    <option value="">Select...</option>
+                                    ${optionsHTML}
+                                </select>
+                            </div>
+                        `;
+                }
+
+            default:
+                return `
+                        <div class="form-group">
+                            <label>${label}</label>
+                            <input type="text" name="${fieldName}" class="input-field" placeholder="${label}">
+                        </div>
+                    `;
+        }
+    }
+}
+
+// Export for use in other modules
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = TemplateManager;
+} else {
+    window.TemplateManager = TemplateManager;
 }

@@ -12,7 +12,7 @@
  * - Environment management (dev/prod switching)
  * - Account management (CRUD operations with localStorage persistence)
  * - Token management (automatic bearer token refresh)
- * - Module/operation navigation (all 22 operations visible in UI)
+ * - Module/operation navigation (all 20 operations visible in UI)
  * - cURL generation with placeholder payloads
  * - Basic form structure and action buttons
  * - Response display with formatting
@@ -26,12 +26,10 @@
  * - Real API calls and response handling
  * - Contract module serves as reference pattern for other modules
  * 
- * PHASE 3+ (FUTURE): Other Modules
- * - Purchase Orders module (4 operations)
+ * PHASE 3+ (FUTURE): * - All 5 modules defined (Contracts, Purchase Orders, Items, Vendors, Projects)
  * - Items module (4 operations)
  * - Vendors module (6 operations)
  * - Projects module (2 operations)
- * - Costing Sheets module (2 operations)
  * - Each module follows the Contract pattern established in Phase 2
  * 
  * ============================================================================
@@ -61,7 +59,7 @@
  *    - Persists tokens to localStorage
  * 
  * 4. ModuleRegistry (module-registry.js)
- *    - Defines all 6 modules and 22 operations
+ *    - Defines all 5 modules and 20 operations
  *    - Provides operation metadata (endpoint, method, description)
  *    - Tracks implementation status per operation
  * 
@@ -220,7 +218,7 @@ class Application {
 
             console.log('The cURLer application initialized successfully');
             console.log('Phase 1: Core infrastructure and UI skeleton');
-            console.log('All 22 API operations are visible in the UI');
+            console.log('All 20 API operations are visible in the UI');
             console.log('Full API integration will be implemented in Phase 2+');
 
         } catch (error) {
@@ -480,14 +478,14 @@ class Application {
             phase: 'Phase 1',
             description: 'Core infrastructure and UI skeleton',
             modules: {
-                total: 6,
+                total: 5,
                 implemented: 0,
-                placeholder: 6
+                placeholder: 5
             },
             operations: {
-                total: 22,
+                total: 20,
                 implemented: 0,
-                placeholder: 22
+                placeholder: 20
             }
         };
     }

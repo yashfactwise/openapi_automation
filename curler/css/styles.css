@@ -288,6 +288,27 @@ button {
     font-weight: 600;
     font-size: 13px;
     color: #cbd5e1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+}
+
+.module-header .chevron {
+    transition: transform 0.2s ease-in-out;
+}
+
+.module-group.collapsed .module-header .chevron {
+    transform: rotate(180deg);
+}
+
+.operation-list {
+    overflow: hidden;
+}
+
+.module-group.collapsed .operation-list {
+    display: none;
 }
 
 .operation-item {

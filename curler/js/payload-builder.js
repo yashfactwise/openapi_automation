@@ -17,7 +17,6 @@
  * - Implement Items methods
  * - Implement Vendors methods
  * - Implement Projects methods
- * - Implement Costing Sheets methods
  * 
  * Implementation Pattern (Phase 2+ reference):
  * Each payload builder method should:
@@ -37,7 +36,6 @@
  * Items: /openapi/items/create/, /openapi/items/bulk-create/, /openapi/items/update/, /openapi/items/update/state/
  * Vendors: /openapi/vendors/create/, /openapi/vendors/update/, /openapi/vendors/state/, /openapi/vendors/contacts/create/, /openapi/vendors/contacts/update/, /openapi/vendors/contacts/delete/
  * Projects: /openapi/project/create/, /openapi/project/bulk-create/
- * Costing Sheets: /openapi/costing-sheet/, /openapi/costing-sheet/mapping/
  */
 
 class PayloadBuilder {
@@ -925,59 +923,6 @@ class PayloadBuilder {
             _placeholder: true,
             _phase: "Phase 3+",
             _operation: "Project Bulk Create",
-            _message: "This payload will be implemented in Phase 3+",
-            enterprise_id: account?.enterprise_id || "placeholder_enterprise",
-            buyer_id: account?.buyer_id || "placeholder_buyer"
-        };
-    }
-
-    // ============================================================================
-    // COSTING SHEETS MODULE METHODS
-    // TODO: Phase 3+ - Implement Costing Sheets payload building
-    // ============================================================================
-
-    /**
-     * Build payload for Costing Sheet List operation
-     * 
-     * TODO: Phase 3+ Implementation
-     * - Accept account object with enterprise_id, buyer_id, etc.
-     * - Accept query parameters: filters, pagination, etc.
-     * - Construct payload compatible with /openapi/costing-sheet/ endpoint (GET)
-     * 
-     * @param {Object} account - Account object
-     * @param {Object} params - Operation-specific parameters
-     * @returns {Object} Placeholder payload for Phase 1
-     */
-    buildCostingSheetListPayload(account, params) {
-        // Phase 1: Return placeholder data
-        return {
-            _placeholder: true,
-            _phase: "Phase 3+",
-            _operation: "Costing Sheet List",
-            _message: "This payload will be implemented in Phase 3+",
-            enterprise_id: account?.enterprise_id || "placeholder_enterprise",
-            buyer_id: account?.buyer_id || "placeholder_buyer"
-        };
-    }
-
-    /**
-     * Build payload for Costing Sheet Mapping operation
-     * 
-     * TODO: Phase 3+ Implementation
-     * - Accept account object
-     * - Accept mapping parameters: costing_sheet_id mappings
-     * - Construct payload compatible with /openapi/costing-sheet/mapping/ endpoint
-     * 
-     * @param {Object} account - Account object
-     * @param {Object} params - Operation-specific parameters
-     * @returns {Object} Placeholder payload for Phase 1
-     */
-    buildCostingSheetMappingPayload(account, params) {
-        // Phase 1: Return placeholder data
-        return {
-            _placeholder: true,
-            _phase: "Phase 3+",
-            _operation: "Costing Sheet Mapping",
             _message: "This payload will be implemented in Phase 3+",
             enterprise_id: account?.enterprise_id || "placeholder_enterprise",
             buyer_id: account?.buyer_id || "placeholder_buyer"

@@ -48,10 +48,6 @@
  * PROJECTS MODULE (2 operations):
  * - POST   /openapi/project/create/            - Create a new project
  * - POST   /openapi/project/bulk-create/       - Create multiple projects
- * 
- * COSTING SHEETS MODULE (2 operations):
- * - GET    /openapi/costing-sheet/             - Retrieve costing sheets
- * - PUT    /openapi/costing-sheet/mapping/     - Map costing sheet IDs
  */
 
 class ModuleRegistry {
@@ -235,28 +231,6 @@ class ModuleRegistry {
                         description: "Create multiple projects",
                         endpoint: "/openapi/project/bulk-create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
-                    }
-                ]
-            },
-            {
-                id: "costing_sheets",
-                name: "Costing Sheets",
-                operations: [
-                    {
-                        id: "list",
-                        name: "Costing Sheet List",
-                        description: "Retrieve costing sheets",
-                        endpoint: "/openapi/costing-sheet/",
-                        method: "GET",
-                        implemented: false // Phase 3+: will be true
-                    },
-                    {
-                        id: "mapping",
-                        name: "Costing Sheet Mapping",
-                        description: "Map costing sheet IDs",
-                        endpoint: "/openapi/costing-sheet/mapping/",
-                        method: "PUT",
                         implemented: false // Phase 3+: will be true
                     }
                 ]

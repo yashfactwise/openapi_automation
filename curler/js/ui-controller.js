@@ -985,8 +985,11 @@ class UIController {
             window.uiController = this;
             // Show the Generate Script button only for this operation
             if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.classList.remove('hidden');
-            // Auto-add first item
-            this._addBulkItem();
+
+            // Load item templates and then add first item
+            this._loadItemTemplates().then(() => {
+                this._addBulkItem();
+            });
         }
 
         // Hide Generate Script button on non-applicable operations
@@ -1053,7 +1056,7 @@ class UIController {
     }
 
     /**
-     * Adds a single item card. Sections are shown/hidden per global toggles.
+     * Adds a single item card. Fields are dynamically generated from template.
      */
     _addBulkItem() {
         const container = document.getElementById('bulk-items-container');
@@ -1061,6 +1064,254 @@ class UIController {
 
         const itemIndex = container.querySelectorAll('.bi-item-card').length;
         const n = itemIndex + 1;
+
+        // Get template config
+        const config = this.templateManager?.itemTemplateConfig;
+
+        if (!config) {
+            console.warn('No item template config available, using fallback');
+            this._addBulkItemFallback(itemIndex, n);
+            return;
+        }
+
+        console.log('Generating item card with template config:', config);
+
+        const card = document.createElement('div');
+        card.className = 'bi-item-card cc-item-card';
+        card.dataset.itemIndex = itemIndex;
+
+        // Generate dynamic fields HTML
+        let fieldsHTML = '';
+
+        // Core required fields (always show)
+        fieldsHTML += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Item Name *</label>
+                    <input type="text" name="bi_item_${itemIndex}_name" class="input-field" required
+                        placeholder="e.g. Steel Bucket" value="Test Item ${n}">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <input type="text" name="bi_item_${itemIndex}_description" class="input-field"
+                        placeholder="Item description" value="Item created via open API">
+                </div>
+            </div>
+        `;
+
+        // ERP Code and Factwise Code
+        fieldsHTML += `<div class="form-row">`;
+        if (config.hasERPCode) {
+            fieldsHTML += `
+                <div class="form-group">
+                    <label>ERP Item Code</label>
+                    <input type="text" name="bi_item_${itemIndex}_erp_code" class="input-field"
+                        placeholder="ERP-ITEM-001" value="ERP-ITEM-00${n}">
+                </div>
+            `;
+        }
+        fieldsHTML += `
+            <div class="form-group">
+                <label>Factwise Item Code</label>
+                <input type="text" name="bi_item_${itemIndex}_fw_code" class="input-field"
+                    placeholder="BKT-1088" value="BKT-${1088 + itemIndex}">
+            </div>
+        </div>`;
+
+        // Item Type and Status
+        fieldsHTML += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Item Type</label>
+                    <select name="bi_item_${itemIndex}_item_type" class="input-field">
+                        <option value="RAW_MATERIAL" selected>RAW_MATERIAL</option>
+                        <option value="FINISHED_GOODS">FINISHED_GOODS</option>
+                        <option value="SERVICES">SERVICES</option>
+                        <option value="CAPITAL_GOODS">CAPITAL_GOODS</option>
+                        <option value="CONSUMABLES">CONSUMABLES</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select name="bi_item_${itemIndex}_status" class="input-field">
+                        <option value="ACTIVE" selected>ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                </div>
+            </div>
+        `;
+
+        // Measurement Unit and Currency
+        fieldsHTML += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Measurement Unit ID *</label>
+                    <input type="text" name="bi_item_${itemIndex}_unit_id" class="input-field" required
+                        placeholder="UUID" value="66d42245-5a0d-4801-8cb2-43bf627f7cbe">
+                </div>
+                <div class="form-group">
+                    <label>Currency Code ID *</label>
+                    <input type="text" name="bi_item_${itemIndex}_currency_id" class="input-field" required
+                        placeholder="UUID" value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                </div>
+            </div>
+        `;
+
+        // HSN, MPN, CPN codes (from template)
+        if (config.hasHSN || config.hasMPN || config.hasCPN) {
+            fieldsHTML += `<div class="form-row">`;
+            if (config.hasHSN) {
+                fieldsHTML += `
+                    <div class="form-group">
+                        <label>HSN Code</label>
+                        <input type="text" name="bi_item_${itemIndex}_hsn" class="input-field" value="8471">
+                    </div>
+                `;
+            }
+            if (config.hasMPN) {
+                fieldsHTML += `
+                    <div class="form-group">
+                        <label>MPN Code</label>
+                        <input type="text" name="bi_item_${itemIndex}_mpn" class="input-field">
+                    </div>
+                `;
+            }
+            if (config.hasCPN) {
+                fieldsHTML += `
+                    <div class="form-group">
+                        <label>CPN Code</label>
+                        <input type="text" name="bi_item_${itemIndex}_cpn" class="input-field">
+                    </div>
+                `;
+            }
+            fieldsHTML += `</div>`;
+        }
+
+        // Custom fields from template
+        if (config.customFields && config.customFields.length > 0) {
+            fieldsHTML += `<p class="cc-sub-title" style="margin-top: 16px;">🔧 Custom Fields</p>`;
+
+            // Group custom fields in rows of 2
+            for (let i = 0; i < config.customFields.length; i += 2) {
+                fieldsHTML += `<div class="form-row">`;
+                fieldsHTML += this.templateManager.generateFieldHTML(config.customFields[i], itemIndex);
+                if (i + 1 < config.customFields.length) {
+                    fieldsHTML += this.templateManager.generateFieldHTML(config.customFields[i + 1], itemIndex);
+                }
+                fieldsHTML += `</div>`;
+            }
+        }
+
+        // Buyer/Seller Pricing (toggle-controlled)
+        fieldsHTML += `
+            <div class="bi-section-buyer">
+                <p class="cc-sub-title" style="margin-top: 16px;">💰 Buyer Pricing</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buyer Price</label>
+                        <input type="number" name="bi_item_${itemIndex}_buyer_price" class="input-field" value="1000" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Buyer Currency ID</label>
+                        <input type="text" name="bi_item_${itemIndex}_buyer_currency" class="input-field"
+                            value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bi-section-seller">
+                <p class="cc-sub-title" style="margin-top: 16px;">💰 Seller Pricing</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seller Price</label>
+                        <input type="number" name="bi_item_${itemIndex}_seller_price" class="input-field" value="1200" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Seller Currency ID</label>
+                        <input type="text" name="bi_item_${itemIndex}_seller_currency" class="input-field"
+                            value="0f6c64c3-0ec3-482e-9dc2-7e20b6431bda">
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Tags (if available in template)
+        if (config.hasTags) {
+            fieldsHTML += `
+                <div class="bi-section-tags">
+                    <div class="form-group">
+                        <label>Tags (comma-separated)</label>
+                        <input type="text" name="bi_item_${itemIndex}_tags" class="input-field" value="API, NG_TEST">
+                    </div>
+                </div>
+            `;
+        }
+
+        // Attributes (if available in template)
+        if (config.hasAttributes) {
+            fieldsHTML += `
+                <div class="bi-section-attributes" style="display:none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Attribute Name</label>
+                            <input type="text" name="bi_item_${itemIndex}_attr_name" class="input-field" value="color">
+                        </div>
+                        <div class="form-group">
+                            <label>Attribute Value</label>
+                            <input type="text" name="bi_item_${itemIndex}_attr_value" class="input-field" value="Red">
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Preferred Vendor
+        fieldsHTML += `
+            <div class="bi-section-vendor">
+                <div class="form-group">
+                    <label>Preferred Vendor Code</label>
+                    <input type="text" name="bi_item_${itemIndex}_vendor" class="input-field" value="V0029">
+                </div>
+            </div>
+        `;
+
+        // Notes (always shown)
+        fieldsHTML += `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Notes</label>
+                    <input type="text" name="bi_item_${itemIndex}_notes" class="input-field"
+                        value="Testing taxes and additional costs">
+                </div>
+                <div class="form-group">
+                    <label>Internal Notes</label>
+                    <input type="text" name="bi_item_${itemIndex}_internal_notes" class="input-field"
+                        value="Internal testing item">
+                </div>
+            </div>
+        `;
+
+        card.innerHTML = `
+            <div class="cc-item-card-header">
+                <div class="cc-item-card-badge">${n}</div>
+                <div class="cc-item-card-title cc-item-label" style="font-weight: 600;">Item #${n}</div>
+                <button type="button" class="btn-remove-item"
+                    onclick="this.closest('.bi-item-card').remove(); window.uiController._refreshBulkItemLabels();"
+                    title="Remove item" style="margin-left: auto; background: #ef4444; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px;">✕ Remove Item</button>
+            </div>
+            <div class="cc-item-card-body">${fieldsHTML}</div>
+        `;
+
+        container.appendChild(card);
+        this._refreshBulkItemLabels();
+    }
+
+    /**
+     * Fallback method for adding bulk item when template is not available
+     */
+    _addBulkItemFallback(itemIndex, n) {
+        const container = document.getElementById('bulk-items-container');
+        if (!container) return;
 
         const card = document.createElement('div');
         card.className = 'bi-item-card cc-item-card';
@@ -3428,16 +3679,31 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
     renderModuleNavigator() {
         const modules = this.moduleRegistry.getAllModules();
         const html = modules.map(mod => `
-            <div class="module-group">
-                <div class="module-header">${mod.name}</div>
-                ${mod.operations.map(op => `
-                    <div class="operation-item" data-module-id="${mod.id}" data-operation-id="${op.id}">
-                        ${op.name}
-                    </div>
-                `).join('')}
+            <div class="module-group collapsed">
+                <div class="module-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    ${mod.name}
+                    <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                </div>
+                <div class="operation-list">
+                    ${mod.operations.map(op => `
+                        <div class="operation-item" data-module-id="${mod.id}" data-operation-id="${op.id}">
+                            ${op.name}
+                        </div>
+                    `).join('')}
+                </div>
             </div>
         `).join('');
         this.elements.moduleNavigator.innerHTML = html;
+
+        // Expand the group that contains the currently selected operation
+        if (this.currentModule) {
+            const activeGroup = this.elements.moduleNavigator.querySelector(`.module-group .operation-item[data-module-id="${this.currentModule}"]`);
+            if (activeGroup) {
+                activeGroup.closest('.module-group').classList.remove('collapsed');
+            }
+        }
     }
 
 
@@ -3526,6 +3792,78 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             if (select) {
                 select.innerHTML = '<option value="Default Template">Default Template</option>';
             }
+        }
+    }
+
+    /**
+     * Load item templates from API
+     * @private
+     */
+    async _loadItemTemplates() {
+        try {
+            // Get token
+            let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+
+            if (!token) {
+                console.error('No token available for item templates API');
+                return null;
+            }
+
+            let entityId = '20d11e41-5ee0-40f1-9f01-a619d20e74e3'; // Default
+
+            // Try to extract from token
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                entityId = payload.entity_id || payload['custom:entityId'] || entityId;
+            } catch (e) {
+                console.warn('Could not parse token for entity_id');
+            }
+
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}module_templates/?entity_id=${entityId}&template_type=ITEM`;
+
+            console.log('✓ Fetching item templates from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch item templates:', response.status, response.statusText);
+                return null;
+            }
+
+            const data = await response.json();
+            console.log('✓ Loaded item templates response:', data);
+
+            // API returns an array with one object containing templates
+            const responseData = Array.isArray(data) ? data[0] : data;
+            const templates = responseData.templates || [];
+            console.log('✓ Item templates array:', templates);
+
+            // Store templates in templateManager
+            if (this.templateManager && templates.length > 0) {
+                this.templateManager.itemTemplates = templates;
+                console.log('✓ Stored', templates.length, 'item templates in TemplateManager');
+
+                // Parse the first (default) template
+                const defaultTemplate = templates[0];
+                const config = this.templateManager.parseItemTemplateConfig(defaultTemplate);
+                this.templateManager.itemTemplateConfig = config;
+                console.log('✓ Parsed item template config:', config);
+
+                return config;
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('Error loading item templates:', error);
+            return null;
         }
     }
 
