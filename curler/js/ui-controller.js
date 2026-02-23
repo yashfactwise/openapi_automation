@@ -4,7 +4,7 @@
  */
 
 class UIController {
-    constructor(environmentManager, accountStore, tokenManager, moduleRegistry, payloadBuilder, curlGenerator, apiClient, itemValidator, itemValidationUI, factwiseIntegration) {
+    constructor(environmentManager, accountStore, tokenManager, moduleRegistry, payloadBuilder, curlGenerator, apiClient, itemValidator, itemValidationUI, factwiseIntegration, templateManager) {
         this.environmentManager = environmentManager;
         this.accountStore = accountStore;
         this.tokenManager = tokenManager;
@@ -15,6 +15,7 @@ class UIController {
         this.itemValidator = itemValidator;
         this.itemValidationUI = itemValidationUI;
         this.factwiseIntegration = factwiseIntegration;
+        this.templateManager = templateManager;
 
         // Track current state
         this.currentAccount = null;
@@ -849,7 +850,7 @@ class UIController {
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                         Shared Configuration
                     </p>
-
+                    <div class="cc-config-panel" style="border-left: none;">
                     <!-- Top row: email + entity + count -->
                     <div class="form-row">
                         <div class="form-group">
@@ -928,6 +929,7 @@ class UIController {
                                 <span class="cc-toggle-text">Preferred Vendor</span>
                             </label>
                         </div>
+                    </div>
                     </div>
                 </div>
 
@@ -1065,11 +1067,13 @@ class UIController {
         card.dataset.itemIndex = itemIndex;
         card.innerHTML = `
             <div class="cc-item-card-header">
-                <span class="cc-item-label">Item ${n}</span>
+                <div class="cc-item-card-badge">${n}</div>
+                <div class="cc-item-card-title cc-item-label" style="font-weight: 600;">Item #${n}</div>
                 <button type="button" class="btn-remove-item"
                     onclick="this.closest('.bi-item-card').remove(); window.uiController._refreshBulkItemLabels();"
-                    title="Remove item">&times;</button>
+                    title="Remove item" style="margin-left: auto; background: #ef4444; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px;">✕ Remove Item</button>
             </div>
+            <div class="cc-item-card-body">
 
             <!-- Row 1: Identifying fields -->
             <div class="form-row">
@@ -1211,6 +1215,7 @@ class UIController {
                         value="Internal testing item">
                 </div>
             </div>
+            </div>
         `;
         container.appendChild(card);
         this._refreshBulkItemLabels();
@@ -1223,7 +1228,9 @@ class UIController {
         const cards = container.querySelectorAll('.bi-item-card');
         cards.forEach((card, i) => {
             const label = card.querySelector('.cc-item-label');
-            if (label) label.textContent = `Item ${i + 1}`;
+            if (label) label.textContent = `Item #${i + 1}`;
+            const badge = card.querySelector('.cc-item-card-badge');
+            if (badge) badge.textContent = i + 1;
         });
         const counter = document.getElementById('bulk-item-count');
         if (counter) counter.textContent = `(${cards.length} item${cards.length !== 1 ? 's' : ''})`;
@@ -1451,6 +1458,14 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
 
         // Load templates dropdown
         this._loadTemplates();
+
+        // Template selector change listener
+        const templateSelect = document.getElementById('template_name_select');
+        if (templateSelect) {
+            templateSelect.addEventListener('change', (e) => {
+                this._handleTemplateChange(e.target.value);
+            });
+        }
 
         // Toggle listeners
         const toggleContractCosts = document.getElementById('toggle-contract-costs');
@@ -3479,7 +3494,12 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             const responseData = Array.isArray(data) ? data[0] : data;
             const templates = responseData.templates || [];
             console.log('✓ Templates array:', templates);
-            console.log('✓ First template structure:', templates[0]);
+
+            // Store templates in templateManager for later use
+            if (this.templateManager && templates.length > 0) {
+                this.templateManager.templates = templates;
+                console.log('✓ Stored', templates.length, 'templates in TemplateManager');
+            }
 
             // Populate dropdown
             const select = document.getElementById('template_name_select');
@@ -3487,11 +3507,15 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                 select.innerHTML = templates.map(t => {
                     // Use name field from API response
                     const name = t.name || t.template_name || 'Unnamed Template';
-                    const value = t.name || t.template_name || t.template_id;
-                    return `<option value="${value}">${name}</option>`;
+                    const templateId = t.template_id;
+                    return `<option value="${templateId}">${name}</option>`;
                 }).join('');
                 select.selectedIndex = 0;
                 console.log('✓ Populated dropdown with', templates.length, 'templates');
+
+                // Load the first template by default
+                const firstTemplateId = templates[0].template_id;
+                await this._handleTemplateChange(firstTemplateId);
             } else if (select) {
                 select.innerHTML = '<option value="Default Template">Default Template</option>';
             }
@@ -3505,4 +3529,168 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         }
     }
 
+    /**
+     * Handle template selection change
+     * Updates form visibility based on template configuration
+     * @private
+     */
+    async _handleTemplateChange(templateId) {
+        console.log('Template changed to ID:', templateId);
+
+        if (!this.templateManager || !this.templateManager.templates) {
+            console.warn('TemplateManager not initialized or no templates loaded');
+            return;
+        }
+
+        // Find the selected template from stored templates
+        const template = this.templateManager.templates.find(t => t.template_id === templateId);
+
+        if (!template) {
+            console.warn('Template not found:', templateId);
+            return;
+        }
+
+        console.log('✓ Found template:', template.name);
+        console.log('✓ Template has', template.section_list?.length || 0, 'sections');
+
+        // Parse template configuration
+        const config = this.templateManager.parseTemplateConfig(template);
+        console.log('✓ Parsed template config:', config);
+
+        // Update form visibility based on template
+        this._updateFormVisibilityFromTemplate(config);
+    }
+
+    /**
+     * Update form visibility based on template configuration
+     * @param {Object} config - Template configuration from TemplateManager
+     * @private
+     */
+    _updateFormVisibilityFromTemplate(config) {
+        console.log('Updating form visibility from template config...');
+
+        // Contract-level costs
+        const contractCostsToggle = document.getElementById('toggle-contract-costs');
+        if (contractCostsToggle) {
+            const hasContractCosts = config.contractLevel.additionalCosts ||
+                config.contractLevel.taxes ||
+                config.contractLevel.discounts;
+
+            // Enable/disable toggle based on template
+            contractCostsToggle.disabled = !hasContractCosts;
+
+            // Add visual feedback and tooltip
+            const toggleRow = contractCostsToggle.closest('.cc-toggle-row');
+            if (toggleRow) {
+                if (!hasContractCosts) {
+                    toggleRow.style.opacity = '0.5';
+                    toggleRow.style.cursor = 'not-allowed';
+                    toggleRow.title = 'Not available in selected template';
+                } else {
+                    toggleRow.style.opacity = '1';
+                    toggleRow.style.cursor = 'pointer';
+                    toggleRow.title = '';
+                }
+            }
+
+            if (!hasContractCosts) {
+                contractCostsToggle.checked = false;
+                const section = document.getElementById('contract-costs-section');
+                if (section) section.classList.remove('visible');
+            }
+
+            console.log('  Contract-level costs:', hasContractCosts ? 'ENABLED' : 'DISABLED');
+        }
+
+        // Item-level costs (affects tier costs too)
+        const tierCostsToggle = document.getElementById('toggle-tier-costs');
+        if (tierCostsToggle) {
+            const hasItemCosts = config.itemLevel.additionalCosts ||
+                config.itemLevel.taxes ||
+                config.itemLevel.discounts;
+
+            tierCostsToggle.disabled = !hasItemCosts;
+
+            // Add visual feedback and tooltip
+            const toggleRow = tierCostsToggle.closest('.cc-toggle-row');
+            if (toggleRow) {
+                if (!hasItemCosts) {
+                    toggleRow.style.opacity = '0.5';
+                    toggleRow.style.cursor = 'not-allowed';
+                    toggleRow.title = 'Not available in selected template';
+                } else {
+                    toggleRow.style.opacity = '1';
+                    toggleRow.style.cursor = 'pointer';
+                    toggleRow.title = '';
+                }
+            }
+
+            if (!hasItemCosts) {
+                tierCostsToggle.checked = false;
+                // Re-render items to hide tier costs
+                this._renderContractItems();
+            }
+
+            console.log('  Tier-level costs:', hasItemCosts ? 'ENABLED' : 'DISABLED');
+        }
+
+        // Contract custom sections
+        const contractCustomToggle = document.getElementById('toggle-contract-custom');
+        if (contractCustomToggle) {
+            const hasContractCustom = config.contractLevel.customSections.length > 0;
+            contractCustomToggle.disabled = !hasContractCustom;
+
+            // Add visual feedback and tooltip
+            const toggleRow = contractCustomToggle.closest('.cc-toggle-row');
+            if (toggleRow) {
+                if (!hasContractCustom) {
+                    toggleRow.style.opacity = '0.5';
+                    toggleRow.style.cursor = 'not-allowed';
+                    toggleRow.title = 'Not available in selected template';
+                } else {
+                    toggleRow.style.opacity = '1';
+                    toggleRow.style.cursor = 'pointer';
+                    toggleRow.title = '';
+                }
+            }
+
+            if (!hasContractCustom) {
+                contractCustomToggle.checked = false;
+                const section = document.getElementById('contract-custom-section');
+                if (section) section.classList.remove('visible');
+            }
+
+            console.log('  Contract custom fields:', hasContractCustom ? 'ENABLED' : 'DISABLED');
+        }
+
+        // Item custom sections
+        const itemCustomToggle = document.getElementById('toggle-item-custom');
+        if (itemCustomToggle) {
+            const hasItemCustom = config.itemLevel.customSections.length > 0;
+            itemCustomToggle.disabled = !hasItemCustom;
+
+            // Add visual feedback and tooltip
+            const toggleRow = itemCustomToggle.closest('.cc-toggle-row');
+            if (toggleRow) {
+                if (!hasItemCustom) {
+                    toggleRow.style.opacity = '0.5';
+                    toggleRow.style.cursor = 'not-allowed';
+                    toggleRow.title = 'Not available in selected template';
+                } else {
+                    toggleRow.style.opacity = '1';
+                    toggleRow.style.cursor = 'pointer';
+                    toggleRow.title = '';
+                }
+            }
+
+            if (!hasItemCustom) {
+                itemCustomToggle.checked = false;
+                this._renderContractItems();
+            }
+
+            console.log('  Item custom fields:', hasItemCustom ? 'ENABLED' : 'DISABLED');
+        }
+
+        console.log('✓ Form visibility updated based on template');
+    }
 }

@@ -282,7 +282,11 @@ class Application {
         this.itemValidationUI = new ItemValidationUI(this.itemValidator);
         console.log('✓ ItemValidationUI created');
 
-        // 10. UI Controller (depends on all other components)
+        // 10. Template Manager (no dependencies)
+        this.templateManager = new TemplateManager();
+        console.log('✓ TemplateManager created');
+
+        // 11. UI Controller (depends on all other components)
         this.uiController = new UIController(
             this.environmentManager,
             this.accountStore,
@@ -293,7 +297,8 @@ class Application {
             this.apiClient,
             this.itemValidator,
             this.itemValidationUI,
-            this.factwiseIntegration
+            this.factwiseIntegration,
+            this.templateManager
         );
         console.log('✓ UIController created');
 
