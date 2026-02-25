@@ -247,6 +247,90 @@ class TemplateManager {
     }
 
     /**
+     * Parse vendor template to extract field configuration
+     * @param {Object} template - Vendor template with section_list
+     * @returns {Object} Configuration object with fields
+     */
+    parseVendorTemplateConfig(template) {
+        const config = {
+            builtInFields: [],
+            customFields: [],
+            additionalCosts: [],
+            hasVendorName: false,
+            hasPrimaryContact: false,
+            hasSecondaryContact: false,
+            hasVendorIdentification: false,
+            hasVendorCode: false,
+            hasVendorAddresses: false,
+            hasTags: false,
+            hasNotes: false,
+            hasAdditionalCosts: false
+        };
+
+        if (!template || !template.section_list) {
+            return config;
+        }
+
+        // Parse sections
+        template.section_list.forEach(section => {
+            section.section_items.forEach(item => {
+                const isHidden = item.additional_information?.is_hidden;
+                const isVisible = !isHidden;
+
+                if (!isVisible) return; // Skip hidden fields
+
+                // Built-in fields
+                if (item.is_builtin_field) {
+                    const fieldName = item.name;
+
+                    // Check for specific built-in fields
+                    if (fieldName === 'Vendor company legal name') config.hasVendorName = true;
+                    if (fieldName === 'Primary contact') config.hasPrimaryContact = true;
+                    if (fieldName === 'Secondary contact') config.hasSecondaryContact = true;
+                    if (fieldName === 'Vendor identification') config.hasVendorIdentification = true;
+                    if (fieldName === 'Vendor code') config.hasVendorCode = true;
+                    if (fieldName === 'Vendor addresses') config.hasVendorAddresses = true;
+                    if (fieldName === 'Tag') config.hasTags = true;
+                    if (fieldName === 'Notes') config.hasNotes = true;
+                    if (fieldName === 'Additional costs') config.hasAdditionalCosts = true;
+
+                    config.builtInFields.push({
+                        id: item.section_item_id,
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        constraints: item.constraints,
+                        parent: item.parent_section_item
+                    });
+                }
+                // Custom fields
+                else {
+                    const fieldInfo = {
+                        id: item.section_item_id,
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        constraints: item.constraints,
+                        parent: item.parent_section_item
+                    };
+
+                    // Check if it's an additional cost
+                    if (item.additional_information?.additional_cost_information) {
+                        config.additionalCosts.push({
+                            ...fieldInfo,
+                            cost_info: item.additional_information.additional_cost_information
+                        });
+                    } else {
+                        config.customFields.push(fieldInfo);
+                    }
+                }
+            });
+        });
+
+        return config;
+    }
+
+    /**
      * Parse item template to extract field configuration
      * @param {Object} template - Item template with section_list
      * @returns {Object} Configuration object with fields

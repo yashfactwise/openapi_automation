@@ -212,7 +212,11 @@ class UIController {
         const sidebarItem = document.querySelector(`.operation-item[data-module-id="${moduleId}"][data-operation-id="${opId}"]`);
         if (sidebarItem) {
             sidebarItem.classList.add('selected');
-            // Ensure sidebar group is expanded if we add collapsing later
+            // Ensure sidebar group is expanded
+            const moduleGroup = sidebarItem.closest('.module-group');
+            if (moduleGroup) {
+                moduleGroup.classList.remove('collapsed');
+            }
         }
 
         // Update Header
@@ -946,6 +950,648 @@ class UIController {
                 <div id="bulk-items-container"></div>
             `;
 
+        } else if (module.id === 'vendors' && operation.id === 'contacts_create') {
+            bodyInputsHtml = `
+                <!-- ① Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">👤</span>
+                    <h4>Contact Information</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'admin@example.com'}">
+                    <small style="color: #64748b; font-size: 11px;">Must be an admin user in the enterprise</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" name="full_name" class="input-field" required placeholder="e.g., John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Email *</label>
+                        <input type="email" name="primary_email" class="input-field" required placeholder="e.g., john@vendor.com">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Entity Name *</label>
+                    <input type="text" name="entity_name" class="input-field" required placeholder="e.g., FactWise Demo" value="FactWise Demo">
+                    <small style="color: #64748b; font-size: 11px;">Entity must exist in the enterprise</small>
+                </div>
+
+                <!-- ② Vendor Identification -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏢</span>
+                    <h4>Vendor Identification</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="ERP_vendor_code" class="input-field" placeholder="e.g., MDvendorcreate7">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Vendor Code</label>
+                        <input type="text" name="factwise_vendor_code" class="input-field" placeholder="e.g., FacVENDOR120620240416">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                </div>
+
+                <!-- ③ Additional Contact Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📞</span>
+                    <h4>Additional Contact Details</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Numbers (comma-separated)</label>
+                    <input type="text" name="phone_numbers" class="input-field" placeholder="e.g., 1234567890, 9876543210">
+                    <small style="color: #64748b; font-size: 11px;">Max 12 characters per phone number</small>
+                </div>
+
+                <!-- ④ Additional Emails -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📧</span>
+                    <h4>Additional Emails</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div id="additional-emails-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addVendorContactEmail()">＋ Add Email</button>
+            `;
+        } else if (module.id === 'vendors' && operation.id === 'contacts_update') {
+            bodyInputsHtml = `
+                <!-- ① Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">👤</span>
+                    <h4>Contact Information</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'admin@example.com'}">
+                    <small style="color: #64748b; font-size: 11px;">Must be an admin user in the enterprise</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" name="full_name" class="input-field" required placeholder="e.g., John Doe" value="ZOsari">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Email *</label>
+                        <input type="email" name="primary_email" class="input-field" required placeholder="e.g., john@vendor.com" value="za@fw.com">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required placeholder="e.g., FactWise Demo" value="FactWise Demo - EMS">
+                        <small style="color: #64748b; font-size: 11px;">Entity must exist in the enterprise</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Is Primary Contact *</label>
+                        <select name="is_primary" class="input-field" required>
+                            <option value="true" selected>Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                        <small style="color: #64748b; font-size: 11px;">Whether this is the primary contact</small>
+                    </div>
+                </div>
+
+                <!-- ② Vendor Identification -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏢</span>
+                    <h4>Vendor Identification</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="ERP_vendor_code" class="input-field" placeholder="e.g., MDvendorcreate7" value="MDvendorcreate7">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Vendor Code</label>
+                        <input type="text" name="factwise_vendor_code" class="input-field" placeholder="e.g., FacVENDOR120620240416" value="FacVENDOR120620240416">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                </div>
+
+                <!-- ③ Additional Contact Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📞</span>
+                    <h4>Additional Contact Details</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone Numbers (comma-separated)</label>
+                    <input type="text" name="phone_numbers" class="input-field" placeholder="e.g., 1234567890, 9876543210" value="9819186167">
+                    <small style="color: #64748b; font-size: 11px;">Max 12 characters per phone number</small>
+                </div>
+
+                <!-- ④ Additional Emails -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📧</span>
+                    <h4>Additional Emails</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div id="additional-emails-container-update"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addVendorContactEmailUpdate()">＋ Add Email</button>
+            `;
+        } else if (module.id === 'vendors' && operation.id === 'contacts_delete') {
+            bodyInputsHtml = `
+                <!-- ① Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">🗑️</span>
+                    <h4>Delete Contact Information</h4>
+                    <span class="fst-badge" style="background: #ef4444;">Delete</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Deleted By User Email *</label>
+                    <input type="email" name="deleted_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'admin@example.com'}">
+                    <small style="color: #64748b; font-size: 11px;">Must be an admin user in the enterprise</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Primary Email *</label>
+                        <input type="email" name="primary_email" class="input-field" required placeholder="e.g., contact@vendor.com" value="zaa@fw.com">
+                        <small style="color: #64748b; font-size: 11px;">Email of the contact to delete</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required placeholder="e.g., FactWise Demo" value="FactWise Demo">
+                        <small style="color: #64748b; font-size: 11px;">Entity must exist in the enterprise</small>
+                    </div>
+                </div>
+
+                <!-- ② Vendor Identification -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏢</span>
+                    <h4>Vendor Identification</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="ERP_vendor_code" class="input-field" placeholder="e.g., MDvendorcreate7" value="MDvendorcreate7">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Vendor Code</label>
+                        <input type="text" name="factwise_vendor_code" class="input-field" placeholder="e.g., FacVENDOR120620240416" value="FacVENDOR120620240416">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                </div>
+
+                <!-- Warning Message -->
+                <div style="margin-top: 20px; padding: 15px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #991b1b;">
+                        <span style="font-size: 20px;">⚠️</span>
+                        <div>
+                            <strong>Warning: This action cannot be undone</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #dc2626;">
+                                Deleting a vendor contact will permanently remove it from the system. Make sure you have the correct contact information before proceeding.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (module.id === 'vendors' && operation.id === 'state') {
+            bodyInputsHtml = `
+                <!-- ① Vendor Identification -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">🔍</span>
+                    <h4>Vendor Identification</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                    <small style="color: #64748b; font-size: 11px;">Must be an admin user in the enterprise</small>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="ERP_vendor_code" class="input-field" placeholder="e.g., MDvendorcreate7" value="MDvendorcreate7">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Vendor Code</label>
+                        <input type="text" name="factwise_vendor_code" class="input-field" placeholder="e.g., FacVENDOR120620240416" value="FacVENDOR120620240416">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                </div>
+
+                <!-- ② Status Update -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📊</span>
+                    <h4>Status Update</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="status" class="input-field" required>
+                        <option value="">Select Status...</option>
+                        <option value="INVITED">INVITED</option>
+                        <option value="PENDING">PENDING</option>
+                        <option value="ACTIVE" selected>ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="REJECTED">REJECTED</option>
+                    </select>
+                    <small style="color: #64748b; font-size: 11px;">Select the new status for the vendor</small>
+                </div>
+
+                <!-- Info Box -->
+                <div style="margin-top: 20px; padding: 15px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #1e40af;">
+                        <span style="font-size: 20px;">ℹ️</span>
+                        <div>
+                            <strong>Status Information</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #1e3a8a;">
+                                Changing vendor status will affect their ability to participate in transactions and receive orders.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (module.id === 'vendors' && operation.id === 'create') {
+            bodyInputsHtml = `
+                <!-- ① Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">🏢</span>
+                    <h4>Vendor Information</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vendor Name *</label>
+                        <input type="text" name="vendor_name" class="input-field" required placeholder="e.g., API Test Vendor" value="API Test Vendor">
+                    </div>
+                    <div class="form-group">
+                        <label>ERP Vendor Code *</label>
+                        <input type="text" name="ERP_vendor_code" class="input-field" required placeholder="e.g., ERPV01" value="ERPV01">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <input type="text" name="notes" class="input-field" placeholder="Optional notes" value="this is notes">
+                    </div>
+                    <div class="form-group">
+                        <label>Tags (comma-separated)</label>
+                        <input type="text" name="tags" class="input-field" placeholder="e.g., Test, Supplier" value="Test">
+                    </div>
+                </div>
+
+                <!-- ② Primary Contact -->
+                <div class="form-section-title">
+                    <span class="fst-icon">👤</span>
+                    <h4>Primary Contact</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name *</label>
+                        <input type="text" name="primary_full_name" class="input-field" required value="Ashir Ansari">
+                    </div>
+                    <div class="form-group">
+                        <label>Primary Email *</label>
+                        <input type="email" name="primary_email" class="input-field" required value="ashir@factwise.io">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phone Numbers (comma-separated)</label>
+                        <input type="text" name="primary_phone_numbers" class="input-field" value="8928219571">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Type</label>
+                        <select name="primary_email_type" class="input-field">
+                            <option value="TO">TO</option>
+                            <option value="CC" selected>CC</option>
+                            <option value="BCC">BCC</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- ③ Seller Information -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📍</span>
+                    <h4>Seller Information</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Address Information (comma-separated)</label>
+                        <input type="text" name="seller_address_information" class="input-field" value="Mumbai">
+                    </div>
+                    <div class="form-group">
+                        <label>Identification Name</label>
+                        <input type="text" name="identification_name" class="input-field" value="Name">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Identification Value</label>
+                    <input type="text" name="identification_value" class="input-field" value="a50">
+                </div>
+
+                <!-- ④ Entities -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏭</span>
+                    <h4>Entities</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Entity Names (comma-separated) *</label>
+                    <input type="text" name="entity_names" class="input-field" required value="Global fields ETE">
+                    <small style="color: #64748b; font-size: 11px;">Entities must exist in the enterprise</small>
+                </div>
+
+                <!-- ⑤ Custom Fields from Template -->
+                <div id="vendor-custom-fields-container"></div>
+
+                <!-- ⑥ Additional Costs -->
+                <div class="form-section-title">
+                    <span class="fst-icon">💰</span>
+                    <h4>Additional Costs</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div id="vendor-costs-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addVendorCost()">＋ Add Cost</button>
+
+                <!-- ⑦ Secondary Contacts -->
+                <div class="form-section-title">
+                    <span class="fst-icon">👥</span>
+                    <h4>Secondary Contacts</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div id="vendor-secondary-contacts-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addVendorSecondaryContact()">＋ Add Secondary Contact</button>
+
+                <!-- ⑧ Custom Sections -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🔧</span>
+                    <h4>Custom Sections</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div id="vendor-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addVendorCustomSection()">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'items' && operation.id === 'update_state') {
+            bodyInputsHtml = `
+                <!-- ① Item Identification -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">🔍</span>
+                    <h4>Item Identification</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Item Code</label>
+                        <input type="text" name="ERP_item_code" class="input-field" placeholder="e.g., ERP1234567" value="ERP1234567">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Item Code</label>
+                        <input type="text" name="factwise_item_code" class="input-field" placeholder="e.g., ITEM001">
+                        <small style="color: #64748b; font-size: 11px;">Either ERP or Factwise code required</small>
+                    </div>
+                </div>
+
+                <!-- ② Status Update -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📊</span>
+                    <h4>Status Update</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="status" class="input-field" required>
+                        <option value="">Select Status...</option>
+                        <option value="ACTIVE" selected>ACTIVE</option>
+                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="ITEM_ACTIVE">ITEM_ACTIVE</option>
+                        <option value="ITEM_INACTIVE">ITEM_INACTIVE</option>
+                    </select>
+                    <small style="color: #64748b; font-size: 11px;">Select the new status for the item</small>
+                </div>
+
+                <!-- Info Box -->
+                <div style="margin-top: 20px; padding: 15px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #1e40af;">
+                        <span style="font-size: 20px;">ℹ️</span>
+                        <div>
+                            <strong>Status Information</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #1e3a8a;">
+                                Changing item status will affect its availability in the system and for transactions.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (module.id === 'items' && operation.id === 'create') {
+            bodyInputsHtml = `
+                <!-- ① Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📦</span>
+                    <h4>Item Information</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Item Name *</label>
+                        <input type="text" name="name" class="input-field" required value="Natural Rubber - TSNR - TSR10">
+                    </div>
+                    <div class="form-group">
+                        <label>ERP Item Code</label>
+                        <input type="text" name="ERP_item_code" class="input-field" value="ERP-BKT-01111">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Factwise Item Code</label>
+                        <input type="text" name="factwise_item_code" class="input-field" value="PIR_00000000001100000122">
+                    </div>
+                    <div class="form-group">
+                        <label>Measurement Unit ID *</label>
+                        <input type="text" name="measurement_units" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Item Type *</label>
+                        <select name="item_type" class="input-field" required>
+                            <option value="RAW_MATERIAL" selected>RAW_MATERIAL</option>
+                            <option value="FINISHED_GOODS">FINISHED_GOODS</option>
+                            <option value="SEMI_FINISHED_GOODS">SEMI_FINISHED_GOODS</option>
+                            <option value="CONSUMABLES">CONSUMABLES</option>
+                            <option value="SERVICES">SERVICES</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="status" class="input-field" required>
+                            <option value="ACTIVE" selected>ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-textarea" rows="2"></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Notes</label>
+                        <input type="text" name="notes" class="input-field">
+                    </div>
+                    <div class="form-group">
+                        <label>Internal Notes</label>
+                        <input type="text" name="internal_notes" class="input-field">
+                    </div>
+                </div>
+
+                <!-- ② Pricing -->
+                <div class="form-section-title">
+                    <span class="fst-icon">💰</span>
+                    <h4>Pricing Information</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="is_buyer" value="true" checked>
+                            <span>Is Buyer</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" name="is_seller" value="true">
+                            <span>Is Seller</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buyer Price</label>
+                        <input type="number" name="buyer_price" class="input-field" step="0.01" value="78">
+                    </div>
+                    <div class="form-group">
+                        <label>Buyer Currency ID</label>
+                        <input type="text" name="buyer_currency_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seller Price</label>
+                        <input type="number" name="seller_price" class="input-field" step="0.01" value="170">
+                    </div>
+                    <div class="form-group">
+                        <label>Seller Currency ID</label>
+                        <input type="text" name="seller_currency_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                    </div>
+                </div>
+
+                <!-- ③ Additional Information -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏷️</span>
+                    <h4>Additional Information</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" name="tags" class="input-field" value="Project EcoConscious">
+                </div>
+
+                <div class="form-group">
+                    <label>HSN Code</label>
+                    <input type="text" name="hsn_code" class="input-field" value="40012200">
+                </div>
+
+                <!-- ④ Entities -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏭</span>
+                    <h4>Entities</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required value="FactWise">
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Vendors (comma-separated)</label>
+                        <input type="text" name="preferred_vendors" class="input-field" value="V0003">
+                    </div>
+                </div>
+
+                <!-- ⑤ Attributes -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📋</span>
+                    <h4>Attributes</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">Optional</span>
+                </div>
+
+                <div id="item-attributes-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addItemAttribute()">＋ Add Attribute</button>
+
+                <!-- ⑥ Custom Fields from Template -->
+                <div id="item-create-custom-fields-container"></div>
+            `;
         } else {
             // Generic placeholder for other operations
             bodyInputsHtml = `
@@ -989,6 +1635,39 @@ class UIController {
             // Load item templates and then add first item
             this._loadItemTemplates().then(() => {
                 this._addBulkItem();
+            });
+        } else if (module.id === 'vendors' && operation.id === 'contacts_create') {
+            // Expose this instance globally for vendor contact create
+            window.uiController = this;
+        } else if (module.id === 'vendors' && operation.id === 'contacts_update') {
+            // Expose this instance globally for vendor contact update
+            window.uiController = this;
+        } else if (module.id === 'vendors' && operation.id === 'contacts_delete') {
+            // Expose this instance globally for vendor contact delete
+            window.uiController = this;
+        } else if (module.id === 'vendors' && operation.id === 'state') {
+            // Expose this instance globally for vendor state
+            window.uiController = this;
+        } else if (module.id === 'vendors' && operation.id === 'create') {
+            // Expose this instance globally for vendor create
+            window.uiController = this;
+            // Load vendor templates and populate custom fields
+            this._loadVendorTemplates().then((config) => {
+                if (config && config.customFields && config.customFields.length > 0) {
+                    this._populateVendorCustomFields(config.customFields);
+                }
+            });
+        } else if (module.id === 'items' && operation.id === 'update_state') {
+            // Expose this instance globally for item state
+            window.uiController = this;
+        } else if (module.id === 'items' && operation.id === 'create') {
+            // Expose this instance globally for item create
+            window.uiController = this;
+            // Load item templates and populate custom fields
+            this._loadItemTemplates().then((config) => {
+                if (config && config.customFields && config.customFields.length > 0) {
+                    this._populateItemCreateCustomFields(config.customFields);
+                }
             });
         }
 
@@ -1569,6 +2248,523 @@ class UIController {
         });
 
         return this.payloadBuilder.buildItemsBulkCreatePayload(this.currentAccount, { items });
+    }
+
+    /**
+     * Builds the payload for vendor contact create operation.
+     * Collects form data and formats it according to the API requirements.
+     */
+    _buildVendorContactCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Collect basic fields
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            full_name: get('full_name'),
+            primary_email: get('primary_email'),
+            entity_name: get('entity_name')
+        };
+
+        // Add vendor codes (at least one required)
+        const erpCode = get('ERP_vendor_code');
+        const factwiseCode = get('factwise_vendor_code');
+
+        if (erpCode) payload.ERP_vendor_code = erpCode;
+        if (factwiseCode) payload.factwise_vendor_code = factwiseCode;
+
+        // Validate at least one vendor code is provided
+        if (!erpCode && !factwiseCode) {
+            throw new Error('Either ERP Vendor Code or Factwise Vendor Code is required');
+        }
+
+        // Collect phone numbers (comma-separated)
+        const phoneNumbersStr = get('phone_numbers');
+        if (phoneNumbersStr) {
+            payload.phone_numbers = phoneNumbersStr.split(',')
+                .map(p => p.trim())
+                .filter(p => p.length > 0)
+                .map(p => parseInt(p));
+        } else {
+            payload.phone_numbers = [];
+        }
+
+        // Collect additional emails
+        const emailsContainer = document.getElementById('additional-emails-container');
+        const emails = [];
+        if (emailsContainer) {
+            const emailCards = emailsContainer.querySelectorAll('.cc-custom-item');
+            emailCards.forEach((card, index) => {
+                const email = card.querySelector(`[name="contact_email_${index}_address"]`)?.value?.trim();
+                const type = card.querySelector(`[name="contact_email_${index}_type"]`)?.value || 'CC';
+                if (email) {
+                    emails.push({ email, type });
+                }
+            });
+        }
+        payload.emails = emails;
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for vendor contact update operation.
+     * Collects form data and formats it according to the API requirements.
+     */
+    _buildVendorContactUpdatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Collect basic fields
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            full_name: get('full_name'),
+            primary_email: get('primary_email'),
+            entity_name: get('entity_name'),
+            is_primary: get('is_primary') === 'true'
+        };
+
+        // Add vendor codes (at least one required)
+        const erpCode = get('ERP_vendor_code');
+        const factwiseCode = get('factwise_vendor_code');
+
+        if (erpCode) payload.ERP_vendor_code = erpCode;
+        if (factwiseCode) payload.factwise_vendor_code = factwiseCode;
+
+        // Validate at least one vendor code is provided
+        if (!erpCode && !factwiseCode) {
+            throw new Error('Either ERP Vendor Code or Factwise Vendor Code is required');
+        }
+
+        // Collect phone numbers (comma-separated)
+        const phoneNumbersStr = get('phone_numbers');
+        if (phoneNumbersStr) {
+            payload.phone_numbers = phoneNumbersStr.split(',')
+                .map(p => p.trim())
+                .filter(p => p.length > 0)
+                .map(p => parseInt(p));
+        } else {
+            payload.phone_numbers = [];
+        }
+
+        // Collect additional emails
+        const emailsContainer = document.getElementById('additional-emails-container-update');
+        const emails = [];
+        if (emailsContainer) {
+            const emailCards = emailsContainer.querySelectorAll('.cc-custom-item');
+            emailCards.forEach((card, index) => {
+                const email = card.querySelector(`[name="contact_email_update_${index}_address"]`)?.value?.trim();
+                const type = card.querySelector(`[name="contact_email_update_${index}_type"]`)?.value || 'CC';
+                if (email) {
+                    emails.push({ email, type });
+                }
+            });
+        }
+        payload.emails = emails;
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for vendor contact delete operation.
+     * Collects form data and formats it according to the API requirements.
+     */
+    _buildVendorContactDeletePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Collect basic fields
+        const payload = {
+            deleted_by_user_email: get('deleted_by_user_email'),
+            primary_email: get('primary_email'),
+            entity_name: get('entity_name')
+        };
+
+        // Add vendor codes (at least one required)
+        const erpCode = get('ERP_vendor_code');
+        const factwiseCode = get('factwise_vendor_code');
+
+        if (erpCode) payload.ERP_vendor_code = erpCode;
+        if (factwiseCode) payload.factwise_vendor_code = factwiseCode;
+
+        // Validate at least one vendor code is provided
+        if (!erpCode && !factwiseCode) {
+            throw new Error('Either ERP Vendor Code or Factwise Vendor Code is required');
+        }
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for vendor state update operation.
+     * Collects form data and formats it according to the API requirements.
+     */
+    _buildVendorStatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Collect basic fields
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            status: get('status')
+        };
+
+        // Add vendor codes (at least one required)
+        const erpCode = get('ERP_vendor_code');
+        const factwiseCode = get('factwise_vendor_code');
+
+        if (erpCode) payload.ERP_vendor_code = erpCode;
+        if (factwiseCode) payload.factwise_vendor_code = factwiseCode;
+
+        // Validate at least one vendor code is provided
+        if (!erpCode && !factwiseCode) {
+            throw new Error('Either ERP Vendor Code or Factwise Vendor Code is required');
+        }
+
+        // Validate status is selected
+        if (!payload.status) {
+            throw new Error('Status is required');
+        }
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for vendor create operation.
+     */
+    _buildVendorCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            vendor_name: get('vendor_name'),
+            ERP_vendor_code: get('ERP_vendor_code'),
+            notes: get('notes') || null,
+            tags: get('tags') ? get('tags').split(',').map(t => t.trim()).filter(t => t) : [],
+            seller_address_information: get('seller_address_information') ? get('seller_address_information').split(',').map(a => a.trim()).filter(a => a) : [],
+            seller_identifications: [],
+            additional_costs: [],
+            primary_contact: {},
+            secondary_contacts: [],
+            entities: [],
+            custom_sections: []
+        };
+
+        // Primary contact
+        const primaryPhones = get('primary_phone_numbers');
+        payload.primary_contact = {
+            full_name: get('primary_full_name'),
+            phone_numbers: primaryPhones ? primaryPhones.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p)) : [],
+            emails: [{
+                primary_email: get('primary_email'),
+                type: get('primary_email_type')
+            }]
+        };
+
+        // Seller identifications
+        if (get('identification_name') && get('identification_value')) {
+            payload.seller_identifications.push({
+                identification_name: get('identification_name'),
+                identification_value: get('identification_value')
+            });
+        }
+
+        // Entities
+        const entityNames = get('entity_names');
+        if (entityNames) {
+            entityNames.split(',').forEach(name => {
+                const trimmed = name.trim();
+                if (trimmed) {
+                    payload.entities.push({ entity_name: trimmed });
+                }
+            });
+        }
+
+        // Additional costs
+        const costsContainer = document.getElementById('vendor-costs-container');
+        if (costsContainer) {
+            const costCards = costsContainer.querySelectorAll('.cc-custom-item');
+            costCards.forEach((card, index) => {
+                const name = card.querySelector(`[name="cost_${index}_name"]`)?.value?.trim();
+                const value = card.querySelector(`[name="cost_${index}_value"]`)?.value;
+                if (name && value) {
+                    payload.additional_costs.push({
+                        name: name,
+                        value: parseFloat(value)
+                    });
+                }
+            });
+        }
+
+        // Secondary contacts
+        const secondaryContainer = document.getElementById('vendor-secondary-contacts-container');
+        if (secondaryContainer) {
+            const contactCards = secondaryContainer.querySelectorAll('.cc-custom-item');
+            contactCards.forEach((card, index) => {
+                const fullName = card.querySelector(`[name="secondary_${index}_full_name"]`)?.value?.trim();
+                const email = card.querySelector(`[name="secondary_${index}_email"]`)?.value?.trim();
+                const phoneNumbers = card.querySelector(`[name="secondary_${index}_phone_numbers"]`)?.value?.trim();
+                const emailType = card.querySelector(`[name="secondary_${index}_email_type"]`)?.value;
+
+                if (fullName && email) {
+                    payload.secondary_contacts.push({
+                        full_name: fullName,
+                        phone_numbers: phoneNumbers ? phoneNumbers.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p)) : [],
+                        emails: [{
+                            email: email,
+                            type: emailType
+                        }]
+                    });
+                }
+            });
+        }
+
+        // Custom sections
+        const customContainer = document.getElementById('vendor-custom-sections-container');
+        if (customContainer) {
+            const sectionCards = customContainer.querySelectorAll('.cc-custom-item');
+            sectionCards.forEach((card, index) => {
+                const sectionName = card.querySelector(`[name="custom_section_${index}_name"]`)?.value?.trim();
+                const fieldsJson = card.querySelector(`[name="custom_section_${index}_fields"]`)?.value?.trim();
+
+                if (sectionName && fieldsJson) {
+                    try {
+                        const customFields = JSON.parse(fieldsJson);
+                        payload.custom_sections.push({
+                            name: sectionName,
+                            custom_fields: customFields
+                        });
+                    } catch (e) {
+                        console.error('Invalid JSON in custom section:', e);
+                    }
+                }
+            });
+        }
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for item state update operation.
+     */
+    _buildItemStatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            status: get('status')
+        };
+
+        // Add item codes (at least one required)
+        const erpCode = get('ERP_item_code');
+        const factwiseCode = get('factwise_item_code');
+
+        if (erpCode) payload.ERP_item_code = erpCode;
+        if (factwiseCode) payload.factwise_item_code = factwiseCode;
+
+        // Validate at least one item code is provided
+        if (!erpCode && !factwiseCode) {
+            throw new Error('Either ERP Item Code or Factwise Item Code is required');
+        }
+
+        // Validate status is selected
+        if (!payload.status) {
+            throw new Error('Status is required');
+        }
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for item create operation (single item).
+     */
+    _buildItemCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            name: get('name')
+        };
+
+        // Add optional codes
+        const erpCode = get('ERP_item_code');
+        const factwiseCode = get('factwise_item_code');
+        if (erpCode) payload.ERP_item_code = erpCode;
+        if (factwiseCode) payload.factwise_item_code = factwiseCode;
+
+        // Add optional text fields
+        const description = get('description');
+        const notes = get('notes');
+        const internalNotes = get('internal_notes');
+        if (description) payload.description = description;
+        if (notes) payload.notes = notes;
+        if (internalNotes) payload.internal_notes = internalNotes;
+
+        // Measurement units (required, at least one)
+        const measurementUnits = [];
+        let unitIndex = 0;
+        while (true) {
+            const unitId = get(`measurement_unit_${unitIndex}`);
+            if (!unitId) break;
+            measurementUnits.push(unitId);
+            unitIndex++;
+        }
+        if (measurementUnits.length === 0) {
+            throw new Error('At least one measurement unit is required');
+        }
+        payload.measurement_units = measurementUnits;
+
+        // Item type and status (dropdowns)
+        const itemType = get('item_type');
+        const status = get('status');
+        if (itemType) payload.item_type = itemType;
+        if (status) payload.status = status;
+
+        // Attributes
+        const attributes = [];
+        let attrIndex = 0;
+        while (true) {
+            const attrName = get(`attribute_${attrIndex}_name`);
+            const attrType = get(`attribute_${attrIndex}_type`);
+            const attrValue = get(`attribute_${attrIndex}_value`);
+            if (!attrName && !attrType && !attrValue) break;
+
+            if (attrName && attrType && attrValue) {
+                attributes.push({
+                    attribute_name: attrName,
+                    attribute_type: attrType,
+                    attribute_value: [{ value: attrValue }]
+                });
+            }
+            attrIndex++;
+        }
+        if (attributes.length > 0) {
+            payload.attributes = attributes;
+        }
+
+        // Buyer/Seller flags
+        const isBuyer = get('is_buyer');
+        const isSeller = get('is_seller');
+        payload.is_buyer = isBuyer === 'true';
+        payload.is_seller = isSeller === 'true';
+
+        // Buyer pricing
+        if (payload.is_buyer) {
+            const buyerPrice = get('buyer_price');
+            const buyerCurrency = get('buyer_currency_code_id');
+            if (buyerPrice || buyerCurrency) {
+                payload.buyer_pricing_information = {
+                    price: buyerPrice ? parseFloat(buyerPrice) : null,
+                    currency_code_id: buyerCurrency || null,
+                    additional_costs: [],
+                    taxes: []
+                };
+            }
+        }
+
+        // Seller pricing
+        if (payload.is_seller) {
+            const sellerPrice = get('seller_price');
+            const sellerCurrency = get('seller_currency_code_id');
+            if (sellerPrice || sellerCurrency) {
+                payload.seller_pricing_information = {
+                    price: sellerPrice ? parseFloat(sellerPrice) : null,
+                    currency_code_id: sellerCurrency || null,
+                    additional_costs: [],
+                    taxes: []
+                };
+            }
+        }
+
+        // Custom IDs (HSN code, etc.)
+        const customIds = [];
+        let customIdIndex = 0;
+        while (true) {
+            const idName = get(`custom_id_${customIdIndex}_name`);
+            const idValue = get(`custom_id_${customIdIndex}_value`);
+            if (!idName && !idValue) break;
+
+            if (idName && idValue) {
+                customIds.push({ name: idName, value: idValue });
+            }
+            customIdIndex++;
+        }
+        if (customIds.length > 0) {
+            payload.custom_ids = customIds;
+        }
+
+        // Tags
+        const tagsInput = get('tags');
+        if (tagsInput) {
+            payload.tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
+        }
+
+        // Entities
+        const entities = [];
+        let entityIndex = 0;
+        while (true) {
+            const entityName = get(`entity_${entityIndex}_name`);
+            if (!entityName) break;
+
+            const entity = { entity_name: entityName };
+
+            // Preferred vendors
+            const preferredVendors = get(`entity_${entityIndex}_preferred_vendors`);
+            if (preferredVendors) {
+                entity.preferred_vendors = preferredVendors.split(',').map(v => v.trim()).filter(v => v);
+            }
+
+            entities.push(entity);
+            entityIndex++;
+        }
+        if (entities.length > 0) {
+            payload.entities = entities;
+        }
+
+        // Custom sections from template
+        const customSections = [];
+        const customSectionContainers = form.querySelectorAll('.custom-section-container');
+        customSectionContainers.forEach(container => {
+            const sectionName = container.dataset.sectionName;
+            if (!sectionName) return;
+
+            const fields = [];
+            const fieldInputs = container.querySelectorAll('[data-field-name]');
+            fieldInputs.forEach(input => {
+                const fieldName = input.dataset.fieldName;
+                const fieldType = input.dataset.fieldType;
+                let value = input.value?.trim();
+
+                if (!value) return;
+
+                // Handle different field types
+                if (fieldType === 'CHECKBOX') {
+                    value = input.checked;
+                } else if (fieldType === 'MULTI_SELECT') {
+                    value = Array.from(input.selectedOptions).map(opt => opt.value);
+                }
+
+                fields.push({
+                    name: fieldName,
+                    value: value
+                });
+            });
+
+            if (fields.length > 0) {
+                customSections.push({
+                    name: sectionName,
+                    custom_fields: fields
+                });
+            }
+        });
+        if (customSections.length > 0) {
+            payload.custom_sections = customSections;
+        }
+
+        return payload;
     }
 
     /**
@@ -2504,6 +3700,243 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         container.insertAdjacentHTML('beforeend', html);
     }
 
+    // ============================================================
+    // VENDOR CONTACT CREATE HELPERS
+    // ============================================================
+
+    _addVendorContactEmail() {
+        const container = document.getElementById('additional-emails-container');
+        const index = container.children.length;
+        const html = `
+            <div class="cc-custom-item" style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                <div class="form-group" style="flex: 2; margin: 0;">
+                    <label>Email Address</label>
+                    <input type="email" name="contact_email_${index}_address" class="input-field" placeholder="e.g., contact@vendor.com">
+                </div>
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Type</label>
+                    <select name="contact_email_${index}_type" class="input-field">
+                        <option value="TO">TO</option>
+                        <option value="CC">CC</option>
+                        <option value="BCC">BCC</option>
+                    </select>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" 
+                    style="margin-top: 24px; padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    ✕
+                </button>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _addVendorContactEmailUpdate() {
+        const container = document.getElementById('additional-emails-container-update');
+        const index = container.children.length;
+        const html = `
+            <div class="cc-custom-item" style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                <div class="form-group" style="flex: 2; margin: 0;">
+                    <label>Email Address</label>
+                    <input type="email" name="contact_email_update_${index}_address" class="input-field" placeholder="e.g., contact@vendor.com">
+                </div>
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Type</label>
+                    <select name="contact_email_update_${index}_type" class="input-field">
+                        <option value="TO">TO</option>
+                        <option value="CC">CC</option>
+                        <option value="BCC">BCC</option>
+                    </select>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" 
+                    style="margin-top: 24px; padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    ✕
+                </button>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _addVendorCost() {
+        const container = document.getElementById('vendor-costs-container');
+        const index = container.children.length;
+        const html = `
+            <div class="cc-custom-item" style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                <div class="form-group" style="flex: 2; margin: 0;">
+                    <label>Cost Name</label>
+                    <input type="text" name="cost_${index}_name" class="input-field" placeholder="e.g., ffff">
+                </div>
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Value</label>
+                    <input type="number" name="cost_${index}_value" class="input-field" step="0.01" placeholder="e.g., 10">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" 
+                    style="margin-top: 24px; padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    ✕
+                </button>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _addVendorSecondaryContact() {
+        const container = document.getElementById('vendor-secondary-contacts-container');
+        const index = container.children.length;
+        const html = `
+            <div class="cc-custom-item" style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 10px;">
+                    <strong>Secondary Contact ${index + 1}</strong>
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" 
+                        style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        Remove
+                    </button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="secondary_${index}_full_name" class="input-field">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="secondary_${index}_email" class="input-field">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Phone Numbers (comma-separated)</label>
+                        <input type="text" name="secondary_${index}_phone_numbers" class="input-field">
+                    </div>
+                    <div class="form-group">
+                        <label>Email Type</label>
+                        <select name="secondary_${index}_email_type" class="input-field">
+                            <option value="TO">TO</option>
+                            <option value="CC">CC</option>
+                            <option value="BCC">BCC</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _addVendorCustomSection() {
+        const container = document.getElementById('vendor-custom-sections-container');
+        const index = container.children.length;
+        const html = `
+            <div class="cc-custom-item" style="padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <strong>Custom Section ${index + 1}</strong>
+                    <button type="button" onclick="this.parentElement.parentElement.remove()" 
+                        style="padding: 4px 8px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">
+                        Remove
+                    </button>
+                </div>
+                <div class="form-group">
+                    <label>Section Name</label>
+                    <input type="text" name="custom_section_${index}_name" class="input-field" placeholder="e.g., Item Details">
+                </div>
+                <div class="form-group">
+                    <label>Custom Fields (JSON format)</label>
+                    <textarea name="custom_section_${index}_fields" class="form-textarea" rows="3" placeholder='[{"name":"Field Name","value":"Field Value"}]'></textarea>
+                    <small style="color: #64748b; font-size: 11px;">Enter custom fields as JSON array</small>
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _populateVendorCustomFields(customFields) {
+        const container = document.getElementById('vendor-custom-fields-container');
+        if (!container || !customFields || customFields.length === 0) return;
+
+        // Add section title
+        const sectionTitle = `
+            <div class="form-section-title">
+                <span class="fst-icon">🔧</span>
+                <h4>Custom Fields</h4>
+                <span class="fst-badge" style="background: #94a3b8;">From Template</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', sectionTitle);
+
+        // Generate fields in rows of 2
+        let fieldsHTML = '<div class="form-row">';
+        customFields.forEach((field, index) => {
+            const fieldHTML = this.templateManager.generateFieldHTML(field, 'vendor');
+            fieldsHTML += fieldHTML;
+
+            // Close row after every 2 fields
+            if ((index + 1) % 2 === 0 && index < customFields.length - 1) {
+                fieldsHTML += '</div><div class="form-row">';
+            }
+        });
+        fieldsHTML += '</div>';
+
+        container.insertAdjacentHTML('beforeend', fieldsHTML);
+        console.log('✓ Populated', customFields.length, 'custom fields for vendor');
+    }
+
+    _addItemAttribute() {
+        const container = document.getElementById('item-attributes-container');
+        const index = container.children.length;
+        const html = `
+            <div class="cc-custom-item" style="display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px;">
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Attribute Name</label>
+                    <input type="text" name="attr_${index}_name" class="input-field" placeholder="e.g., Raw material">
+                </div>
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Attribute Type</label>
+                    <select name="attr_${index}_type" class="input-field">
+                        <option value="TEXT">TEXT</option>
+                        <option value="NUMBER">NUMBER</option>
+                        <option value="DATE">DATE</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 1; margin: 0;">
+                    <label>Attribute Value</label>
+                    <input type="text" name="attr_${index}_value" class="input-field" placeholder="e.g., Coagulum">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" 
+                    style="margin-top: 24px; padding: 8px 12px; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                    ✕
+                </button>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _populateItemCreateCustomFields(customFields) {
+        const container = document.getElementById('item-create-custom-fields-container');
+        if (!container || !customFields || customFields.length === 0) return;
+
+        // Add section title
+        const sectionTitle = `
+            <div class="form-section-title">
+                <span class="fst-icon">🔧</span>
+                <h4>Custom Fields</h4>
+                <span class="fst-badge" style="background: #94a3b8;">From Template</span>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', sectionTitle);
+
+        // Generate fields in rows of 2
+        let fieldsHTML = '<div class="form-row">';
+        customFields.forEach((field, index) => {
+            const fieldHTML = this.templateManager.generateFieldHTML(field, 'item_create');
+            fieldsHTML += fieldHTML;
+
+            // Close row after every 2 fields
+            if ((index + 1) % 2 === 0 && index < customFields.length - 1) {
+                fieldsHTML += '</div><div class="form-row">';
+            }
+        });
+        fieldsHTML += '</div>';
+
+        container.insertAdjacentHTML('beforeend', fieldsHTML);
+        console.log('✓ Populated', customFields.length, 'custom fields for item create');
+    }
+
     _showImportModal() {
         // Create modal overlay
         const modal = document.createElement('div');
@@ -2895,6 +4328,20 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                 payload = this._buildContractPayload(op);
             } else if (this.currentModule === 'items' && this.currentOperation === 'bulk_create') {
                 payload = this._buildItemsBulkCreatePayload();
+            } else if (this.currentModule === 'items' && this.currentOperation === 'create') {
+                payload = this._buildItemCreatePayload();
+            } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_create') {
+                payload = this._buildVendorContactCreatePayload();
+            } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_update') {
+                payload = this._buildVendorContactUpdatePayload();
+            } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_delete') {
+                payload = this._buildVendorContactDeletePayload();
+            } else if (this.currentModule === 'vendors' && this.currentOperation === 'state') {
+                payload = this._buildVendorStatePayload();
+            } else if (this.currentModule === 'vendors' && this.currentOperation === 'create') {
+                payload = this._buildVendorCreatePayload();
+            } else if (this.currentModule === 'items' && this.currentOperation === 'update_state') {
+                payload = this._buildItemStatePayload();
             } else {
                 // For non-Contract operations, use form inputs (Phase 1 behavior)
                 payload = this._collectFormData();
@@ -2908,8 +4355,10 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             this.elements.actionsSection.classList.remove('hidden');
             this.elements.responseSection.classList.remove('hidden');
 
-            // Execute real API call for Contract + Items Bulk Create
-            if (this.currentModule === 'contract' || (this.currentModule === 'items' && this.currentOperation === 'bulk_create')) {
+            // Execute real API call for Contract + Items + Vendor operations
+            if (this.currentModule === 'contract' ||
+                (this.currentModule === 'items' && ['bulk_create', 'update_state', 'create'].includes(this.currentOperation)) ||
+                (this.currentModule === 'vendors' && ['contacts_create', 'contacts_update', 'contacts_delete', 'state', 'create'].includes(this.currentOperation))) {
                 this._executeRealApiCall(env, op, payload);
             } else {
                 // Mock response for other operations (Phase 1 behavior)
@@ -3476,6 +4925,48 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             } catch (error) {
                 return `Error: ${error.message}`;
             }
+        } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_create') {
+            try {
+                body = this._buildVendorContactCreatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_update') {
+            try {
+                body = this._buildVendorContactUpdatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_delete') {
+            try {
+                body = this._buildVendorContactDeletePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'vendors' && this.currentOperation === 'state') {
+            try {
+                body = this._buildVendorStatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'vendors' && this.currentOperation === 'create') {
+            try {
+                body = this._buildVendorCreatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'items' && this.currentOperation === 'update_state') {
+            try {
+                body = this._buildItemStatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'items' && this.currentOperation === 'create') {
+            try {
+                body = this._buildItemCreatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
         } else {
             // For other operations, collect form data
             body = this._collectFormData();
@@ -3679,8 +5170,8 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
     renderModuleNavigator() {
         const modules = this.moduleRegistry.getAllModules();
         const html = modules.map(mod => `
-            <div class="module-group collapsed">
-                <div class="module-header" onclick="this.parentElement.classList.toggle('collapsed')">
+            <div class="module-group collapsed" data-module-id="${mod.id}">
+                <div class="module-header">
                     ${mod.name}
                     <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="18 15 12 9 6 15"></polyline>
@@ -3696,6 +5187,28 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             </div>
         `).join('');
         this.elements.moduleNavigator.innerHTML = html;
+
+        // Add accordion click handlers to module headers
+        this.elements.moduleNavigator.querySelectorAll('.module-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                const clickedGroup = header.parentElement;
+                const wasCollapsed = clickedGroup.classList.contains('collapsed');
+
+                // Collapse all other groups (accordion behavior)
+                this.elements.moduleNavigator.querySelectorAll('.module-group').forEach(group => {
+                    if (group !== clickedGroup) {
+                        group.classList.add('collapsed');
+                    }
+                });
+
+                // Toggle the clicked group
+                if (wasCollapsed) {
+                    clickedGroup.classList.remove('collapsed');
+                } else {
+                    clickedGroup.classList.add('collapsed');
+                }
+            });
+        });
 
         // Expand the group that contains the currently selected operation
         if (this.currentModule) {
@@ -3897,6 +5410,79 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
 
         // Update form visibility based on template
         this._updateFormVisibilityFromTemplate(config);
+    }
+
+    /**
+     * Load vendor templates from API
+     * Similar to _loadItemTemplates but for VENDOR template type
+     * @private
+     */
+    async _loadVendorTemplates() {
+        try {
+            // Get token
+            let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+
+            if (!token) {
+                console.error('No token available for vendor templates API');
+                return null;
+            }
+
+            let entityId = '20d11e41-5ee0-40f1-9f01-a619d20e74e3'; // Default
+
+            // Try to extract from token
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                entityId = payload.entity_id || payload['custom:entityId'] || entityId;
+            } catch (e) {
+                console.warn('Could not parse token for entity_id');
+            }
+
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}module_templates/?entity_id=${entityId}&template_type=VENDOR`;
+
+            console.log('✓ Fetching vendor templates from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch vendor templates:', response.status, response.statusText);
+                return null;
+            }
+
+            const data = await response.json();
+            console.log('✓ Loaded vendor templates response:', data);
+
+            // API returns an array with one object containing templates
+            const responseData = Array.isArray(data) ? data[0] : data;
+            const templates = responseData.templates || [];
+            console.log('✓ Vendor templates array:', templates);
+
+            // Store templates in templateManager
+            if (this.templateManager && templates.length > 0) {
+                this.templateManager.vendorTemplates = templates;
+                console.log('✓ Stored', templates.length, 'vendor templates in TemplateManager');
+
+                // Parse the first (default) template
+                const defaultTemplate = templates[0];
+                const config = this.templateManager.parseVendorTemplateConfig(defaultTemplate);
+                this.templateManager.vendorTemplateConfig = config;
+                console.log('✓ Parsed vendor template config:', config);
+
+                return config;
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('Error loading vendor templates:', error);
+            return null;
+        }
     }
 
     /**

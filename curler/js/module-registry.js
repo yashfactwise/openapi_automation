@@ -129,9 +129,9 @@ class ModuleRegistry {
                         id: "create",
                         name: "Items Create",
                         description: "Create a new item",
-                        endpoint: "/openapi/items/create/",
+                        endpoint: "/dev/api/items/create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "bulk_create",
@@ -153,9 +153,9 @@ class ModuleRegistry {
                         id: "update_state",
                         name: "Items Update State",
                         description: "Change Status",
-                        endpoint: "/openapi/items/update/state/",
+                        endpoint: "/dev/api/items/update/state/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     }
                 ]
             },
@@ -167,9 +167,9 @@ class ModuleRegistry {
                         id: "create",
                         name: "Vendors Create",
                         description: "Create a new vendor",
-                        endpoint: "/openapi/vendors/create/",
+                        endpoint: "/dev/api/vendors/create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "update",
@@ -183,33 +183,33 @@ class ModuleRegistry {
                         id: "state",
                         name: "Vendors State",
                         description: "Update Status",
-                        endpoint: "/openapi/vendors/state/",
+                        endpoint: "/dev/api/vendors/state/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "contacts_create",
                         name: "Vendor Contacts Create",
                         description: "Add a vendor contact",
-                        endpoint: "/openapi/vendors/contacts/create/",
+                        endpoint: "/dev/api/vendors/contacts/create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "contacts_update",
                         name: "Vendor Contacts Update",
                         description: "Modify a vendor contact",
-                        endpoint: "/openapi/vendors/contacts/update/",
+                        endpoint: "/dev/api/vendors/contacts/update/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "contacts_delete",
                         name: "Vendor Contacts Delete",
                         description: "Remove a vendor contact",
-                        endpoint: "/openapi/vendors/contacts/delete/",
-                        method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        endpoint: "/dev/api/vendors/contacts/delete/",
+                        method: "DELETE",
+                        implemented: true // Phase 3: IMPLEMENTED
                     }
                 ]
             },
