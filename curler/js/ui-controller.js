@@ -1451,19 +1451,27 @@ class UIController {
                         <input type="text" name="name" class="input-field" required value="Natural Rubber - TSNR - TSR10">
                     </div>
                     <div class="form-group">
-                        <label>ERP Item Code</label>
-                        <input type="text" name="ERP_item_code" class="input-field" value="ERP-BKT-01111">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required value="FactWise">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Factwise Item Code</label>
-                        <input type="text" name="factwise_item_code" class="input-field" value="PIR_00000000001100000122">
+                        <label>ERP Item Code *</label>
+                        <input type="text" name="ERP_item_code" class="input-field" required value="ERP-BKT-01111">
                     </div>
                     <div class="form-group">
-                        <label>Measurement Unit ID *</label>
+                        <label>Factwise Item Code *</label>
+                        <input type="text" name="factwise_item_code" class="input-field" required value="PIR_00000000001100000122">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Measurement Unit IDs * (comma-separated)</label>
                         <input type="text" name="measurement_units" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                        <small style="color: #64748b; font-size: 11px;">Enter UUIDs separated by commas</small>
                     </div>
                 </div>
 
@@ -1531,7 +1539,7 @@ class UIController {
                     </div>
                     <div class="form-group">
                         <label>Buyer Currency ID</label>
-                        <input type="text" name="buyer_currency_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                        <input type="text" name="buyer_currency_code_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
                     </div>
                 </div>
 
@@ -1542,7 +1550,7 @@ class UIController {
                     </div>
                     <div class="form-group">
                         <label>Seller Currency ID</label>
-                        <input type="text" name="seller_currency_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                        <input type="text" name="seller_currency_code_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
                     </div>
                 </div>
 
@@ -2578,86 +2586,66 @@ class UIController {
     }
 
     /**
-     * Builds the payload for item create operation (single item).
+     * Builds the payload for item create operation.
      */
     _buildItemCreatePayload() {
         const form = this.elements.operationForm;
         const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
 
+        // Basic required fields
         const payload = {
             created_by_user_email: get('created_by_user_email'),
-            name: get('name')
+            name: get('name'),
+            entity_name: get('entity_name'),
+            description: get('description') || '',
+            notes: get('notes') || '',
+            internal_notes: get('internal_notes') || '',
+            item_type: get('item_type'),
+            status: get('status')
         };
 
-        // Add optional codes
+        // Item codes (optional but at least one recommended)
         const erpCode = get('ERP_item_code');
         const factwiseCode = get('factwise_item_code');
         if (erpCode) payload.ERP_item_code = erpCode;
         if (factwiseCode) payload.factwise_item_code = factwiseCode;
 
-        // Add optional text fields
-        const description = get('description');
-        const notes = get('notes');
-        const internalNotes = get('internal_notes');
-        if (description) payload.description = description;
-        if (notes) payload.notes = notes;
-        if (internalNotes) payload.internal_notes = internalNotes;
-
-        // Measurement units (required, at least one)
-        const measurementUnits = [];
-        let unitIndex = 0;
-        while (true) {
-            const unitId = get(`measurement_unit_${unitIndex}`);
-            if (!unitId) break;
-            measurementUnits.push(unitId);
-            unitIndex++;
+        // Measurement units (required, comma-separated UUIDs)
+        const measurementUnits = get('measurement_units');
+        if (measurementUnits) {
+            payload.measurement_units = measurementUnits.split(',').map(u => u.trim()).filter(u => u);
+        } else {
+            payload.measurement_units = [];
         }
-        if (measurementUnits.length === 0) {
-            throw new Error('At least one measurement unit is required');
-        }
-        payload.measurement_units = measurementUnits;
-
-        // Item type and status (dropdowns)
-        const itemType = get('item_type');
-        const status = get('status');
-        if (itemType) payload.item_type = itemType;
-        if (status) payload.status = status;
 
         // Attributes
-        const attributes = [];
-        let attrIndex = 0;
-        while (true) {
-            const attrName = get(`attribute_${attrIndex}_name`);
-            const attrType = get(`attribute_${attrIndex}_type`);
-            const attrValue = get(`attribute_${attrIndex}_value`);
-            if (!attrName && !attrType && !attrValue) break;
+        const attributeRows = form.querySelectorAll('.item-attribute-row');
+        payload.attributes = [];
+        attributeRows.forEach(row => {
+            const attrName = row.querySelector('[name$="_attribute_name"]')?.value?.trim();
+            const attrType = row.querySelector('[name$="_attribute_type"]')?.value?.trim() || 'TEXT';
+            const attrValue = row.querySelector('[name$="_attribute_value"]')?.value?.trim();
 
-            if (attrName && attrType && attrValue) {
-                attributes.push({
+            if (attrName && attrValue) {
+                payload.attributes.push({
                     attribute_name: attrName,
                     attribute_type: attrType,
                     attribute_value: [{ value: attrValue }]
                 });
             }
-            attrIndex++;
-        }
-        if (attributes.length > 0) {
-            payload.attributes = attributes;
-        }
+        });
 
-        // Buyer/Seller flags
+        // Buyer pricing information
         const isBuyer = get('is_buyer');
-        const isSeller = get('is_seller');
         payload.is_buyer = isBuyer === 'true';
-        payload.is_seller = isSeller === 'true';
 
-        // Buyer pricing
         if (payload.is_buyer) {
             const buyerPrice = get('buyer_price');
             const buyerCurrency = get('buyer_currency_code_id');
+
             if (buyerPrice || buyerCurrency) {
                 payload.buyer_pricing_information = {
-                    price: buyerPrice ? parseFloat(buyerPrice) : null,
+                    price: buyerPrice ? parseFloat(buyerPrice) : 0,
                     currency_code_id: buyerCurrency || null,
                     additional_costs: [],
                     taxes: []
@@ -2665,13 +2653,17 @@ class UIController {
             }
         }
 
-        // Seller pricing
+        // Seller pricing information
+        const isSeller = get('is_seller');
+        payload.is_seller = isSeller === 'true';
+
         if (payload.is_seller) {
             const sellerPrice = get('seller_price');
             const sellerCurrency = get('seller_currency_code_id');
+
             if (sellerPrice || sellerCurrency) {
                 payload.seller_pricing_information = {
-                    price: sellerPrice ? parseFloat(sellerPrice) : null,
+                    price: sellerPrice ? parseFloat(sellerPrice) : 0,
                     currency_code_id: sellerCurrency || null,
                     additional_costs: [],
                     taxes: []
@@ -2679,90 +2671,76 @@ class UIController {
             }
         }
 
-        // Custom IDs (HSN code, etc.)
-        const customIds = [];
-        let customIdIndex = 0;
-        while (true) {
-            const idName = get(`custom_id_${customIdIndex}_name`);
-            const idValue = get(`custom_id_${customIdIndex}_value`);
-            if (!idName && !idValue) break;
-
-            if (idName && idValue) {
-                customIds.push({ name: idName, value: idValue });
-            }
-            customIdIndex++;
-        }
-        if (customIds.length > 0) {
-            payload.custom_ids = customIds;
+        // Custom IDs
+        const customIds = get('custom_ids');
+        payload.custom_ids = [];
+        if (customIds) {
+            const pairs = customIds.split(',').map(p => p.trim()).filter(p => p);
+            pairs.forEach(pair => {
+                const [name, value] = pair.split(':').map(s => s.trim());
+                if (name && value) {
+                    payload.custom_ids.push({ name, value });
+                }
+            });
         }
 
-        // Tags
-        const tagsInput = get('tags');
-        if (tagsInput) {
-            payload.tags = tagsInput.split(',').map(t => t.trim()).filter(t => t);
-        }
+        // Tags (comma-separated)
+        const tags = get('tags');
+        payload.tags = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
 
         // Entities
-        const entities = [];
-        let entityIndex = 0;
-        while (true) {
-            const entityName = get(`entity_${entityIndex}_name`);
-            if (!entityName) break;
-
-            const entity = { entity_name: entityName };
-
-            // Preferred vendors
-            const preferredVendors = get(`entity_${entityIndex}_preferred_vendors`);
-            if (preferredVendors) {
-                entity.preferred_vendors = preferredVendors.split(',').map(v => v.trim()).filter(v => v);
-            }
-
-            entities.push(entity);
-            entityIndex++;
-        }
-        if (entities.length > 0) {
-            payload.entities = entities;
+        const entities = get('entities');
+        payload.entities = [];
+        if (entities) {
+            const entityNames = entities.split(',').map(e => e.trim()).filter(e => e);
+            entityNames.forEach(entityName => {
+                const preferredVendors = get(`entity_${entityName}_preferred_vendors`);
+                payload.entities.push({
+                    entity_name: entityName,
+                    preferred_vendors: preferredVendors ? preferredVendors.split(',').map(v => v.trim()).filter(v => v) : []
+                });
+            });
         }
 
         // Custom sections from template
-        const customSections = [];
-        const customSectionContainers = form.querySelectorAll('.custom-section-container');
+        payload.custom_sections = [];
+        const customSectionContainers = form.querySelectorAll('[data-custom-section]');
         customSectionContainers.forEach(container => {
-            const sectionName = container.dataset.sectionName;
-            if (!sectionName) return;
+            const sectionName = container.dataset.customSection;
+            const customFields = [];
 
-            const fields = [];
-            const fieldInputs = container.querySelectorAll('[data-field-name]');
-            fieldInputs.forEach(input => {
-                const fieldName = input.dataset.fieldName;
-                const fieldType = input.dataset.fieldType;
-                let value = input.value?.trim();
+            const fieldElements = container.querySelectorAll('[data-custom-field]');
+            fieldElements.forEach(fieldEl => {
+                const fieldName = fieldEl.dataset.customField;
+                const fieldType = fieldEl.dataset.fieldType;
+                let value = null;
 
-                if (!value) return;
-
-                // Handle different field types
-                if (fieldType === 'CHECKBOX') {
-                    value = input.checked;
-                } else if (fieldType === 'MULTI_SELECT') {
-                    value = Array.from(input.selectedOptions).map(opt => opt.value);
+                if (fieldType === 'BOOLEAN') {
+                    const checkbox = fieldEl.querySelector('input[type="checkbox"]');
+                    value = checkbox ? checkbox.checked : false;
+                } else if (fieldType === 'CHOICE') {
+                    const select = fieldEl.querySelector('select');
+                    value = select ? select.value : '';
+                } else {
+                    const input = fieldEl.querySelector('input, textarea');
+                    value = input ? input.value : '';
                 }
 
-                fields.push({
-                    name: fieldName,
-                    value: value
-                });
+                if (value !== null && value !== '') {
+                    customFields.push({
+                        name: fieldName,
+                        value: fieldType === 'FLOAT' || fieldType === 'PERCENTAGE' ? parseFloat(value) : value
+                    });
+                }
             });
 
-            if (fields.length > 0) {
-                customSections.push({
+            if (customFields.length > 0) {
+                payload.custom_sections.push({
                     name: sectionName,
-                    custom_fields: fields
+                    custom_fields: customFields
                 });
             }
         });
-        if (customSections.length > 0) {
-            payload.custom_sections = customSections;
-        }
 
         return payload;
     }
