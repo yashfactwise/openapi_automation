@@ -341,8 +341,8 @@ class UIController {
                     <div class="form-group">
                         <label>Status *</label>
                         <select name="status" class="input-field" required>
-                            <option value="DRAFT">DRAFT</option>
-                            <option value="SUBMITTED">SUBMITTED</option>
+                            <option value="DRAFT">DRAFT - Contract is in draft state</option>
+                            <option value="SUBMITTED">SUBMITTED - Contract is in submitted state</option>
                         </select>
                     </div>
                 </div>
@@ -614,8 +614,8 @@ class UIController {
                     <div class="form-group">
                         <label>Status *</label>
                         <select name="status" class="input-field" required>
-                            <option value="DRAFT">DRAFT</option>
-                            <option value="SUBMITTED">SUBMITTED</option>
+                            <option value="DRAFT">DRAFT - Contract is in draft state</option>
+                            <option value="SUBMITTED">SUBMITTED - Contract is in submitted state</option>
                         </select>
                     </div>
                 </div>
@@ -1210,12 +1210,12 @@ class UIController {
                     <label>Status *</label>
                     <select name="status" class="input-field" required>
                         <option value="">Select Status...</option>
-                        <option value="INVITED">INVITED</option>
-                        <option value="PENDING">PENDING</option>
-                        <option value="ACTIVE" selected>ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                        <option value="APPROVED">APPROVED</option>
-                        <option value="REJECTED">REJECTED</option>
+                        <option value="INVITED">INVITED - Vendor has been invited to the platform</option>
+                        <option value="PENDING">PENDING - Vendor registration is pending</option>
+                        <option value="ACTIVE" selected>ACTIVE - Vendor is active and can participate in transactions</option>
+                        <option value="INACTIVE">INACTIVE - Vendor is inactive and cannot participate</option>
+                        <option value="APPROVED">APPROVED - Vendor has been approved by the enterprise</option>
+                        <option value="REJECTED">REJECTED - Vendor has been rejected by the enterprise</option>
                     </select>
                     <small style="color: #64748b; font-size: 11px;">Select the new status for the vendor</small>
                 </div>
@@ -1409,10 +1409,8 @@ class UIController {
                     <label>Status *</label>
                     <select name="status" class="input-field" required>
                         <option value="">Select Status...</option>
-                        <option value="ACTIVE" selected>ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
-                        <option value="ITEM_ACTIVE">ITEM_ACTIVE</option>
-                        <option value="ITEM_INACTIVE">ITEM_INACTIVE</option>
+                        <option value="ACTIVE" selected>ACTIVE - Item is active and available</option>
+                        <option value="INACTIVE">INACTIVE - Item is inactive and unavailable</option>
                     </select>
                     <small style="color: #64748b; font-size: 11px;">Select the new status for the item</small>
                 </div>
@@ -1481,8 +1479,8 @@ class UIController {
                     <div class="form-group">
                         <label>Status *</label>
                         <select name="status" class="input-field" required>
-                            <option value="ACTIVE" selected>ACTIVE</option>
-                            <option value="INACTIVE">INACTIVE</option>
+                            <option value="ACTIVE" selected>ACTIVE - Item is active and available</option>
+                            <option value="INACTIVE">INACTIVE - Item is inactive and unavailable</option>
                         </select>
                     </div>
                 </div>
@@ -1592,6 +1590,469 @@ class UIController {
                 <!-- ⑥ Custom Fields from Template -->
                 <div id="item-create-custom-fields-container"></div>
             `;
+        } else if (module.id === 'projects' && operation.id === 'create') {
+            bodyInputsHtml = `
+                <!-- ① Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📋</span>
+                    <h4>Project Information</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Project Name *</label>
+                        <input type="text" name="project_name" class="input-field" required value="API Test Project">
+                    </div>
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required value="FactWise">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Project Code</label>
+                        <input type="text" name="project_code" class="input-field" placeholder="Internal project code">
+                    </div>
+                    <div class="form-group">
+                        <label>ERP Project Code</label>
+                        <input type="text" name="ERP_project_code" class="input-field" value="ERP9701">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Customer Code</label>
+                        <input type="text" name="customer_code" class="input-field" value="CXJKU05">
+                    </div>
+                    <div class="form-group">
+                        <label>Template Name</label>
+                        <input type="text" name="template_name" class="input-field" value="API Test">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Project Status *</label>
+                    <select name="project_status" class="input-field" required>
+                        <option value="">Select Status...</option>
+                        <option value="DRAFT" selected>DRAFT - Project is in draft state</option>
+                        <option value="SUBMITTED">SUBMITTED - Project has been submitted</option>
+                        <option value="EXPIRED">EXPIRED - Project has expired</option>
+                    </select>
+                </div>
+
+                <!-- ② Dates -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📅</span>
+                    <h4>Project Timeline</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Validity From</label>
+                        <input type="datetime-local" name="validity_from" class="input-field">
+                    </div>
+                    <div class="form-group">
+                        <label>Validity To</label>
+                        <input type="datetime-local" name="validity_to" class="input-field">
+                    </div>
+                </div>
+
+                <!-- ③ Additional Information -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📝</span>
+                    <h4>Additional Information</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-textarea" rows="3" placeholder="Project description"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Internal Notes</label>
+                    <textarea name="internal_notes" class="form-textarea" rows="3" placeholder="Internal notes (not visible to vendors)"></textarea>
+                </div>
+
+                <!-- ④ Custom Fields from Template -->
+                <div id="project-create-custom-fields-container"></div>
+            `;
+        } else if (module.id === 'projects' && operation.id === 'bulk_create') {
+            bodyInputsHtml = `
+                <!-- Project Bulk Create Form -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📋</span>
+                    <h4>Bulk Project Configuration</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="bp_created_by" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="bp_entity_name" class="input-field" required value="FactWise">
+                    </div>
+                    <div class="form-group">
+                        <label>Number of Projects *</label>
+                        <input type="number" name="bp_project_count" class="input-field" required min="1" max="100" value="2">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Template Name</label>
+                        <input type="text" name="bp_template_name" class="input-field" value="API Test">
+                    </div>
+                    <div class="form-group">
+                        <label>Project Status *</label>
+                        <select name="bp_project_status" class="input-field" required>
+                            <option value="DRAFT" selected>DRAFT - Project is in draft state</option>
+                            <option value="SUBMITTED">SUBMITTED - Project has been submitted</option>
+                            <option value="EXPIRED">EXPIRED - Project has expired</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Projects Container -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📦</span>
+                    <h4>Projects</h4>
+                </div>
+
+                <div id="bulk-projects-container"></div>
+
+                <button type="button" class="btn-add-row" onclick="window.uiController._addBulkProject()" style="margin-top: 12px;">
+                    ＋ Add Project
+                </button>
+            `;
+        } else if (module.id === 'purchase_order' && operation.id === 'create') {
+            bodyInputsHtml = `
+                <!-- Template Selection -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📋</span>
+                    <h4>Template Selection</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>PO Template *</label>
+                    <select id="po_template_select" name="template_name" class="input-field" required>
+                        <option value="">Loading templates...</option>
+                    </select>
+                    <small style="color: #64748b; font-size: 11px;">Select a PO template to load custom fields</small>
+                </div>
+
+                <!-- ① PO Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📄</span>
+                    <h4>Purchase Order Details</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP PO ID *</label>
+                        <input type="text" name="ERP_po_id" class="input-field" required value="E5PPicinF04311">
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="po_status" class="input-field" required>
+                            <option value="ISSUED" selected>ISSUED - Purchase Order is issued</option>
+                            <option value="ONGOING">ONGOING - Purchase Order is ongoing</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Currency Code (UUID) *</label>
+                        <input type="text" name="currency_code" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                    </div>
+                    <div class="form-group">
+                        <label>Issue Date</label>
+                        <input type="date" name="issue_date" class="input-field" value="2025-06-26">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Accepted Date</label>
+                        <input type="date" name="accepted_date" class="input-field" value="2025-05-27">
+                    </div>
+                    <div class="form-group">
+                        <label>Event</label>
+                        <input type="text" name="po_event" class="input-field" placeholder="Event name (optional)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="po_notes" class="form-textarea" rows="3" placeholder="Purchase order notes"></textarea>
+                </div>
+
+                <!-- ② Buyer Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏢</span>
+                    <h4>Buyer Details</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="buyer_entity_name" class="input-field" required value="FactWise">
+                    </div>
+                    <div class="form-group">
+                        <label>Billing Address ID *</label>
+                        <input type="text" name="buyer_billing_address" class="input-field" required value="Main address">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Shipping Address ID *</label>
+                        <input type="text" name="buyer_shipping_address" class="input-field" required value="Main address">
+                    </div>
+                    <div class="form-group">
+                        <label>Identifications (comma-separated)</label>
+                        <input type="text" name="buyer_identifications" class="input-field" value="GST" placeholder="GST, PAN, etc.">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Contacts (comma-separated)</label>
+                    <input type="text" name="buyer_contacts" class="input-field" value="8928219571" placeholder="Phone numbers">
+                </div>
+
+                <!-- ③ Seller Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏭</span>
+                    <h4>Seller Details</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="seller_erp_vendor_code" class="input-field" value="ERPV002">
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Vendor Code</label>
+                        <input type="text" name="seller_factwise_vendor_code" class="input-field" placeholder="Factwise vendor code">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seller Address ID</label>
+                        <input type="text" name="seller_address_id" class="input-field" placeholder="Address ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Seller Full Address</label>
+                        <input type="text" name="seller_full_address" class="input-field" value="Mumbai">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Seller Identifications (comma-separated)</label>
+                        <input type="text" name="seller_identifications" class="input-field" value="GST">
+                    </div>
+                    <div class="form-group">
+                        <label>Seller Contacts (comma-separated)</label>
+                        <input type="text" name="seller_contacts" class="input-field" value="8928219571">
+                    </div>
+                </div>
+
+                <!-- Custom Fields from Template -->
+                <div id="po-custom-fields-container"></div>
+
+                <!-- ④ PO Items -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📦</span>
+                    <h4>Purchase Order Items</h4>
+                </div>
+
+                <div id="po-items-container"></div>
+
+                <button type="button" class="btn-add-row" onclick="window.uiController._addPOItem()">
+                    ＋ Add Item
+                </button>
+
+                <!-- ⑤ Terms & Conditions -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📋</span>
+                    <h4>Terms & Conditions</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>T&C Name</label>
+                    <input type="text" name="tnc_name" class="input-field" value="FactWise Default TNC">
+                </div>
+
+                <div class="form-group">
+                    <label>T&C Data (HTML)</label>
+                    <textarea name="tnc_data" class="form-textarea" rows="3" placeholder="Terms and conditions HTML"><p>Acceptance of order...</p></textarea>
+                </div>
+            `;
+        } else if (module.id === 'purchase_order' && operation.id === 'terminate') {
+            bodyInputsHtml = `
+                <!-- PO Terminate Form -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">⚠️</span>
+                    <h4>Terminate Purchase Order</h4>
+                    <span class="fst-badge" style="background: #ef4444;">Termination</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <!-- PO Identification -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🔍</span>
+                    <h4>PO Identification</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP PO ID</label>
+                        <input type="text" name="ERP_po_id" class="input-field" placeholder="ERP PO ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise PO ID</label>
+                        <input type="text" name="factwise_po_id" class="input-field" value="PO000171">
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b;">
+                    <strong>⚠️ Note:</strong> At least one PO ID (ERP or Factwise) is required
+                </div>
+
+                <!-- Termination Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📋</span>
+                    <h4>Termination Details</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="termination_status" class="input-field" required>
+                        <option value="">Select Status...</option>
+                        <option value="ACCEPTED" selected>ACCEPTED - The request to terminate a PO will be accepted by the seller</option>
+                        <option value="REQUESTED">REQUESTED - A request have been made to terminate the PO by buyer</option>
+                        <option value="REVOKED">REVOKED - The request to terminate a PO is been revoked by the seller</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="termination_notes" class="form-textarea" rows="3" placeholder="Termination notes">aise hi</textarea>
+                </div>
+
+                <!-- Warning Box -->
+                <div style="margin-top: 20px; padding: 16px; background: #fef2f2; border: 2px solid #ef4444; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px; color: #991b1b;">
+                        <span style="font-size: 24px;">⚠️</span>
+                        <div>
+                            <strong style="font-size: 14px;">Warning: Termination Action</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #7f1d1d;">
+                                This action will terminate the purchase order. Please ensure all details are correct before proceeding.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else if (module.id === 'purchase_order' && operation.id === 'state') {
+            bodyInputsHtml = `
+                <!-- PO State Update Form -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📊</span>
+                    <h4>Update Purchase Order Status</h4>
+                    <span class="fst-badge" style="background: #3b82f6;">Status Update</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+
+                <!-- PO Identification -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🔍</span>
+                    <h4>PO Identification</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP PO ID</label>
+                        <input type="text" name="ERP_po_id" class="input-field" placeholder="ERP PO ID">
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise PO ID</label>
+                        <input type="text" name="factwise_po_id" class="input-field" placeholder="Factwise PO ID">
+                    </div>
+                </div>
+
+                <div style="margin: 16px 0; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; color: #991b1b;">
+                    <strong>⚠️ Note:</strong> At least one PO ID (ERP or Factwise) is required
+                </div>
+
+                <!-- Status Update -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🔄</span>
+                    <h4>Status Update</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="po_state_status" class="input-field" required>
+                        <option value="">Select Status...</option>
+                        <option value="ONGOING" selected>ONGOING - Purchase Order is ongoing</option>
+                        <option value="ISSUED">ISSUED - Purchase Order is issued</option>
+                        <option value="RESCINDED">RESCINDED - Purchase Order has been rescinded</option>
+                        <option value="DECLINED">DECLINED - Purchase Order has been declined</option>
+                    </select>
+                    <small style="color: #64748b; font-size: 11px;">Select the new status for the purchase order</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="po_state_notes" class="form-textarea" rows="3" placeholder="Optional notes about the status change"></textarea>
+                </div>
+
+                <!-- Info Box -->
+                <div style="margin-top: 20px; padding: 15px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px;">
+                    <div style="display: flex; align-items: center; gap: 10px; color: #1e40af;">
+                        <span style="font-size: 20px;">ℹ️</span>
+                        <div>
+                            <strong>Status Update Information</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #1e3a8a;">
+                                The PO must be in ISSUED status to update. Status changes affect the PO lifecycle and availability.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            `;
         } else {
             // Generic placeholder for other operations
             bodyInputsHtml = `
@@ -1669,6 +2130,48 @@ class UIController {
                     this._populateItemCreateCustomFields(config.customFields);
                 }
             });
+        } else if (module.id === 'projects' && operation.id === 'create') {
+            // Expose this instance globally for project create
+            window.uiController = this;
+            // Load project templates and populate custom fields
+            this._loadProjectTemplates().then((config) => {
+                if (config && config.customFields && config.customFields.length > 0) {
+                    this._populateProjectCreateCustomFields(config.customFields);
+                }
+            });
+        } else if (module.id === 'projects' && operation.id === 'bulk_create') {
+            // Expose this instance globally for project bulk create
+            window.uiController = this;
+
+            // Load project templates and then add first project
+            this._loadProjectTemplates().then(() => {
+                this._addBulkProject();
+            });
+        } else if (module.id === 'purchase_order' && operation.id === 'create') {
+            // Expose this instance globally for PO create
+            window.uiController = this;
+
+            // Load PO templates
+            this._loadPOTemplates();
+
+            // Template selector change listener
+            const templateSelect = document.getElementById('po_template_select');
+            if (templateSelect) {
+                templateSelect.addEventListener('change', async (e) => {
+                    const templateName = e.target.value;
+                    if (templateName) {
+                        console.log('PO template selected:', templateName);
+                        const config = this.templateManager.parsePOTemplateConfig(templateName);
+                        if (config && config.customFields && config.customFields.length > 0) {
+                            this._populatePOCustomFields(config.customFields);
+                        }
+                    }
+                });
+            }
+            // Expose this instance globally for PO create
+            window.uiController = this;
+            // Add first PO item
+            this._addPOItem();
         }
 
         // Hide Generate Script button on non-applicable operations
@@ -1813,8 +2316,8 @@ class UIController {
                 <div class="form-group">
                     <label>Status</label>
                     <select name="bi_item_${itemIndex}_status" class="input-field">
-                        <option value="ACTIVE" selected>ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="ACTIVE" selected>ACTIVE - Item is active and available</option>
+                        <option value="INACTIVE">INACTIVE - Item is inactive and unavailable</option>
                     </select>
                 </div>
             </div>
@@ -2046,8 +2549,8 @@ class UIController {
                 <div class="form-group">
                     <label>Status</label>
                     <select name="bi_item_${itemIndex}_status" class="input-field">
-                        <option value="ACTIVE" selected>ACTIVE</option>
-                        <option value="INACTIVE">INACTIVE</option>
+                        <option value="ACTIVE" selected>ACTIVE - Item is active and available</option>
+                        <option value="INACTIVE">INACTIVE - Item is inactive and unavailable</option>
                     </select>
                 </div>
             </div>
@@ -2737,6 +3240,804 @@ class UIController {
                 });
             }
         });
+
+        return payload;
+    }
+
+    /**
+     * Builds the payload for project create operation.
+     */
+    _buildProjectCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Basic required fields
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            project_name: get('project_name'),
+            entity_name: get('entity_name'),
+            project_status: get('project_status')
+        };
+
+        // Project codes (at least one required)
+        const projectCode = get('project_code');
+        const erpProjectCode = get('ERP_project_code');
+        if (projectCode) payload.project_code = projectCode;
+        if (erpProjectCode) payload.ERP_project_code = erpProjectCode;
+
+        // Validate at least one project code
+        if (!projectCode && !erpProjectCode) {
+            throw new Error('Either Project Code or ERP Project Code is required');
+        }
+
+        // Optional fields
+        const customerCode = get('customer_code');
+        const templateName = get('template_name');
+        const description = get('description');
+        const internalNotes = get('internal_notes');
+
+        if (customerCode) payload.customer_code = customerCode;
+        if (templateName) payload.template_name = templateName;
+        if (description) payload.description = description;
+        if (internalNotes) payload.internal_notes = internalNotes;
+
+        // Dates (convert to ISO format)
+        const validityFrom = get('validity_from');
+        const validityTo = get('validity_to');
+
+        if (validityFrom) {
+            payload.validity_from = new Date(validityFrom).toISOString();
+        } else {
+            payload.validity_from = null;
+        }
+
+        if (validityTo) {
+            payload.validity_to = new Date(validityTo).toISOString();
+        } else {
+            payload.validity_to = null;
+        }
+
+        // Custom sections from template
+        payload.custom_sections = [];
+        const customSectionContainers = form.querySelectorAll('[data-custom-section]');
+        customSectionContainers.forEach(container => {
+            const sectionName = container.dataset.customSection;
+            const customFields = [];
+
+            const fieldElements = container.querySelectorAll('[data-custom-field]');
+            fieldElements.forEach(fieldEl => {
+                const fieldName = fieldEl.dataset.customField;
+                const fieldType = fieldEl.dataset.fieldType;
+                let value = null;
+
+                if (fieldType === 'BOOLEAN') {
+                    const checkbox = fieldEl.querySelector('input[type="checkbox"]');
+                    value = checkbox ? checkbox.checked : false;
+                } else if (fieldType === 'CHOICE') {
+                    const isMulti = fieldEl.querySelectorAll('input[type="checkbox"]').length > 0;
+                    if (isMulti) {
+                        // Multi-select: collect all checked values
+                        const checkboxes = fieldEl.querySelectorAll('input[type="checkbox"]:checked');
+                        value = Array.from(checkboxes).map(cb => cb.value);
+                    } else {
+                        const select = fieldEl.querySelector('select');
+                        value = select ? select.value : '';
+                    }
+                } else if (fieldType === 'DATETIME') {
+                    const input = fieldEl.querySelector('input');
+                    if (input && input.value) {
+                        value = new Date(input.value).toISOString();
+                    }
+                } else if (fieldType === 'DATE') {
+                    const input = fieldEl.querySelector('input');
+                    value = input ? input.value : '';
+                } else {
+                    const input = fieldEl.querySelector('input, textarea');
+                    value = input ? input.value : '';
+                }
+
+                if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
+                    customFields.push({
+                        name: fieldName,
+                        value: fieldType === 'FLOAT' || fieldType === 'PERCENTAGE' ? parseFloat(value) : value
+                    });
+                }
+            });
+
+            if (customFields.length > 0) {
+                payload.custom_sections.push({
+                    name: sectionName,
+                    custom_fields: customFields
+                });
+            }
+        });
+
+        return payload;
+    }
+
+    /**
+     * Adds a single project card for bulk create
+     */
+    _addBulkProject() {
+        const container = document.getElementById('bulk-projects-container');
+        if (!container) return;
+
+        const projectIndex = container.querySelectorAll('.bp-project-card').length;
+        const n = projectIndex + 1;
+
+        const card = document.createElement('div');
+        card.className = 'bp-project-card cc-item-card';
+        card.dataset.projectIndex = projectIndex;
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="margin: 0; color: #1e293b; font-size: 14px; font-weight: 600;">
+                    📋 Project ${n}
+                </h4>
+                <button type="button" onclick="window.uiController._removeBulkProject(${projectIndex})"
+                    class="btn-remove-item" title="Remove Project">
+                    ✕
+                </button>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Project Name *</label>
+                    <input type="text" name="bp_project_${projectIndex}_name" class="input-field" required
+                        value="API Test Project ${n}">
+                </div>
+                <div class="form-group">
+                    <label>Project Code</label>
+                    <input type="text" name="bp_project_${projectIndex}_code" class="input-field"
+                        placeholder="Internal code">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ERP Project Code</label>
+                    <input type="text" name="bp_project_${projectIndex}_erp_code" class="input-field"
+                        value="ERP970${n}">
+                </div>
+                <div class="form-group">
+                    <label>Customer Code</label>
+                    <input type="text" name="bp_project_${projectIndex}_customer_code" class="input-field"
+                        value="CXJKU0${n}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Validity From</label>
+                    <input type="datetime-local" name="bp_project_${projectIndex}_validity_from" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>Validity To</label>
+                    <input type="datetime-local" name="bp_project_${projectIndex}_validity_to" class="input-field">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea name="bp_project_${projectIndex}_description" class="form-textarea" rows="2"
+                    placeholder="Project description"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Internal Notes</label>
+                <textarea name="bp_project_${projectIndex}_internal_notes" class="form-textarea" rows="2"
+                    placeholder="Internal notes"></textarea>
+            </div>
+
+            <!-- Custom Fields Container -->
+            <div id="bp-project-${projectIndex}-custom-fields"></div>
+        `;
+
+        container.appendChild(card);
+
+        // Populate custom fields for this project card
+        const config = this.templateManager?.projectTemplateConfig;
+        if (config && config.customFields && config.customFields.length > 0) {
+            this._populateBulkProjectCustomFields(projectIndex, config.customFields);
+        }
+
+        this._updateBulkProjectCount();
+    }
+
+    /**
+     * Remove a project card from bulk create
+     */
+    _removeBulkProject(projectIndex) {
+        const container = document.getElementById('bulk-projects-container');
+        if (!container) return;
+
+        const card = container.querySelector(`[data-project-index="${projectIndex}"]`);
+        if (card) {
+            card.remove();
+            this._updateBulkProjectCount();
+        }
+    }
+
+    /**
+     * Update the project count display
+     */
+    _updateBulkProjectCount() {
+        const container = document.getElementById('bulk-projects-container');
+        if (!container) return;
+
+        const count = container.querySelectorAll('.bp-project-card').length;
+        // Update count field if needed
+        const countField = document.querySelector('[name="bp_project_count"]');
+        if (countField) {
+            countField.value = count;
+        }
+    }
+
+    /**
+     * Populate custom fields for a bulk project card
+     */
+    _populateBulkProjectCustomFields(projectIndex, customFields) {
+        const container = document.getElementById(`bp-project-${projectIndex}-custom-fields`);
+        if (!container || !customFields || customFields.length === 0) return;
+
+        // Group by section
+        const fieldsBySection = {};
+        customFields.forEach(field => {
+            const sectionName = field.section_name || 'Custom Fields';
+            if (!fieldsBySection[sectionName]) {
+                fieldsBySection[sectionName] = [];
+            }
+            fieldsBySection[sectionName].push(field);
+        });
+
+        // Generate HTML for each section
+        Object.entries(fieldsBySection).forEach(([sectionName, fields]) => {
+            const sectionHTML = `
+                <p class="cc-sub-title" style="margin-top: 16px;">🔧 ${sectionName}</p>
+                <div data-custom-section="${sectionName}">
+                    ${fields.map(field => this._generateBulkProjectFieldHTML(field, projectIndex)).join('')}
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', sectionHTML);
+        });
+    }
+
+    /**
+     * Generate HTML for a bulk project custom field
+     */
+    _generateBulkProjectFieldHTML(field, projectIndex) {
+        const fieldType = field.field_type;
+        const fieldName = field.name;
+        const constraints = field.constraints || {};
+        const inputName = `bp_project_${projectIndex}_custom_${fieldName}`;
+
+        let inputHTML = '';
+
+        switch (fieldType) {
+            case 'SHORTTEXT':
+            case 'LONGTEXT':
+                const maxLength = constraints.max_limit || 500;
+                if (fieldType === 'LONGTEXT') {
+                    inputHTML = `<textarea name="${inputName}" class="form-textarea" rows="2" maxlength="${maxLength}" data-custom-field="${fieldName}" data-field-type="${fieldType}"></textarea>`;
+                } else {
+                    inputHTML = `<input type="text" name="${inputName}" class="input-field" maxlength="${maxLength}" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+                }
+                break;
+
+            case 'FLOAT':
+            case 'PERCENTAGE':
+                const step = '0.01';
+                inputHTML = `<input type="number" name="${inputName}" class="input-field" step="${step}" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+                break;
+
+            case 'DATE':
+            case 'DATETIME':
+                const dateType = fieldType === 'DATETIME' ? 'datetime-local' : 'date';
+                inputHTML = `<input type="${dateType}" name="${inputName}" class="input-field" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+                break;
+
+            case 'BOOLEAN':
+                inputHTML = `
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="${inputName}" value="true" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                        <span>Yes</span>
+                    </label>
+                `;
+                break;
+
+            case 'CHOICE':
+                const choices = constraints.choices || [];
+                const isMulti = constraints.choice_type === 'MULTI_SELECT';
+
+                if (isMulti) {
+                    const optionsHTML = choices.map(choice =>
+                        `<label style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+                            <input type="checkbox" name="${inputName}" value="${choice}" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                            <span>${choice}</span>
+                        </label>`
+                    ).join('');
+                    inputHTML = `<div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; max-height: 120px; overflow-y: auto;">${optionsHTML}</div>`;
+                } else {
+                    const optionsHTML = choices.map(choice => `<option value="${choice}">${choice}</option>`).join('');
+                    inputHTML = `<select name="${inputName}" class="input-field" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                        <option value="">Select...</option>
+                        ${optionsHTML}
+                    </select>`;
+                }
+                break;
+
+            default:
+                inputHTML = `<input type="text" name="${inputName}" class="input-field" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+        }
+
+        return `
+            <div class="form-group">
+                <label>${field.alternate_name || fieldName}</label>
+                ${inputHTML}
+            </div>
+        `;
+    }
+
+    /**
+     * Builds the payload for project bulk create operation
+     */
+    _buildProjectsBulkCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Get shared configuration
+        const createdBy = get('bp_created_by');
+        const entityName = get('bp_entity_name');
+        const templateName = get('bp_template_name');
+        const projectStatus = get('bp_project_status');
+
+        const projects = [];
+        const container = document.getElementById('bulk-projects-container');
+        if (!container) {
+            throw new Error('Projects container not found');
+        }
+
+        const cards = container.querySelectorAll('.bp-project-card');
+        if (cards.length === 0) {
+            throw new Error('At least one project is required');
+        }
+
+        cards.forEach((card, index) => {
+            const projectIndex = card.dataset.projectIndex;
+            const pget = (suffix) => card.querySelector(`[name="bp_project_${projectIndex}_${suffix}"]`)?.value?.trim() || '';
+
+            const project = {
+                created_by_user_email: createdBy,
+                project_name: pget('name'),
+                entity_name: entityName,
+                project_status: projectStatus
+            };
+
+            // Project codes
+            const projectCode = pget('code');
+            const erpProjectCode = pget('erp_code');
+            if (projectCode) project.project_code = projectCode;
+            if (erpProjectCode) project.ERP_project_code = erpProjectCode;
+
+            // Validate at least one code
+            if (!projectCode && !erpProjectCode) {
+                throw new Error(`Project ${index + 1}: Either Project Code or ERP Project Code is required`);
+            }
+
+            // Optional fields
+            const customerCode = pget('customer_code');
+            const description = pget('description');
+            const internalNotes = pget('internal_notes');
+
+            if (customerCode) project.customer_code = customerCode;
+            if (templateName) project.template_name = templateName;
+            if (description) project.description = description;
+            if (internalNotes) project.internal_notes = internalNotes;
+
+            // Dates
+            const validityFrom = pget('validity_from');
+            const validityTo = pget('validity_to');
+
+            project.validity_from = validityFrom ? new Date(validityFrom).toISOString() : null;
+            project.validity_to = validityTo ? new Date(validityTo).toISOString() : null;
+
+            // Custom sections
+            project.custom_sections = [];
+            const customSectionContainers = card.querySelectorAll('[data-custom-section]');
+            customSectionContainers.forEach(sectionContainer => {
+                const sectionName = sectionContainer.dataset.customSection;
+                const customFields = [];
+
+                const fieldElements = sectionContainer.querySelectorAll('[data-custom-field]');
+                fieldElements.forEach(fieldEl => {
+                    const fieldName = fieldEl.dataset.customField;
+                    const fieldType = fieldEl.dataset.fieldType;
+                    let value = null;
+
+                    if (fieldType === 'BOOLEAN') {
+                        const checkbox = fieldEl.querySelector('input[type="checkbox"]');
+                        value = checkbox ? checkbox.checked : false;
+                    } else if (fieldType === 'CHOICE') {
+                        const isMulti = fieldEl.querySelectorAll('input[type="checkbox"]').length > 0;
+                        if (isMulti) {
+                            const checkboxes = fieldEl.querySelectorAll('input[type="checkbox"]:checked');
+                            value = Array.from(checkboxes).map(cb => cb.value);
+                        } else {
+                            const select = fieldEl.querySelector('select');
+                            value = select ? select.value : '';
+                        }
+                    } else if (fieldType === 'DATETIME') {
+                        const input = fieldEl.querySelector('input');
+                        if (input && input.value) {
+                            value = new Date(input.value).toISOString();
+                        }
+                    } else if (fieldType === 'DATE') {
+                        const input = fieldEl.querySelector('input');
+                        value = input ? input.value : '';
+                    } else {
+                        const input = fieldEl.querySelector('input, textarea');
+                        value = input ? input.value : '';
+                    }
+
+                    if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
+                        customFields.push({
+                            name: fieldName,
+                            value: fieldType === 'FLOAT' || fieldType === 'PERCENTAGE' ? parseFloat(value) : value
+                        });
+                    }
+                });
+
+                if (customFields.length > 0) {
+                    project.custom_sections.push({
+                        name: sectionName,
+                        custom_fields: customFields
+                    });
+                }
+            });
+
+            projects.push(project);
+        });
+
+        return { projects };
+    }
+
+    /**
+     * Add a PO item card
+     */
+    _addPOItem() {
+        const container = document.getElementById('po-items-container');
+        if (!container) return;
+
+        const itemIndex = container.querySelectorAll('.po-item-card').length;
+
+        const card = document.createElement('div');
+        card.className = 'po-item-card cc-item-card';
+        card.dataset.itemIndex = itemIndex;
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <h4 style="margin: 0; font-size: 14px;">📦 Item ${itemIndex + 1}</h4>
+                <button type="button" onclick="this.closest('.po-item-card').remove()" class="btn-remove-item">✕</button>
+            </div>
+
+            <!-- Item Identification -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ERP Item Code</label>
+                    <input type="text" name="po_item_${itemIndex}_erp_code" class="input-field" placeholder="ERP code">
+                </div>
+                <div class="form-group">
+                    <label>Factwise Item Code</label>
+                    <input type="text" name="po_item_${itemIndex}_fw_code" class="input-field" value="ADGA0001">
+                </div>
+            </div>
+
+            <!-- Price & Quantity -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Price *</label>
+                    <input type="number" name="po_item_${itemIndex}_price" class="input-field" required value="78.9" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Quantity *</label>
+                    <input type="number" name="po_item_${itemIndex}_quantity" class="input-field" required value="100" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Measurement Unit (UUID) *</label>
+                <input type="text" name="po_item_${itemIndex}_unit" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+            </div>
+
+            <!-- Notes -->
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Item Additional Details</label>
+                    <input type="text" name="po_item_${itemIndex}_additional_details" class="input-field" placeholder="Additional details">
+                </div>
+                <div class="form-group">
+                    <label>Internal Notes</label>
+                    <input type="text" name="po_item_${itemIndex}_internal_notes" class="input-field" placeholder="Internal notes">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>External Notes</label>
+                <input type="text" name="po_item_${itemIndex}_external_notes" class="input-field" placeholder="External notes">
+            </div>
+
+            <!-- Delivery & Payment -->
+            <p class="cc-sub-title" style="margin-top: 16px;">🚚 Delivery & Payment</p>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Incoterm</label>
+                    <select name="po_item_${itemIndex}_incoterm" class="input-field">
+                        <option value="DAP" selected>DAP</option>
+                        <option value="FOB">FOB</option>
+                        <option value="CIF">CIF</option>
+                        <option value="EXW">EXW</option>
+                        <option value="DDP">DDP</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Prepayment %</label>
+                    <input type="number" name="po_item_${itemIndex}_prepayment" class="input-field" value="10" step="0.01" min="0" max="100">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Lead Time</label>
+                    <input type="number" name="po_item_${itemIndex}_lead_time" class="input-field" value="10" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Lead Time Period</label>
+                    <select name="po_item_${itemIndex}_lead_time_period" class="input-field">
+                        <option value="DAYS" selected>DAYS</option>
+                        <option value="WEEKS">WEEKS</option>
+                        <option value="MONTHS">MONTHS</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Type</label>
+                    <select name="po_item_${itemIndex}_payment_type" class="input-field">
+                        <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
+                        <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
+                        <option value="ADVANCE">ADVANCE</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Payment Term (number)</label>
+                    <input type="number" name="po_item_${itemIndex}_payment_term" class="input-field" value="2">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Period</label>
+                    <select name="po_item_${itemIndex}_payment_period" class="input-field">
+                        <option value="MONTHS" selected>MONTHS</option>
+                        <option value="WEEKS">WEEKS</option>
+                        <option value="DAYS">DAYS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Payment Applied From</label>
+                    <select name="po_item_${itemIndex}_payment_applied_from" class="input-field">
+                        <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                        <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                        <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Delivery Schedule -->
+            <p class="cc-sub-title" style="margin-top: 16px;">📅 Delivery Schedule</p>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Delivery Date *</label>
+                    <input type="date" name="po_item_${itemIndex}_delivery_date" class="input-field" required value="2026-06-30">
+                </div>
+                <div class="form-group">
+                    <label>Delivery Quantity *</label>
+                    <input type="number" name="po_item_${itemIndex}_delivery_quantity" class="input-field" required value="100" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Cost Centre ID</label>
+                    <input type="text" name="po_item_${itemIndex}_cost_centre" class="input-field" placeholder="Cost centre ID (optional)">
+                </div>
+                <div class="form-group">
+                    <label>General Ledger ID</label>
+                    <input type="text" name="po_item_${itemIndex}_gl" class="input-field" placeholder="GL ID (optional)">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Project ID</label>
+                <input type="text" name="po_item_${itemIndex}_project" class="input-field" placeholder="Project ID (optional)">
+            </div>
+        `;
+
+        container.appendChild(card);
+    }
+
+    /**
+     * Build PO create payload
+     */
+    _buildPOCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        // Buyer details
+        const buyer_details = {
+            entity_name: get('buyer_entity_name'),
+            billing_address_id: get('buyer_billing_address'),
+            shipping_address_id: get('buyer_shipping_address'),
+            identifications: get('buyer_identifications') ? get('buyer_identifications').split(',').map(s => s.trim()).filter(s => s) : [],
+            contacts: get('buyer_contacts') ? get('buyer_contacts').split(',').map(s => s.trim()).filter(s => s) : []
+        };
+
+        // Seller details
+        const seller_details = {
+            ERP_vendor_code: get('seller_erp_vendor_code') || null,
+            factwise_vendor_code: get('seller_factwise_vendor_code') || null,
+            seller_address_id: get('seller_address_id') || null,
+            seller_full_address: get('seller_full_address') || "",
+            identifications: get('seller_identifications') ? get('seller_identifications').split(',').map(s => s.trim()).filter(s => s) : [],
+            contacts: get('seller_contacts') ? get('seller_contacts').split(',').map(s => s.trim()).filter(s => s) : []
+        };
+
+        // PO details
+        const purchase_order_details = {
+            created_by_user_email: get('created_by_user_email'),
+            ERP_po_id: get('ERP_po_id'),
+            status: get('po_status'),
+            template_name: get('template_name') || null,
+            issue_date: get('issue_date') || null,
+            accepted_date: get('accepted_date') || null,
+            currency_code: get('currency_code'),
+            notes: get('po_notes') || "",
+            event: get('po_event') || null,
+            terms_and_conditions: {
+                name: get('tnc_name') || "FactWise Default TNC",
+                data: get('tnc_data') || "<p>Acceptance of order...</p>"
+            },
+            additional_costs: [],
+            taxes: [],
+            discounts: [],
+            custom_sections: []
+        };
+
+        // PO items
+        const purchase_order_items = [];
+        const container = document.getElementById('po-items-container');
+        if (container) {
+            const cards = container.querySelectorAll('.po-item-card');
+            cards.forEach(card => {
+                const idx = card.dataset.itemIndex;
+                const iget = (suffix) => card.querySelector(`[name="po_item_${idx}_${suffix}"]`)?.value?.trim() || '';
+
+                const item = {
+                    ERP_item_code: iget('erp_code') || null,
+                    factwise_item_code: iget('fw_code') || null,
+                    item_additional_details: iget('additional_details') || "",
+                    internal_notes: iget('internal_notes') || "",
+                    external_notes: iget('external_notes') || "",
+                    price: parseFloat(iget('price')) || 0,
+                    quantity: parseFloat(iget('quantity')) || 0,
+                    measurement_unit: iget('unit'),
+                    incoterm: iget('incoterm') || null,
+                    prepayment_percentage: parseFloat(iget('prepayment')) || 0,
+                    lead_time: iget('lead_time') || null,
+                    lead_time_period: iget('lead_time_period') || null,
+                    payment_type: iget('payment_type') || null,
+                    payment_terms: {
+                        term: parseInt(iget('payment_term')) || 0,
+                        period: iget('payment_period') || "MONTHS",
+                        applied_from: iget('payment_applied_from') || "INVOICE_DATE"
+                    },
+                    deliverables_payment_terms: [],
+                    delivery_schedules: [{
+                        delivery_date: iget('delivery_date') || null,
+                        quantity: iget('delivery_quantity') || iget('quantity') || "0",
+                        cost_centre_id: iget('cost_centre') || null,
+                        general_ledger_id: iget('gl') || null,
+                        project_id: iget('project') || null
+                    }],
+                    additional_costs: [],
+                    taxes: [],
+                    discounts: [],
+                    custom_sections: [],
+                    attachments: []
+                };
+
+                purchase_order_items.push(item);
+            });
+        }
+
+        if (purchase_order_items.length === 0) {
+            throw new Error('At least one PO item is required');
+        }
+
+        return {
+            buyer_details,
+            seller_details,
+            purchase_order_details,
+            purchase_order_items,
+            attachments: []
+        };
+    }
+
+    /**
+     * Build PO terminate payload
+     */
+    _buildPOTerminatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            status: get('termination_status'),
+            notes: get('termination_notes') || ""
+        };
+
+        // PO IDs (at least one required)
+        const erpPoId = get('ERP_po_id');
+        const factwisePoId = get('factwise_po_id');
+
+        if (erpPoId) payload.ERP_po_id = erpPoId;
+        if (factwisePoId) payload.factwise_po_id = factwisePoId;
+
+        // Validate at least one PO ID
+        if (!erpPoId && !factwisePoId) {
+            throw new Error('Either ERP PO ID or Factwise PO ID is required');
+        }
+
+        // Validate status is selected
+        if (!payload.status) {
+            throw new Error('Status is required');
+        }
+
+        return payload;
+    }
+
+    /**
+     * Build PO state update payload
+     */
+    _buildPOStatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            status: get('po_state_status'),
+            notes: get('po_state_notes') || ""
+        };
+
+        // PO IDs (at least one required)
+        const erpPoId = get('ERP_po_id');
+        const factwisePoId = get('factwise_po_id');
+
+        if (erpPoId) payload.ERP_po_id = erpPoId;
+        if (factwisePoId) payload.factwise_po_id = factwisePoId;
+
+        // Validate at least one PO ID
+        if (!erpPoId && !factwisePoId) {
+            throw new Error('Either ERP PO ID or Factwise PO ID is required');
+        }
+
+        // Validate status is selected
+        if (!payload.status) {
+            throw new Error('Status is required');
+        }
 
         return payload;
     }
@@ -3911,6 +5212,184 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         console.log('✓ Populated', customFields.length, 'custom fields for item create');
     }
 
+    /**
+     * Load project templates from API
+     * @private
+     */
+    async _loadProjectTemplates() {
+        try {
+            // Get token
+            let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+
+            if (!token) {
+                console.error('No token available for project templates API');
+                return null;
+            }
+
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}module_templates/?template_type=PROJECT`;
+
+            console.log('✓ Fetching project templates from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch project templates:', response.status, response.statusText);
+                return null;
+            }
+
+            const data = await response.json();
+            console.log('✓ Loaded project templates response:', data);
+
+            // API returns an array with one object containing templates
+            const responseData = Array.isArray(data) ? data[0] : data;
+            const templates = responseData.templates || [];
+            console.log('✓ Project templates array:', templates);
+
+            // Store templates in templateManager
+            if (this.templateManager && templates.length > 0) {
+                this.templateManager.projectTemplates = templates;
+                console.log('✓ Stored', templates.length, 'project templates in TemplateManager');
+
+                // Parse the first (default) template
+                const defaultTemplate = templates[0];
+                const config = this.templateManager.parseProjectTemplateConfig(defaultTemplate);
+                this.templateManager.projectTemplateConfig = config;
+                console.log('✓ Parsed project template config:', config);
+
+                return config;
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('Error loading project templates:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Populate custom fields for project create form
+     * @param {Array} customFields - Array of custom field definitions from template
+     * @private
+     */
+    _populateProjectCreateCustomFields(customFields) {
+        const container = document.getElementById('project-create-custom-fields-container');
+        if (!container || !customFields || customFields.length === 0) return;
+
+        // Group custom fields by section
+        const fieldsBySection = {};
+        customFields.forEach(field => {
+            const sectionName = field.section_name || 'Custom Fields';
+            if (!fieldsBySection[sectionName]) {
+                fieldsBySection[sectionName] = [];
+            }
+            fieldsBySection[sectionName].push(field);
+        });
+
+        // Generate HTML for each section
+        Object.entries(fieldsBySection).forEach(([sectionName, fields]) => {
+            const sectionHTML = `
+                <div class="form-section-title">
+                    <span class="fst-icon">🔧</span>
+                    <h4>${sectionName}</h4>
+                    <span class="fst-badge" style="background: #94a3b8;">From Template</span>
+                </div>
+                <div data-custom-section="${sectionName}">
+                    ${fields.map(field => this._generateProjectCustomFieldHTML(field)).join('')}
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', sectionHTML);
+        });
+
+        console.log('✓ Populated', customFields.length, 'custom fields for project create');
+    }
+
+    /**
+     * Generate HTML for a project custom field
+     * @param {Object} field - Field configuration
+     * @returns {string} HTML string
+     * @private
+     */
+    _generateProjectCustomFieldHTML(field) {
+        const fieldType = field.field_type;
+        const fieldName = field.name;
+        const constraints = field.constraints || {};
+
+        let inputHTML = '';
+
+        switch (fieldType) {
+            case 'SHORTTEXT':
+            case 'LONGTEXT':
+                const maxLength = constraints.max_limit || 500;
+                const inputType = fieldType === 'LONGTEXT' ? 'textarea' : 'input';
+                if (inputType === 'textarea') {
+                    inputHTML = `<textarea name="custom_${fieldName}" class="form-textarea" rows="3" maxlength="${maxLength}" data-custom-field="${fieldName}" data-field-type="${fieldType}"></textarea>`;
+                } else {
+                    inputHTML = `<input type="text" name="custom_${fieldName}" class="input-field" maxlength="${maxLength}" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+                }
+                break;
+
+            case 'FLOAT':
+            case 'PERCENTAGE':
+                const step = fieldType === 'PERCENTAGE' ? '0.01' : '0.01';
+                inputHTML = `<input type="number" name="custom_${fieldName}" class="input-field" step="${step}" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+                break;
+
+            case 'DATE':
+            case 'DATETIME':
+                const dateType = fieldType === 'DATETIME' ? 'datetime-local' : 'date';
+                inputHTML = `<input type="${dateType}" name="custom_${fieldName}" class="input-field" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+                break;
+
+            case 'BOOLEAN':
+                inputHTML = `
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" name="custom_${fieldName}" value="true" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                        <span>Yes</span>
+                    </label>
+                `;
+                break;
+
+            case 'CHOICE':
+                const choices = constraints.choices || [];
+                const isMulti = constraints.choice_type === 'MULTI_SELECT';
+
+                if (isMulti) {
+                    const optionsHTML = choices.map(choice =>
+                        `<label style="display: flex; align-items: center; gap: 6px; padding: 4px 0;">
+                            <input type="checkbox" name="custom_${fieldName}" value="${choice}" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                            <span>${choice}</span>
+                        </label>`
+                    ).join('');
+                    inputHTML = `<div style="border: 1px solid #d1d5db; border-radius: 4px; padding: 8px; max-height: 150px; overflow-y: auto;">${optionsHTML}</div>`;
+                } else {
+                    const optionsHTML = choices.map(choice => `<option value="${choice}">${choice}</option>`).join('');
+                    inputHTML = `<select name="custom_${fieldName}" class="input-field" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                        <option value="">Select...</option>
+                        ${optionsHTML}
+                    </select>`;
+                }
+                break;
+
+            default:
+                inputHTML = `<input type="text" name="custom_${fieldName}" class="input-field" data-custom-field="${fieldName}" data-field-type="${fieldType}">`;
+        }
+
+        return `
+            <div class="form-group" data-custom-field="${fieldName}" data-field-type="${fieldType}">
+                <label>${field.alternate_name || fieldName}</label>
+                ${inputHTML}
+            </div>
+        `;
+    }
+
     _showImportModal() {
         // Create modal overlay
         const modal = document.createElement('div');
@@ -4209,14 +5688,15 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             }
         });
 
-        // Update Buttons
+        // Update Button Text (but NEVER disable - this is a testing tool!)
         if (this.elements.btnExecute) {
-            this.elements.btnExecute.disabled = !allValid;
+            this.elements.btnExecute.textContent = allValid ? "Execute Request" : "Execute Incomplete Request";
+            // Execute button is ALWAYS enabled - users can test with incomplete data
         }
 
         if (this.elements.btnGenerate) {
             this.elements.btnGenerate.textContent = allValid ? "Generate cURL" : "Generate Incomplete cURL";
-            // Note: Generate button remains enabled even if invalid
+            // Generate button is ALWAYS enabled
         }
 
         return { valid: allValid, invalidFields };
@@ -4287,6 +5767,33 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
 
 
     handleExecute() {
+        // Check form validity and highlight incomplete fields (non-blocking)
+        const validationResult = this.checkFormValidity();
+
+        // If form is incomplete, add error styling to invalid fields (but still allow execution)
+        if (!validationResult.valid && validationResult.invalidFields) {
+            validationResult.invalidFields.forEach(field => {
+                field.classList.add('field-error');
+
+                // Remove error class when user starts typing
+                const removeError = () => {
+                    field.classList.remove('field-error');
+                    field.removeEventListener('input', removeError);
+                    field.removeEventListener('change', removeError);
+                };
+                field.addEventListener('input', removeError);
+                field.addEventListener('change', removeError);
+            });
+
+            // Scroll to first invalid field
+            if (validationResult.invalidFields.length > 0) {
+                validationResult.invalidFields[0].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        }
+
         try {
             // Get current environment and operation
             const env = this.environmentManager.getCurrentEnvironment();
@@ -4295,6 +5802,8 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             if (!op) {
                 throw new Error('Operation not found');
             }
+
+            console.log('handleExecute - Module:', this.currentModule, 'Operation:', this.currentOperation);
 
             // Build payload based on operation
             let payload = null;
@@ -4316,10 +5825,25 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                 payload = this._buildVendorCreatePayload();
             } else if (this.currentModule === 'items' && this.currentOperation === 'update_state') {
                 payload = this._buildItemStatePayload();
+            } else if (this.currentModule === 'projects' && this.currentOperation === 'create') {
+                payload = this._buildProjectCreatePayload();
+            } else if (this.currentModule === 'projects' && this.currentOperation === 'bulk_create') {
+                payload = this._buildProjectsBulkCreatePayload();
+            } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'create') {
+                console.log('Building PO create payload...');
+                payload = this._buildPOCreatePayload();
+            } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'terminate') {
+                console.log('Building PO terminate payload...');
+                payload = this._buildPOTerminatePayload();
+            } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'state') {
+                console.log('Building PO state payload...');
+                payload = this._buildPOStatePayload();
             } else {
                 // For non-Contract operations, use form inputs (Phase 1 behavior)
                 payload = this._collectFormData();
             }
+
+            console.log('Built payload:', payload);
 
             // Generate cURL
             const curl = this._generateCurlCommandWithPayload(env, op, payload);
@@ -4329,10 +5853,16 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             this.elements.actionsSection.classList.remove('hidden');
             this.elements.responseSection.classList.remove('hidden');
 
-            // Execute real API call for Contract + Items + Vendor operations
-            if (this.currentModule === 'contract' ||
+            // Execute real API call for Contract + Items + Vendor + Project + PO operations
+            const shouldExecuteAPI = this.currentModule === 'contract' ||
                 (this.currentModule === 'items' && ['bulk_create', 'update_state', 'create'].includes(this.currentOperation)) ||
-                (this.currentModule === 'vendors' && ['contacts_create', 'contacts_update', 'contacts_delete', 'state', 'create'].includes(this.currentOperation))) {
+                (this.currentModule === 'vendors' && ['contacts_create', 'contacts_update', 'contacts_delete', 'state', 'create'].includes(this.currentOperation)) ||
+                (this.currentModule === 'projects' && ['create', 'bulk_create'].includes(this.currentOperation)) ||
+                (this.currentModule === 'purchase_order' && ['create', 'terminate', 'state'].includes(this.currentOperation));
+
+            console.log('Should execute API?', shouldExecuteAPI, 'Module:', this.currentModule, 'Op:', this.currentOperation);
+
+            if (shouldExecuteAPI) {
                 this._executeRealApiCall(env, op, payload);
             } else {
                 // Mock response for other operations (Phase 1 behavior)
@@ -4941,6 +6471,30 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             } catch (error) {
                 return `Error: ${error.message}`;
             }
+        } else if (this.currentModule === 'projects' && this.currentOperation === 'create') {
+            try {
+                body = this._buildProjectCreatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'projects' && this.currentOperation === 'bulk_create') {
+            try {
+                body = this._buildProjectsBulkCreatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'create') {
+            try {
+                body = this._buildPOCreatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'terminate') {
+            try {
+                body = this._buildPOTerminatePayload();
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
         } else {
             // For other operations, collect form data
             body = this._collectFormData();
@@ -5456,6 +7010,226 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         } catch (error) {
             console.error('Error loading vendor templates:', error);
             return null;
+        }
+    }
+
+    /**
+     * Load PO templates from API
+     * @private
+     */
+    async _loadPOTemplates() {
+        try {
+            // Get token
+            let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+
+            if (!token) {
+                console.error('No token available for PO templates API');
+                const select = document.getElementById('po_template_select');
+                if (select) {
+                    select.innerHTML = '<option value="">No templates available</option>';
+                }
+                return null;
+            }
+
+            let entityId = '20d11e41-5ee0-40f1-9f01-a619d20e74e3'; // Default
+
+            // Try to extract from token
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                entityId = payload.entity_id || payload['custom:entityId'] || entityId;
+            } catch (e) {
+                console.warn('Could not parse token for entity_id');
+            }
+
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}module_templates/?entity_id=${entityId}&template_type=PO_GROUP`;
+
+            console.log('✓ Fetching PO templates from:', url);
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch PO templates:', response.status, response.statusText);
+                const select = document.getElementById('po_template_select');
+                if (select) {
+                    select.innerHTML = '<option value="">Failed to load templates</option>';
+                }
+                return null;
+            }
+
+            const data = await response.json();
+            console.log('✓ Loaded PO templates response:', data);
+
+            // API returns an array with one object containing templates
+            const responseData = Array.isArray(data) ? data[0] : data;
+            const templates = responseData.templates || [];
+            console.log('✓ PO templates array:', templates);
+
+            // Store templates in templateManager
+            if (this.templateManager && templates.length > 0) {
+                this.templateManager.poTemplates = templates;
+                console.log('✓ Stored', templates.length, 'PO templates in TemplateManager');
+
+                // Populate dropdown
+                const select = document.getElementById('po_template_select');
+                if (select) {
+                    select.innerHTML = templates.map(t => {
+                        const name = t.name || t.template_name || 'Unnamed Template';
+                        return `<option value="${name}">${name}</option>`;
+                    }).join('');
+                    select.selectedIndex = 0;
+                    console.log('✓ Populated PO template dropdown with', templates.length, 'templates');
+
+                    // Parse the first (default) template
+                    const defaultTemplate = templates[0];
+                    const config = this.templateManager.parsePOTemplateConfig(defaultTemplate);
+                    this.templateManager.poTemplateConfig = config;
+                    console.log('✓ Parsed PO template config:', config);
+
+                    // Populate custom fields if any
+                    if (config && config.customFields && config.customFields.length > 0) {
+                        this._populatePOCustomFields(config.customFields);
+                    }
+
+                    return config;
+                }
+            } else {
+                const select = document.getElementById('po_template_select');
+                if (select) {
+                    select.innerHTML = '<option value="">No templates available</option>';
+                }
+            }
+
+            return null;
+
+        } catch (error) {
+            console.error('Error loading PO templates:', error);
+            const select = document.getElementById('po_template_select');
+            if (select) {
+                select.innerHTML = '<option value="">Error loading templates</option>';
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Populate PO custom fields from template
+     * @private
+     */
+    _populatePOCustomFields(customFields) {
+        const container = document.getElementById('po-custom-fields-container');
+        if (!container) return;
+
+        container.innerHTML = '';
+
+        // Group fields by section
+        const sections = {};
+        customFields.forEach(field => {
+            const sectionName = field.section || 'Additional Fields';
+            if (!sections[sectionName]) {
+                sections[sectionName] = [];
+            }
+            sections[sectionName].push(field);
+        });
+
+        // Render each section
+        Object.keys(sections).forEach(sectionName => {
+            const sectionHTML = `
+                <div class="form-section-title">
+                    <span class="fst-icon">⚙️</span>
+                    <h4>${sectionName}</h4>
+                    <span class="fst-badge" style="background: #8b5cf6;">Custom</span>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', sectionHTML);
+
+            sections[sectionName].forEach(field => {
+                const fieldHTML = this._generatePOCustomFieldHTML(field);
+                container.insertAdjacentHTML('beforeend', fieldHTML);
+            });
+        });
+
+        console.log('✓ Populated PO custom fields');
+    }
+
+    /**
+     * Generate HTML for a PO custom field
+     * @private
+     */
+    _generatePOCustomFieldHTML(field) {
+        const fieldName = `po_custom_${field.name.replace(/\s+/g, '_')}`;
+        const required = field.required ? 'required' : '';
+        const requiredStar = field.required ? ' *' : '';
+
+        switch (field.type) {
+            case 'SHORTTEXT':
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <input type="text" name="${fieldName}" class="input-field" ${required} 
+                            placeholder="${field.name}">
+                    </div>
+                `;
+            case 'LONGTEXT':
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <textarea name="${fieldName}" class="form-textarea" rows="3" ${required}
+                            placeholder="${field.name}"></textarea>
+                    </div>
+                `;
+            case 'FLOAT':
+            case 'PERCENTAGE':
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <input type="number" step="0.01" name="${fieldName}" class="input-field" ${required}
+                            placeholder="${field.name}">
+                    </div>
+                `;
+            case 'DATE':
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <input type="date" name="${fieldName}" class="input-field" ${required}>
+                    </div>
+                `;
+            case 'BOOLEAN':
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <select name="${fieldName}" class="input-field" ${required}>
+                            <option value="">Select...</option>
+                            <option value="true">Yes</option>
+                            <option value="false">No</option>
+                        </select>
+                    </div>
+                `;
+            case 'CHOICE':
+                const options = field.choices || [];
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <select name="${fieldName}" class="input-field" ${required}>
+                            <option value="">Select...</option>
+                            ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                        </select>
+                    </div>
+                `;
+            default:
+                return `
+                    <div class="form-group">
+                        <label>${field.name}${requiredStar}</label>
+                        <input type="text" name="${fieldName}" class="input-field" ${required}
+                            placeholder="${field.name}">
+                    </div>
+                `;
         }
     }
 

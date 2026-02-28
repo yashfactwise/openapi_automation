@@ -463,8 +463,9 @@ button {
 .form-input.field-error,
 .form-select.field-error,
 .form-textarea.field-error {
-    border-color: #fca5a5;
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    border-color: #ef4444 !important;
+    border-width: 2px;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
     animation: errorPulse 0.5s ease-in-out;
 }
 
@@ -472,7 +473,7 @@ button {
 
     0%,
     100% {
-        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
     }
 
     50% {

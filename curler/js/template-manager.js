@@ -421,6 +421,159 @@ class TemplateManager {
     }
 
     /**
+     * Parse project template to extract field configuration
+     * @param {Object} template - Project template with section_list
+     * @returns {Object} Configuration object with fields
+     */
+    parseProjectTemplateConfig(template) {
+        const config = {
+            builtInFields: [],
+            customFields: [],
+            hasProjectName: false,
+            hasProjectCode: false,
+            hasStartDate: false,
+            hasEndDate: false,
+            hasDescription: false,
+            hasInternalNotes: false,
+            hasCustomer: false,
+            hasProjectManagers: false
+        };
+
+        if (!template || !template.section_list) {
+            return config;
+        }
+
+        // Parse sections
+        template.section_list.forEach(section => {
+            // Skip ITEM and BOM sections for project create
+            if (section.section_type === 'ITEM' || section.section_type === 'BOM') {
+                return;
+            }
+
+            section.section_items.forEach(item => {
+                const isHidden = item.additional_information?.is_hidden;
+                const isVisible = !isHidden;
+
+                if (!isVisible) return; // Skip hidden fields
+
+                // Built-in fields
+                if (item.is_builtin_field) {
+                    const fieldName = item.name;
+
+                    // Check for specific built-in fields
+                    if (fieldName === 'Project name') config.hasProjectName = true;
+                    if (fieldName === 'Project code') config.hasProjectCode = true;
+                    if (fieldName === 'Start date') config.hasStartDate = true;
+                    if (fieldName === 'End date') config.hasEndDate = true;
+                    if (fieldName === 'Description') config.hasDescription = true;
+                    if (fieldName === 'Internal notes') config.hasInternalNotes = true;
+                    if (fieldName === 'Customer') config.hasCustomer = true;
+                    if (fieldName === 'Project managers') config.hasProjectManagers = true;
+
+                    config.builtInFields.push({
+                        id: item.section_item_id,
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        constraints: item.constraints,
+                        parent: item.parent_section_item
+                    });
+                }
+                // Custom fields
+                else {
+                    config.customFields.push({
+                        id: item.section_item_id,
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        constraints: item.constraints,
+                        parent: item.parent_section_item,
+                        section_name: section.name
+                    });
+                }
+            });
+        });
+
+        return config;
+    }
+
+    /**
+     * Parse PO template to extract field configuration
+     * @param {Object} template - PO template with section_list
+     * @returns {Object} Configuration object with fields
+     */
+    parsePOTemplateConfig(template) {
+        const config = {
+            poLevel: {
+                additionalCosts: false,
+                taxes: false,
+                discounts: false,
+                customSections: []
+            },
+            itemLevel: {
+                additionalCosts: false,
+                taxes: false,
+                discounts: false,
+                customSections: []
+            }
+        };
+
+        if (!template || !template.section_list) {
+            return config;
+        }
+
+        // Parse sections
+        template.section_list.forEach(section => {
+            const isItemLevel = section.section_type === 'ITEM';
+            const isPOLevel = section.section_type === 'OTHER';
+
+            section.section_items.forEach(item => {
+                const isHidden = item.additional_information?.is_hidden;
+                const isVisible = !isHidden;
+
+                // Map field names to config
+                if (item.name === 'Overall additional costs' && isVisible && isPOLevel) {
+                    config.poLevel.additionalCosts = true;
+                }
+                if (item.name === 'Overall taxes' && isVisible && isPOLevel) {
+                    config.poLevel.taxes = true;
+                }
+                if (item.name === 'Overall discount information' && isVisible && isPOLevel) {
+                    config.poLevel.discounts = true;
+                }
+
+                if (item.name === 'Additional costs' && isVisible && isItemLevel) {
+                    config.itemLevel.additionalCosts = true;
+                }
+                if (item.name === 'Taxes' && isVisible && isItemLevel) {
+                    config.itemLevel.taxes = true;
+                }
+                if (item.name === 'Discount information' && isVisible && isItemLevel) {
+                    config.itemLevel.discounts = true;
+                }
+
+                // Custom fields (non-builtin)
+                if (!item.is_builtin_field && isVisible) {
+                    const customField = {
+                        name: item.name,
+                        alternate_name: item.alternate_name,
+                        field_type: item.constraints?.field_type,
+                        section_name: section.name
+                    };
+
+                    if (isItemLevel) {
+                        config.itemLevel.customSections.push(customField);
+                    } else if (isPOLevel) {
+                        config.poLevel.customSections.push(customField);
+                    }
+                }
+            });
+        });
+
+        return config;
+    }
+
+    /**
      * Generate HTML input field based on field type
      * @param {Object} field - Field configuration
      * @param {number} itemIndex - Item index for name attribute
@@ -516,6 +669,45 @@ class TemplateManager {
                         </div>
                     `;
         }
+    }
+
+    /**
+     * Parse PO template configuration
+     * @param {Object} template - PO template object from API
+     * @returns {Object} Parsed configuration with custom fields
+     */
+    parsePOTemplateConfig(template) {
+        console.log('Parsing PO template:', template);
+
+        const config = {
+            templateName: template.name || template.template_name,
+            customFields: []
+        };
+
+        // Parse section_list for custom fields
+        if (template.section_list && Array.isArray(template.section_list)) {
+            template.section_list.forEach(section => {
+                if (section.is_hidden) return; // Skip hidden sections
+
+                const sectionName = section.name || section.section_name;
+
+                // Parse custom fields in this section
+                if (section.custom_fields && Array.isArray(section.custom_fields)) {
+                    section.custom_fields.forEach(field => {
+                        config.customFields.push({
+                            name: field.name || field.field_name,
+                            type: field.field_type || field.type,
+                            section: sectionName,
+                            required: field.is_required || false,
+                            choices: field.choices || []
+                        });
+                    });
+                }
+            });
+        }
+
+        console.log('Parsed PO template config:', config);
+        return config;
     }
 }
 

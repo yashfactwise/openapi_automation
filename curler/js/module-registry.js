@@ -91,9 +91,9 @@ class ModuleRegistry {
                         id: "create",
                         name: "Purchase Order Create",
                         description: "Create a new purchase order",
-                        endpoint: "/openapi/purchase_order/create/",
+                        endpoint: "/dev/api/purchase_order/create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "update",
@@ -107,17 +107,17 @@ class ModuleRegistry {
                         id: "state",
                         name: "Purchase Order State",
                         description: "Update Status",
-                        endpoint: "/openapi/purchase_order/state/",
+                        endpoint: "/dev/api/purchase_order/state/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "terminate",
                         name: "Purchase Order Terminate",
                         description: "Terminate a purchase order",
-                        endpoint: "/openapi/purchase_order/terminate/",
+                        endpoint: "/dev/api/purchase_order/terminate/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     }
                 ]
             },
@@ -221,17 +221,17 @@ class ModuleRegistry {
                         id: "create",
                         name: "Project Create",
                         description: "Create a new project",
-                        endpoint: "/openapi/project/create/",
+                        endpoint: "/dev/api/project/create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     },
                     {
                         id: "bulk_create",
                         name: "Project Bulk Create",
                         description: "Create multiple projects",
-                        endpoint: "/openapi/project/bulk-create/",
+                        endpoint: "/dev/api/project/bulk-create/",
                         method: "POST",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true // Phase 3: IMPLEMENTED
                     }
                 ]
             }
