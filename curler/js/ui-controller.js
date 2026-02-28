@@ -1451,27 +1451,19 @@ class UIController {
                         <input type="text" name="name" class="input-field" required value="Natural Rubber - TSNR - TSR10">
                     </div>
                     <div class="form-group">
-                        <label>Entity Name *</label>
-                        <input type="text" name="entity_name" class="input-field" required value="FactWise">
+                        <label>ERP Item Code</label>
+                        <input type="text" name="ERP_item_code" class="input-field" value="ERP-BKT-01111">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>ERP Item Code *</label>
-                        <input type="text" name="ERP_item_code" class="input-field" required value="ERP-BKT-01111">
+                        <label>Factwise Item Code</label>
+                        <input type="text" name="factwise_item_code" class="input-field" value="PIR_00000000001100000122">
                     </div>
                     <div class="form-group">
-                        <label>Factwise Item Code *</label>
-                        <input type="text" name="factwise_item_code" class="input-field" required value="PIR_00000000001100000122">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Measurement Unit IDs * (comma-separated)</label>
+                        <label>Measurement Unit ID *</label>
                         <input type="text" name="measurement_units" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
-                        <small style="color: #64748b; font-size: 11px;">Enter UUIDs separated by commas</small>
                     </div>
                 </div>
 
@@ -2596,7 +2588,6 @@ class UIController {
         const payload = {
             created_by_user_email: get('created_by_user_email'),
             name: get('name'),
-            entity_name: get('entity_name'),
             description: get('description') || '',
             notes: get('notes') || '',
             internal_notes: get('internal_notes') || '',
@@ -2604,11 +2595,16 @@ class UIController {
             status: get('status')
         };
 
-        // Item codes (optional but at least one recommended)
+        // Item codes (at least one required)
         const erpCode = get('ERP_item_code');
         const factwiseCode = get('factwise_item_code');
         if (erpCode) payload.ERP_item_code = erpCode;
         if (factwiseCode) payload.factwise_item_code = factwiseCode;
+
+        // Validate at least one item code
+        if (!erpCode && !factwiseCode) {
+            throw new Error('Either ERP Item Code or Factwise Item Code is required');
+        }
 
         // Measurement units (required, comma-separated UUIDs)
         const measurementUnits = get('measurement_units');
