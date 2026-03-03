@@ -1072,3 +1072,32 @@ button {
     height: 1px;
     background: #e2e8f0;
 }
+
+/* Mode Toggle Buttons */
+.mode-toggle-group {
+    display: flex;
+    gap: 8px;
+}
+
+.mode-toggle-btn {
+    padding: 8px 20px;
+    border: 2px solid #e2e8f0;
+    background: white;
+    color: #64748b;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.mode-toggle-btn:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.mode-toggle-btn.active {
+    border-color: #6366f1;
+    background: #6366f1;
+    color: white;
+}

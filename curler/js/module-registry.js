@@ -128,16 +128,8 @@ class ModuleRegistry {
                     {
                         id: "create",
                         name: "Items Create",
-                        description: "Create a new item",
+                        description: "Create item(s)",
                         endpoint: "/dev/api/items/create/",
-                        method: "POST",
-                        implemented: true // Phase 3: IMPLEMENTED
-                    },
-                    {
-                        id: "bulk_create",
-                        name: "Items Bulk Create",
-                        description: "Create multiple items",
-                        endpoint: "/dev/api/items/bulk-create/",
                         method: "POST",
                         implemented: true // Phase 3: IMPLEMENTED
                     },
@@ -220,16 +212,8 @@ class ModuleRegistry {
                     {
                         id: "create",
                         name: "Project Create",
-                        description: "Create a new project",
+                        description: "Create project(s)",
                         endpoint: "/dev/api/project/create/",
-                        method: "POST",
-                        implemented: true // Phase 3: IMPLEMENTED
-                    },
-                    {
-                        id: "bulk_create",
-                        name: "Project Bulk Create",
-                        description: "Create multiple projects",
-                        endpoint: "/dev/api/project/bulk-create/",
                         method: "POST",
                         implemented: true // Phase 3: IMPLEMENTED
                     }

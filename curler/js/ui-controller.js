@@ -22,6 +22,7 @@ class UIController {
         this.currentModule = null;
         this.currentOperation = null;
         this.expandedAccountId = null; // Track which account is expanded
+        this.currentMode = 'single'; // Track mode for ALL operations: 'single' or 'bulk'
 
         // Cache DOM elements
         this.elements = {};
@@ -245,6 +246,23 @@ class UIController {
         // ── Contract Create Form ──────────────────────────────────────────────
         if (module.id === 'contract' && operation.id === 'create') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Create Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchContractMode('single')">
+                                📄 Single Contract
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchContractMode('bulk')">
+                                📦 Bulk Contracts
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Single Mode Form -->
+                <div id="contract-single-form">
                 <!-- ① Config Box -->
                 <div class="cc-config-box">
                     <p class="cc-config-box-title">
@@ -515,6 +533,10 @@ class UIController {
                     </button>
                 </h4>
                 <div id="contract-items-container"></div>
+                </div>
+
+                <!-- Bulk Mode Form -->
+                <div id="contract-bulk-form" style="display: none;"></div>
             `;
         }
         // Contract Update Form
@@ -1235,6 +1257,23 @@ class UIController {
             `;
         } else if (module.id === 'vendors' && operation.id === 'create') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Create Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchVendorMode('single')">
+                                📄 Single Vendor
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchVendorMode('bulk')">
+                                📦 Bulk Vendors
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Single Mode Form -->
+                <div id="vendor-single-form">
                 <!-- ① Basic Information -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">🏢</span>
@@ -1370,9 +1409,29 @@ class UIController {
 
                 <div id="vendor-custom-sections-container"></div>
                 <button type="button" class="btn-add-row" onclick="window.uiController._addVendorCustomSection()">＋ Add Custom Section</button>
+                </div>
+
+                <!-- Bulk Mode Form -->
+                <div id="vendor-bulk-form" style="display: none;"></div>
             `;
         } else if (module.id === 'items' && operation.id === 'update_state') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Update Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchMode('single')">
+                                📄 Single Item
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
+                                📦 Bulk Items
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="operation-single-form">
                 <!-- ① Item Identification -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">🔍</span>
@@ -1427,27 +1486,47 @@ class UIController {
                         </div>
                     </div>
                 </div>
+                </div>
+
+                <div id="operation-bulk-form" style="display: none;"></div>
             `;
         } else if (module.id === 'items' && operation.id === 'create') {
             bodyInputsHtml = `
-                <!-- ① Basic Information -->
-                <div class="form-section-title no-margin-top">
-                    <span class="fst-icon">📦</span>
-                    <h4>Item Information</h4>
-                    <span class="fst-badge">Required</span>
-                </div>
-
-                <div class="form-group">
-                    <label>Created By User Email *</label>
-                    <input type="email" name="created_by_user_email" class="input-field" required
-                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Item Name *</label>
-                        <input type="text" name="name" class="input-field" required value="Natural Rubber - TSNR - TSR10">
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Create Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchItemMode('single')">
+                                📄 Single Item
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchItemMode('bulk')">
+                                📦 Bulk Items
+                            </button>
+                        </div>
                     </div>
+                </div>
+
+                <!-- Single Mode Form -->
+                <div id="item-single-form">
+                    <!-- ① Basic Information -->
+                    <div class="form-section-title no-margin-top">
+                        <span class="fst-icon">📦</span>
+                        <h4>Item Information</h4>
+                        <span class="fst-badge">Required</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Created By User Email *</label>
+                        <input type="email" name="created_by_user_email" class="input-field" required
+                            value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Item Name *</label>
+                            <input type="text" name="name" class="input-field" required value="Natural Rubber - TSNR - TSR10">
+                        </div>
                     <div class="form-group">
                         <label>ERP Item Code</label>
                         <input type="text" name="ERP_item_code" class="input-field" value="ERP-BKT-01111">
@@ -1589,9 +1668,30 @@ class UIController {
 
                 <!-- ⑥ Custom Fields from Template -->
                 <div id="item-create-custom-fields-container"></div>
+                </div>
+
+                <!-- Bulk Mode Form (hidden by default) -->
+                <div id="item-bulk-form" style="display: none;"></div>
             `;
         } else if (module.id === 'projects' && operation.id === 'create') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Create Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchProjectMode('single')">
+                                📄 Single Project
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchProjectMode('bulk')">
+                                📦 Bulk Projects
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Single Mode Form -->
+                <div id="project-single-form">
                 <!-- ① Basic Information -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -1683,6 +1783,10 @@ class UIController {
 
                 <!-- ④ Custom Fields from Template -->
                 <div id="project-create-custom-fields-container"></div>
+                </div>
+
+                <!-- Bulk Mode Form (hidden by default) -->
+                <div id="project-bulk-form" style="display: none;"></div>
             `;
         } else if (module.id === 'projects' && operation.id === 'bulk_create') {
             bodyInputsHtml = `
@@ -1739,6 +1843,23 @@ class UIController {
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'create') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Create Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchPOMode('single')">
+                                📄 Single PO
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchPOMode('bulk')">
+                                📦 Bulk POs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Single Mode Form -->
+                <div id="po-single-form">
                 <!-- Template Selection -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -1910,9 +2031,29 @@ class UIController {
                     <label>T&C Data (HTML)</label>
                     <textarea name="tnc_data" class="form-textarea" rows="3" placeholder="Terms and conditions HTML"><p>Acceptance of order...</p></textarea>
                 </div>
+                </div>
+
+                <!-- Bulk Mode Form -->
+                <div id="po-bulk-form" style="display: none;"></div>
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'terminate') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Terminate Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchMode('single')">
+                                📄 Single PO
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
+                                📦 Bulk POs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="po-single-form">
                 <!-- PO Terminate Form -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">⚠️</span>
@@ -1980,9 +2121,28 @@ class UIController {
                         </div>
                     </div>
                 </div>
+                </div>
+
+                <div id="po-bulk-form" style="display: none;"></div>
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'state') {
             bodyInputsHtml = `
+                <!-- Mode Toggle -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <span style="font-weight: 600; color: #475569;">Update Mode:</span>
+                        <div class="mode-toggle-group">
+                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchMode('single')">
+                                📄 Single PO
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
+                                📦 Bulk POs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="po-single-form">
                 <!-- PO State Update Form -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📊</span>
@@ -3702,6 +3862,270 @@ class UIController {
     }
 
     /**
+     * Builds the payload for vendor bulk create operation
+     */
+    _buildVendorsBulkCreatePayload() {
+        // TODO: Implement vendor bulk create payload builder
+        // For now, return a placeholder
+        return {
+            vendors: [
+                {
+                    created_by_user_email: this.currentAccount?.user_email || 'globalfieldsETE@gmail.com',
+                    vendor_name: 'Bulk Vendor 1',
+                    ERP_vendor_code: 'ERPV01'
+                }
+            ]
+        };
+    }
+
+    /**
+     * Generic bulk payload builder for any operation
+     * Builds payload from bulk-records-container
+     */
+    _buildBulkPayload() {
+        const container = document.getElementById('bulk-records-container');
+        if (!container) {
+            throw new Error('Bulk records container not found');
+        }
+
+        const cards = container.querySelectorAll('.bulk-record-card');
+        if (cards.length === 0) {
+            throw new Error('At least one record is required');
+        }
+
+        const userEmail = document.querySelector('input[name="bulk_user_email"]')?.value || this.currentAccount?.user_email;
+        const records = [];
+
+        cards.forEach((card, idx) => {
+            const recordIndex = card.dataset.recordIndex;
+            const record = { modified_by_user_email: userEmail };
+
+            // Collect all inputs from this card
+            const inputs = card.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                const name = input.name;
+                if (name && name.startsWith(`bulk_${recordIndex}_`)) {
+                    const fieldName = name.replace(`bulk_${recordIndex}_`, '');
+                    let value = input.value;
+
+                    // Handle different input types
+                    if (input.type === 'checkbox') {
+                        value = input.checked;
+                    } else if (input.type === 'number') {
+                        value = parseFloat(value) || 0;
+                    }
+
+                    record[fieldName] = value;
+                }
+            });
+
+            records.push(record);
+        });
+
+        // Return appropriate wrapper based on module
+        const module = this.currentModule;
+        if (module === 'items') {
+            return { items: records };
+        } else if (module === 'vendors') {
+            return { vendors: records };
+        } else if (module === 'purchase_order') {
+            return { purchase_orders: records };
+        } else if (module === 'contract') {
+            return { contracts: records };
+        } else if (module === 'projects') {
+            return { projects: records };
+        }
+
+        return { records };
+    }
+
+    /**
+     * Builds the payload for PO bulk create operation
+     */
+    _buildPOsBulkCreatePayload() {
+        // TODO: Implement PO bulk create payload builder
+        // For now, return a placeholder
+        return {
+            purchase_orders: [
+                {
+                    created_by_user_email: this.currentAccount?.user_email || 'globalfieldsETE@gmail.com',
+                    ERP_po_id: 'ERPPO01',
+                    po_status: 'ISSUED'
+                }
+            ]
+        };
+    }
+
+    /**
+     * Builds the payload for contract bulk create operation
+     */
+    _buildContractsBulkCreatePayload() {
+        // TODO: Implement contract bulk create payload builder
+        // For now, return a placeholder
+        return {
+            contracts: [
+                {
+                    created_by_user_email: this.currentAccount?.user_email || 'globalfieldsETE@gmail.com',
+                    contract_name: 'Bulk Contract 1',
+                    ERP_contract_id: 'ERPC01'
+                }
+            ]
+        };
+    }
+
+    /**
+     * Add a bulk vendor card
+     */
+    _addBulkVendor() {
+        const container = document.getElementById('bulk-vendors-container');
+        if (!container) return;
+
+        const vendorIndex = container.querySelectorAll('.bv-vendor-card').length;
+        const n = vendorIndex + 1;
+
+        const card = document.createElement('div');
+        card.className = 'bv-vendor-card cc-item-card';
+        card.dataset.vendorIndex = vendorIndex;
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="margin: 0; color: #1e293b; font-size: 14px; font-weight: 600;">
+                    🏢 Vendor ${n}
+                </h4>
+                <button type="button" onclick="window.uiController._removeBulkVendor(${vendorIndex})"
+                    class="btn-remove-item" title="Remove Vendor">
+                    ✕
+                </button>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Vendor Name *</label>
+                    <input type="text" name="bv_vendor_${vendorIndex}_name" class="input-field" required
+                        value="Bulk Vendor ${n}">
+                </div>
+                <div class="form-group">
+                    <label>ERP Vendor Code *</label>
+                    <input type="text" name="bv_vendor_${vendorIndex}_erp_code" class="input-field" required
+                        value="ERPV0${n}">
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    }
+
+    /**
+     * Remove a bulk vendor card
+     */
+    _removeBulkVendor(index) {
+        const card = document.querySelector(`.bv-vendor-card[data-vendor-index="${index}"]`);
+        if (card) card.remove();
+    }
+
+    /**
+     * Add a bulk PO card
+     */
+    _addBulkPO() {
+        const container = document.getElementById('bulk-pos-container');
+        if (!container) return;
+
+        const poIndex = container.querySelectorAll('.bpo-po-card').length;
+        const n = poIndex + 1;
+
+        const card = document.createElement('div');
+        card.className = 'bpo-po-card cc-item-card';
+        card.dataset.poIndex = poIndex;
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="margin: 0; color: #1e293b; font-size: 14px; font-weight: 600;">
+                    📄 PO ${n}
+                </h4>
+                <button type="button" onclick="window.uiController._removeBulkPO(${poIndex})"
+                    class="btn-remove-item" title="Remove PO">
+                    ✕
+                </button>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ERP PO ID *</label>
+                    <input type="text" name="bpo_po_${poIndex}_erp_id" class="input-field" required
+                        value="ERPPO0${n}">
+                </div>
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="bpo_po_${poIndex}_status" class="input-field" required>
+                        <option value="ISSUED" selected>ISSUED</option>
+                        <option value="ONGOING">ONGOING</option>
+                    </select>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    }
+
+    /**
+     * Remove a bulk PO card
+     */
+    _removeBulkPO(index) {
+        const card = document.querySelector(`.bpo-po-card[data-po-index="${index}"]`);
+        if (card) card.remove();
+    }
+
+    /**
+     * Add a bulk contract card
+     */
+    _addBulkContract() {
+        const container = document.getElementById('bulk-contracts-container');
+        if (!container) return;
+
+        const contractIndex = container.querySelectorAll('.bc-contract-card').length;
+        const n = contractIndex + 1;
+
+        const card = document.createElement('div');
+        card.className = 'bc-contract-card cc-item-card';
+        card.dataset.contractIndex = contractIndex;
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="margin: 0; color: #1e293b; font-size: 14px; font-weight: 600;">
+                    📋 Contract ${n}
+                </h4>
+                <button type="button" onclick="window.uiController._removeBulkContract(${contractIndex})"
+                    class="btn-remove-item" title="Remove Contract">
+                    ✕
+                </button>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Contract Name *</label>
+                    <input type="text" name="bc_contract_${contractIndex}_name" class="input-field" required
+                        value="Bulk Contract ${n}">
+                </div>
+                <div class="form-group">
+                    <label>ERP Contract ID *</label>
+                    <input type="text" name="bc_contract_${contractIndex}_erp_id" class="input-field" required
+                        value="ERPC0${n}">
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
+    }
+
+    /**
+     * Remove a bulk contract card
+     */
+    _removeBulkContract(index) {
+        const card = document.querySelector(`.bc-contract-card[data-contract-index="${index}"]`);
+        if (card) card.remove();
+    }
+
+    /**
      * Add a PO item card
      */
     _addPOItem() {
@@ -5213,6 +5637,625 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
     }
 
     /**
+     * Switch between single and bulk mode for items create
+     * @param {string} mode - 'single' or 'bulk'
+     */
+    _switchItemMode(mode) {
+        const singleForm = document.getElementById('item-single-form');
+        const bulkForm = document.getElementById('item-bulk-form');
+        const toggleBtns = document.querySelectorAll('.mode-toggle-btn');
+
+        // Update toggle buttons
+        toggleBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (mode === 'single') {
+            singleForm.style.display = 'block';
+            bulkForm.style.display = 'none';
+            this.currentMode = 'single';
+        } else {
+            singleForm.style.display = 'none';
+            bulkForm.style.display = 'block';
+            this.currentMode = 'bulk';
+
+            // Load bulk form if not already loaded
+            if (!bulkForm.innerHTML.trim()) {
+                this._loadItemBulkForm();
+            }
+        }
+
+        console.log('Switched to', mode, 'mode for items');
+    }
+
+    /**
+     * Load the bulk items form dynamically
+     */
+    _loadItemBulkForm() {
+        const bulkForm = document.getElementById('item-bulk-form');
+        if (!bulkForm) return;
+
+        bulkForm.innerHTML = `
+            <!-- Bulk Items Form - Same as old bulk_create -->
+            <div class="cc-config-box">
+                <p class="cc-config-box-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    Shared Configuration
+                </p>
+                <div class="cc-config-panel" style="border-left: none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Created By Email *</label>
+                            <input type="email" name="bi_created_by" class="input-field" required
+                                value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                        </div>
+                        <div class="form-group">
+                            <label>Entity Name *</label>
+                            <input type="text" name="bi_entity_name" class="input-field" required value="FactWise">
+                        </div>
+                        <div class="form-group" style="max-width:120px;">
+                            <label>No. of Items</label>
+                            <input type="number" name="bi_item_count" class="input-field" value="1" min="1" max="500"
+                                style="text-align:center;">
+                        </div>
+                        <div class="form-group" style="align-self:flex-end;">
+                            <button type="button"
+                                onclick="window.uiController._generateBulkItemCards()"
+                                style="width:100%; padding:9px 14px; background:#6366f1; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:500; font-size:13px;">
+                                &#9889; Generate Items
+                            </button>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px; padding-top:12px; border-top:1px solid #e2e8f0;">
+                        <p style="margin:0 0 8px; font-size:11px; font-weight:600; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Include Sections</p>
+                        <div class="cc-toggles-grid">
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-buyer" checked onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Buyer Pricing</span>
+                            </label>
+                            <label class="cc-toggle-row">
+                                <span class="cc-toggle-switch">
+                                    <input type="checkbox" id="bi-global-seller" checked onchange="window.uiController._updateBulkItemSections()">
+                                    <span class="cc-toggle-slider"></span>
+                                </span>
+                                <span class="cc-toggle-text">Seller Pricing</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <span class="fst-icon">📦</span>
+                <h4>Items</h4>
+            </div>
+
+            <div id="bulk-items-container"></div>
+        `;
+
+        // Load templates first, then add first item
+        this._loadItemTemplates().then(() => {
+            this._addBulkItem();
+        });
+
+        console.log('✓ Loaded bulk items form');
+    }
+
+    /**
+     * Switch between single and bulk mode for projects create
+     * @param {string} mode - 'single' or 'bulk'
+     */
+    _switchProjectMode(mode) {
+        const singleForm = document.getElementById('project-single-form');
+        const bulkForm = document.getElementById('project-bulk-form');
+        const toggleBtns = document.querySelectorAll('.mode-toggle-btn');
+
+        // Update toggle buttons
+        toggleBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (mode === 'single') {
+            singleForm.style.display = 'block';
+            bulkForm.style.display = 'none';
+            this.currentMode = 'single';
+        } else {
+            singleForm.style.display = 'none';
+            bulkForm.style.display = 'block';
+            this.currentMode = 'bulk';
+
+            // Load bulk form if not already loaded
+            if (!bulkForm.innerHTML.trim()) {
+                this._loadProjectBulkForm();
+            }
+        }
+
+        console.log('Switched to', mode, 'mode for projects');
+    }
+
+    /**
+     * Load the bulk projects form dynamically
+     */
+    _loadProjectBulkForm() {
+        const bulkForm = document.getElementById('project-bulk-form');
+        if (!bulkForm) return;
+
+        bulkForm.innerHTML = `
+            <!-- Bulk Projects Form -->
+            <div class="form-section-title no-margin-top">
+                <span class="fst-icon">📋</span>
+                <h4>Bulk Project Configuration</h4>
+                <span class="fst-badge">Required</span>
+            </div>
+
+            <div class="form-group">
+                <label>Created By User Email *</label>
+                <input type="email" name="bp_created_by" class="input-field" required
+                    value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Entity Name *</label>
+                    <input type="text" name="bp_entity_name" class="input-field" required value="FactWise">
+                </div>
+                <div class="form-group">
+                    <label>Number of Projects *</label>
+                    <input type="number" name="bp_project_count" class="input-field" required min="1" max="100" value="2">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Template Name</label>
+                    <input type="text" name="bp_template_name" class="input-field" value="API Test">
+                </div>
+                <div class="form-group">
+                    <label>Project Status *</label>
+                    <select name="bp_project_status" class="input-field" required>
+                        <option value="DRAFT" selected>DRAFT - Project is in draft state</option>
+                        <option value="SUBMITTED">SUBMITTED - Project has been submitted</option>
+                        <option value="EXPIRED">EXPIRED - Project has expired</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <span class="fst-icon">📦</span>
+                <h4>Projects</h4>
+            </div>
+
+            <div id="bulk-projects-container"></div>
+
+            <button type="button" class="btn-add-row" onclick="window.uiController._addBulkProject()" style="margin-top: 12px;">
+                ＋ Add Project
+            </button>
+        `;
+
+        // Load templates and add first project
+        this._loadProjectTemplates().then(() => {
+            this._addBulkProject();
+        });
+
+        console.log('✓ Loaded bulk projects form');
+    }
+
+    /**
+     * Universal mode switcher for ALL operations
+     * @param {string} mode - 'single' or 'bulk'
+     */
+    _switchMode(mode) {
+        // Try generic IDs first
+        let singleForm = document.getElementById('operation-single-form');
+        let bulkForm = document.getElementById('operation-bulk-form');
+
+        // Fallback to module-specific IDs for backward compatibility
+        if (!singleForm || !bulkForm) {
+            const module = this.currentModule;
+            const specificIds = {
+                'contract': ['contract-single-form', 'contract-bulk-form'],
+                'purchase_order': ['po-single-form', 'po-bulk-form'],
+                'items': ['item-single-form', 'item-bulk-form'],
+                'vendors': ['vendor-single-form', 'vendor-bulk-form'],
+                'projects': ['project-single-form', 'project-bulk-form']
+            };
+
+            if (specificIds[module]) {
+                singleForm = document.getElementById(specificIds[module][0]);
+                bulkForm = document.getElementById(specificIds[module][1]);
+            }
+        }
+
+        if (!singleForm || !bulkForm) {
+            console.error('Form containers not found for', this.currentModule, this.currentOperation);
+            return;
+        }
+
+        const toggleBtns = document.querySelectorAll('.mode-toggle-btn');
+
+        // Update toggle buttons
+        toggleBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (mode === 'single') {
+            singleForm.style.display = 'block';
+            bulkForm.style.display = 'none';
+            this.currentMode = 'single';
+        } else {
+            singleForm.style.display = 'none';
+            bulkForm.style.display = 'block';
+            this.currentMode = 'bulk';
+
+            // Load bulk form if not already loaded
+            if (!bulkForm.innerHTML.trim()) {
+                this._loadBulkForm();
+            }
+        }
+
+        console.log(`Switched to ${mode} mode for ${this.currentModule}/${this.currentOperation}`);
+    }
+
+    /**
+     * Load bulk form dynamically based on current operation
+     * @private
+     */
+    _loadBulkForm() {
+        const bulkForm = document.getElementById('operation-bulk-form');
+        const module = this.currentModule;
+        const operation = this.currentOperation;
+
+        // Check for module-specific bulk form containers
+        const specificBulkForms = {
+            'items': 'item-bulk-form',
+            'projects': 'project-bulk-form',
+            'vendors': 'vendor-bulk-form',
+            'purchase_order': 'po-bulk-form',
+            'contract': 'contract-bulk-form'
+        };
+
+        const specificBulkForm = specificBulkForms[module] ? document.getElementById(specificBulkForms[module]) : null;
+        const targetForm = specificBulkForm || bulkForm;
+
+        if (!targetForm) {
+            console.error('No bulk form container found');
+            return;
+        }
+
+        // Use specific loaders for items and projects create (they have detailed forms)
+        if (module === 'items' && operation === 'create') {
+            this._loadItemBulkForm();
+            return;
+        } else if (module === 'projects' && operation === 'create') {
+            this._loadProjectBulkForm();
+            return;
+        }
+
+        // For all other operations, generate generic bulk form
+        targetForm.innerHTML = `
+            <div class="form-section-title no-margin-top">
+                <span class="fst-icon">📦</span>
+                <h4>Bulk ${operation.charAt(0).toUpperCase() + operation.slice(1)} Configuration</h4>
+                <span class="fst-badge">Required</span>
+            </div>
+
+            <div class="form-group">
+                <label>${operation.includes('create') ? 'Created' : 'Modified'} By User Email *</label>
+                <input type="email" name="bulk_user_email" class="input-field" required
+                    value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Number of Records *</label>
+                    <input type="number" name="bulk_count" class="input-field" required min="1" max="100" value="2">
+                </div>
+                <div class="form-group" style="align-self: flex-end;">
+                    <button type="button" onclick="window.uiController._generateBulkRecords()"
+                        style="width:100%; padding:9px 14px; background:#6366f1; color:white; border:none; border-radius:5px; cursor:pointer; font-weight:500; font-size:13px;">
+                        ⚡ Generate Records
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-section-title">
+                <span class="fst-icon">📋</span>
+                <h4>Records</h4>
+            </div>
+
+            <div id="bulk-records-container"></div>
+        `;
+
+        // Add first record
+        this._addBulkRecord();
+
+        console.log(`✓ Loaded bulk form for ${module}/${operation}`);
+    }
+
+    /**
+     * Generate bulk records based on count input
+     */
+    _generateBulkRecords() {
+        const countInput = document.querySelector('input[name="bulk_count"]');
+        const count = parseInt(countInput?.value || 1);
+        const container = document.getElementById('bulk-records-container');
+
+        if (!container) return;
+
+        // Clear existing records
+        container.innerHTML = '';
+
+        // Add specified number of records
+        for (let i = 0; i < count; i++) {
+            this._addBulkRecord();
+        }
+    }
+
+    /**
+     * Add a single bulk record card
+     */
+    _addBulkRecord() {
+        const container = document.getElementById('bulk-records-container');
+        if (!container) return;
+
+        const recordIndex = container.querySelectorAll('.bulk-record-card').length;
+        const n = recordIndex + 1;
+
+        const card = document.createElement('div');
+        card.className = 'bulk-record-card cc-item-card';
+        card.dataset.recordIndex = recordIndex;
+
+        // Generate fields based on current operation
+        const fields = this._getBulkRecordFields(recordIndex, n);
+
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h4 style="margin: 0; color: #1e293b; font-size: 14px; font-weight: 600;">
+                    📄 Record ${n}
+                </h4>
+                <button type="button" onclick="window.uiController._removeBulkRecord(${recordIndex})"
+                    class="btn-remove-item" title="Remove Record">
+                    ✕
+                </button>
+            </div>
+            ${fields}
+        `;
+
+        container.appendChild(card);
+    }
+
+    /**
+     * Remove a bulk record card
+     */
+    _removeBulkRecord(index) {
+        const card = document.querySelector(`.bulk-record-card[data-record-index="${index}"]`);
+        if (card) card.remove();
+    }
+
+    /**
+     * Get bulk record fields HTML based on current operation
+     */
+    _getBulkRecordFields(index, n) {
+        const module = this.currentModule;
+        const operation = this.currentOperation;
+
+        // Return appropriate fields based on operation
+        if (module === 'items' && operation === 'update_state') {
+            return `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Item Code</label>
+                        <input type="text" name="bulk_${index}_erp_code" class="input-field" value="ERP${n}">
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="bulk_${index}_status" class="input-field" required>
+                            <option value="ACTIVE" selected>ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        } else if (module === 'vendors' && operation === 'state') {
+            return `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="bulk_${index}_erp_code" class="input-field" value="ERPV${n}">
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="bulk_${index}_status" class="input-field" required>
+                            <option value="ACTIVE" selected>ACTIVE</option>
+                            <option value="INACTIVE">INACTIVE</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        } else if (module === 'purchase_order' && operation === 'terminate') {
+            return `
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ERP PO ID *</label>
+                        <input type="text" name="bulk_${index}_erp_po_id" class="input-field" required value="ERPPO${n}">
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="bulk_${index}_status" class="input-field" required>
+                            <option value="ACCEPTED" selected>ACCEPTED</option>
+                            <option value="REQUESTED">REQUESTED</option>
+                            <option value="REVOKED">REVOKED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Notes</label>
+                    <textarea name="bulk_${index}_notes" class="form-textarea" rows="2"></textarea>
+                </div>
+            `;
+        }
+
+        // Default generic fields
+        return `
+            <div class="form-group">
+                <label>ID/Code *</label>
+                <input type="text" name="bulk_${index}_id" class="input-field" required value="REC${n}">
+            </div>
+        `;
+    }
+
+    /**
+     * Switch between single and bulk mode for vendors
+     * @param {string} mode - 'single' or 'bulk'
+     * @deprecated Use _switchMode() instead
+     */
+    _switchVendorMode(mode) {
+        this._switchMode(mode);
+    }
+
+    /**
+     * Load bulk vendor form
+     * @private
+     * @deprecated Use _loadBulkForm() instead
+     */
+    _loadVendorBulkForm() {
+        this._loadBulkForm();
+    }
+
+    /**
+     * Switch between single and bulk mode for POs
+     * @param {string} mode - 'single' or 'bulk'
+     * @deprecated Use _switchMode() instead
+     */
+    _switchPOMode(mode) {
+        this._switchMode(mode);
+    }
+
+    /**
+     * Load bulk PO form
+     * @private
+     * @deprecated Use _loadBulkForm() instead
+     */
+    _loadPOBulkForm() {
+        this._loadBulkForm();
+    }
+
+    /**
+     * Switch between single and bulk mode for contracts
+     * @param {string} mode - 'single' or 'bulk'
+     * @deprecated Use _switchMode() instead
+     */
+    _switchContractMode(mode) {
+        this._switchMode(mode);
+    }
+
+    /**
+     * Load bulk contract form
+     * @private
+     * @deprecated Use _loadBulkForm() instead
+     */
+    _loadContractBulkForm() {
+        this._loadBulkForm();
+    }
+
+    /**
+     * Switch between single and bulk mode for items
+     * @param {string} mode - 'single' or 'bulk'
+     */
+    _switchItemMode(mode) {
+        const singleForm = document.getElementById('item-single-form');
+        const bulkForm = document.getElementById('item-bulk-form');
+        const toggleBtns = document.querySelectorAll('.mode-toggle-btn');
+
+        if (!singleForm || !bulkForm) {
+            console.error('Item form containers not found');
+            return;
+        }
+
+        // Update toggle buttons
+        toggleBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (mode === 'single') {
+            singleForm.style.display = 'block';
+            bulkForm.style.display = 'none';
+            this.currentMode = 'single';
+        } else {
+            singleForm.style.display = 'none';
+            bulkForm.style.display = 'block';
+            this.currentMode = 'bulk';
+
+            // Load bulk form if not already loaded
+            if (!bulkForm.innerHTML.trim()) {
+                this._loadItemBulkForm();
+            }
+        }
+
+        console.log('Switched to', mode, 'mode for items');
+    }
+
+    /**
+     * Switch between single and bulk mode for projects
+     * @param {string} mode - 'single' or 'bulk'
+     */
+    _switchProjectMode(mode) {
+        const singleForm = document.getElementById('project-single-form');
+        const bulkForm = document.getElementById('project-bulk-form');
+        const toggleBtns = document.querySelectorAll('.mode-toggle-btn');
+
+        if (!singleForm || !bulkForm) {
+            console.error('Project form containers not found');
+            return;
+        }
+
+        // Update toggle buttons
+        toggleBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+
+        if (mode === 'single') {
+            singleForm.style.display = 'block';
+            bulkForm.style.display = 'none';
+            this.currentMode = 'single';
+        } else {
+            singleForm.style.display = 'none';
+            bulkForm.style.display = 'block';
+            this.currentMode = 'bulk';
+
+            // Load bulk form if not already loaded
+            if (!bulkForm.innerHTML.trim()) {
+                this._loadProjectBulkForm();
+            }
+        }
+
+        console.log('Switched to', mode, 'mode for projects');
+    }
+
+    /**
      * Load project templates from API
      * @private
      */
@@ -5248,7 +6291,7 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             console.log('✓ Loaded project templates response:', data);
 
             // API returns an array with one object containing templates
-            const responseData = Array.isArray(data) ? data[0] : data;
+            const responseData = Array.isArray(data) ? (data.length > 0 ? data[0] : {}) : data;
             const templates = responseData.templates || [];
             console.log('✓ Project templates array:', templates);
 
@@ -5807,12 +6850,51 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
 
             // Build payload based on operation
             let payload = null;
-            if (this.currentModule === 'contract') {
+            if (this.currentModule === 'contract' && this.currentOperation === 'create') {
+                // Check mode for contracts
+                if (this.currentMode === 'bulk') {
+                    console.log('Building contracts bulk create payload...');
+                    payload = this._buildContractsBulkCreatePayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/contract/bulk-create/' };
+                } else {
+                    console.log('Building contract create payload...');
+                    payload = this._buildContractPayload(op);
+                }
+            } else if (this.currentModule === 'contract') {
                 payload = this._buildContractPayload(op);
-            } else if (this.currentModule === 'items' && this.currentOperation === 'bulk_create') {
-                payload = this._buildItemsBulkCreatePayload();
             } else if (this.currentModule === 'items' && this.currentOperation === 'create') {
-                payload = this._buildItemCreatePayload();
+                // Check mode for items
+                if (this.currentMode === 'bulk') {
+                    console.log('Building items bulk create payload...');
+                    payload = this._buildItemsBulkCreatePayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/items/bulk-create/' };
+                } else {
+                    console.log('Building item create payload...');
+                    payload = this._buildItemCreatePayload();
+                }
+            } else if (this.currentModule === 'items' && this.currentOperation === 'update_state') {
+                // Check mode for items update state
+                if (this.currentMode === 'bulk') {
+                    console.log('Building items bulk update state payload...');
+                    payload = this._buildBulkPayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/items/bulk-update/state/' };
+                } else {
+                    payload = this._buildItemStatePayload();
+                }
+            } else if (this.currentModule === 'projects' && this.currentOperation === 'create') {
+                // Check mode for projects
+                if (this.currentMode === 'bulk') {
+                    console.log('Building projects bulk create payload...');
+                    payload = this._buildProjectsBulkCreatePayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/project/bulk-create/' };
+                } else {
+                    console.log('Building project create payload...');
+                    payload = this._buildProjectCreatePayload();
+                }
             } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_create') {
                 payload = this._buildVendorContactCreatePayload();
             } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_update') {
@@ -5820,9 +6902,26 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             } else if (this.currentModule === 'vendors' && this.currentOperation === 'contacts_delete') {
                 payload = this._buildVendorContactDeletePayload();
             } else if (this.currentModule === 'vendors' && this.currentOperation === 'state') {
-                payload = this._buildVendorStatePayload();
+                // Check mode for vendor state
+                if (this.currentMode === 'bulk') {
+                    console.log('Building vendors bulk state payload...');
+                    payload = this._buildBulkPayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/vendors/bulk-state/' };
+                } else {
+                    payload = this._buildVendorStatePayload();
+                }
             } else if (this.currentModule === 'vendors' && this.currentOperation === 'create') {
-                payload = this._buildVendorCreatePayload();
+                // Check mode for vendors
+                if (this.currentMode === 'bulk') {
+                    console.log('Building vendors bulk create payload...');
+                    payload = this._buildVendorsBulkCreatePayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/vendors/bulk-create/' };
+                } else {
+                    console.log('Building vendor create payload...');
+                    payload = this._buildVendorCreatePayload();
+                }
             } else if (this.currentModule === 'items' && this.currentOperation === 'update_state') {
                 payload = this._buildItemStatePayload();
             } else if (this.currentModule === 'projects' && this.currentOperation === 'create') {
@@ -5830,14 +6929,38 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             } else if (this.currentModule === 'projects' && this.currentOperation === 'bulk_create') {
                 payload = this._buildProjectsBulkCreatePayload();
             } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'create') {
-                console.log('Building PO create payload...');
-                payload = this._buildPOCreatePayload();
+                // Check mode for POs
+                if (this.currentMode === 'bulk') {
+                    console.log('Building POs bulk create payload...');
+                    payload = this._buildPOsBulkCreatePayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/purchase_order/bulk-create/' };
+                } else {
+                    console.log('Building PO create payload...');
+                    payload = this._buildPOCreatePayload();
+                }
             } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'terminate') {
-                console.log('Building PO terminate payload...');
-                payload = this._buildPOTerminatePayload();
+                // Check mode for PO terminate
+                if (this.currentMode === 'bulk') {
+                    console.log('Building POs bulk terminate payload...');
+                    payload = this._buildBulkPayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/purchase_order/bulk-terminate/' };
+                } else {
+                    console.log('Building PO terminate payload...');
+                    payload = this._buildPOTerminatePayload();
+                }
             } else if (this.currentModule === 'purchase_order' && this.currentOperation === 'state') {
-                console.log('Building PO state payload...');
-                payload = this._buildPOStatePayload();
+                // Check mode for PO state
+                if (this.currentMode === 'bulk') {
+                    console.log('Building POs bulk state payload...');
+                    payload = this._buildBulkPayload();
+                    // Override endpoint for bulk
+                    op = { ...op, endpoint: '/dev/api/purchase_order/bulk-state/' };
+                } else {
+                    console.log('Building PO state payload...');
+                    payload = this._buildPOStatePayload();
+                }
             } else {
                 // For non-Contract operations, use form inputs (Phase 1 behavior)
                 payload = this._collectFormData();
@@ -6882,7 +8005,7 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             console.log('✓ Loaded item templates response:', data);
 
             // API returns an array with one object containing templates
-            const responseData = Array.isArray(data) ? data[0] : data;
+            const responseData = Array.isArray(data) ? (data.length > 0 ? data[0] : {}) : data;
             const templates = responseData.templates || [];
             console.log('✓ Item templates array:', templates);
 
@@ -7067,7 +8190,7 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             console.log('✓ Loaded PO templates response:', data);
 
             // API returns an array with one object containing templates
-            const responseData = Array.isArray(data) ? data[0] : data;
+            const responseData = Array.isArray(data) ? (data.length > 0 ? data[0] : {}) : data;
             const templates = responseData.templates || [];
             console.log('✓ PO templates array:', templates);
 
