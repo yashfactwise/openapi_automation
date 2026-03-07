@@ -298,6 +298,7 @@ class TermsAndConditionsSerializer(serializers.Serializer):
 
 
 class PricingTierInputSerializer(serializers.Serializer):
+    pricing_tier_id = serializers.CharField(allow_null=True, required=False)
     rate = serializers.DecimalField(
         max_digits=30, decimal_places=10, min_value=0, default=None, allow_null=True
     )

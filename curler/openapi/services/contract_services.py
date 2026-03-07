@@ -1606,6 +1606,26 @@ def _process_contract_items(
                 discounts_to_create.extend(_discounts_to_create)
                 discounts_to_update.extend(_discounts_to_update)
 
+                # Handle pricing tier deletion
+                existing_pricing_tiers = PricingTier.objects.filter(
+                    contract_item_id=contract_item_id
+                )
+                provided_tier_ids = {
+                    tier.get("pricing_tier_id")
+                    for tier in pricing_tiers
+                    if tier.get("pricing_tier_id")
+                }
+                tiers_to_delete = existing_pricing_tiers.exclude(
+                    pricing_tier_id__in=provided_tier_ids
+                )
+                for tier_to_delete in tiers_to_delete:
+                    # Delete associated additional costs
+                    AdditionalCostLinkage.objects.filter(
+                        pricing_tier_id=tier_to_delete.pricing_tier_id
+                    ).delete()
+                    # Delete the tier itself
+                    tier_to_delete.delete()
+
                 (
                     _attributes_to_create,
                     _attribute_values_to_create,

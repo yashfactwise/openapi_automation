@@ -4656,6 +4656,11 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                     const itemIndex = parseInt(e.target.dataset.itemIndex);
                     this._addPricingTier(itemIndex);
                 }
+                if (e.target.classList.contains('btn-remove-tier')) {
+                    const itemIndex = parseInt(e.target.dataset.itemIndex);
+                    const tierIndex = parseInt(e.target.dataset.tierIndex);
+                    this._removePricingTier(itemIndex, tierIndex);
+                }
             });
         }
 
@@ -4692,6 +4697,27 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         // Render all tiers (pass lastTierMax for new tier's min prefill)
         if (tiersContainer) {
             tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showTierCosts, lastTierMax);
+            this._attachTierMaxListeners(tiersContainer, itemIndex, false);
+        }
+    }
+
+    _removePricingTier(itemIndex, tierIndex) {
+        const itemCard = document.querySelector(`.cc-item-card[data-item-index="${itemIndex}"]`);
+        if (!itemCard) return;
+
+        const currentTiers = parseInt(itemCard.dataset.tiersCount || 1);
+        if (currentTiers <= 1) return; // Don't allow removing the last tier
+
+        const newTierCount = currentTiers - 1;
+        itemCard.dataset.tiersCount = newTierCount;
+
+        // Get settings
+        const showTierCosts = document.getElementById('toggle-tier-costs')?.checked || false;
+
+        // Re-render all tiers except the removed one
+        const tiersContainer = document.getElementById(`tiers-container-${itemIndex}`);
+        if (tiersContainer) {
+            tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showTierCosts);
             this._attachTierMaxListeners(tiersContainer, itemIndex, false);
         }
     }
@@ -4916,8 +4942,15 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             const minVal = isFirstTier ? 0 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
             const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
             html += `
-                <div class="cc-tier-card">
-                    <p class="cc-tier-card-title"><span class="tier-dot"></span>Tier ${i + 1}</p>
+                <div class="cc-tier-card" data-tier-index="${i}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="cc-tier-card-title" style="margin: 0;"><span class="tier-dot"></span>Tier ${i + 1}</p>
+                        ${count > 1 ? `
+                            <button type="button" class="btn-remove-tier" data-item-index="${itemIndex}" data-tier-index="${i}" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 11px;">
+                                ✕ Remove
+                            </button>
+                        ` : ''}
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(always 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(= prev max)</small>'}</label>
@@ -5049,6 +5082,11 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                     const itemIndex = parseInt(e.target.dataset.itemIndex);
                     this._addPricingTierUpdate(itemIndex);
                 }
+                if (e.target.classList.contains('btn-remove-tier-update')) {
+                    const itemIndex = parseInt(e.target.dataset.itemIndex);
+                    const tierIndex = parseInt(e.target.dataset.tierIndex);
+                    this._removePricingTierUpdate(itemIndex, tierIndex);
+                }
             });
         }
 
@@ -5084,6 +5122,27 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
 
         if (tiersContainer) {
             tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showTierCosts, lastTierMax);
+            this._attachTierMaxListeners(tiersContainer, itemIndex, true);
+        }
+    }
+
+    _removePricingTierUpdate(itemIndex, tierIndex) {
+        const itemCard = document.querySelector(`.cc-item-card[data-item-index="${itemIndex}"]`);
+        if (!itemCard) return;
+
+        const currentTiers = parseInt(itemCard.dataset.tiersCount || 1);
+        if (currentTiers <= 1) return; // Don't allow removing the last tier
+
+        const newTierCount = currentTiers - 1;
+        itemCard.dataset.tiersCount = newTierCount;
+
+        // Get settings
+        const showTierCosts = document.getElementById('toggle-tier-costs-update')?.checked || false;
+
+        // Re-render all tiers except the removed one
+        const tiersContainer = document.getElementById(`tiers-container-update-${itemIndex}`);
+        if (tiersContainer) {
+            tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showTierCosts);
             this._attachTierMaxListeners(tiersContainer, itemIndex, true);
         }
     }
@@ -5298,8 +5357,15 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
             const minVal = isFirstTier ? 0 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
             const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
             html += `
-                <div class="cc-tier-card">
-                    <p class="cc-tier-card-title"><span class="tier-dot"></span>Tier ${i + 1}</p>
+                <div class="cc-tier-card" data-tier-index="${i}">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <p class="cc-tier-card-title" style="margin: 0;"><span class="tier-dot"></span>Tier ${i + 1}</p>
+                        ${count > 1 ? `
+                            <button type="button" class="btn-remove-tier-update" data-item-index="${itemIndex}" data-tier-index="${i}" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 11px;">
+                                ✕ Remove
+                            </button>
+                        ` : ''}
+                    </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(always 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(= prev max)</small>'}</label>
