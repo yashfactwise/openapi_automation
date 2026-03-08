@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep -l \"class.*Enum\\\\|class.*State\")",
+      "Bash(xargs grep -l \"class AttributeType\\\\|class EnterpriseItemState\\\\|class EnterpriseItemType\\\\|class ProjectStatus\\\\|class PeriodType\\\\|class AppliedFromType\\\\|class EntityContactStatus\")",
+      "Bash(grep -n \"states_as_list\\\\|ChoiceField\" c:/In-Progress/Factwise/Factwise-Backend/factwise/openapi/views/*.py)"
+    ]
+  }
+}

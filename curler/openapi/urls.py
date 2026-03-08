@@ -218,6 +218,11 @@ default_url = [
         default_views.BulkTaskStatusAPI.as_view(),
         name="bulk_task_status",
     ),
+    path(
+        "execute-script/",
+        default_views.ExecuteScriptAPI.as_view(),
+        name="execute_script",
+    ),
 ]
 
 urlpatterns.extend(

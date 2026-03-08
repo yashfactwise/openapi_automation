@@ -55,7 +55,8 @@ class UIController {
             bottomBar: document.querySelector('.bottom-bar'),
             btnReset: document.getElementById('btn-reset'),
             btnGenerate: document.getElementById('btn-generate'),
-            btnGenerateScript: document.getElementById('btn-generate-script'),
+            btnCopyScript: document.getElementById('btn-copy-script'),
+            btnExecuteScript: document.getElementById('btn-execute-script'),
             btnExecute: document.getElementById('btn-execute'),
 
             // Panel Actions
@@ -110,7 +111,8 @@ class UIController {
         // Footer Actions
         if (this.elements.btnReset) this.elements.btnReset.addEventListener('click', () => this.handleReset());
         if (this.elements.btnGenerate) this.elements.btnGenerate.addEventListener('click', () => this.handleGenerate());
-        if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.addEventListener('click', () => this.handleGenerateScript());
+        if (this.elements.btnCopyScript) this.elements.btnCopyScript.addEventListener('click', () => this.handleCopyScript());
+        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.addEventListener('click', () => this.handleExecuteScript());
         if (this.elements.btnExecute) this.elements.btnExecute.addEventListener('click', () => this.handleExecute());
 
         // Form Validation Monitoring
@@ -870,7 +872,9 @@ class UIController {
             `;
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
             bodyInputsHtml = `
+                ${this._bulkModeToggleHTML()}
                 <!-- ① Shared Config -->
+                <div id="bulk-payload-mode">
                 <div class="cc-config-box">
                     <p class="cc-config-box-title">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
@@ -970,6 +974,12 @@ class UIController {
 
                 <!-- ③ Item Cards -->
                 <div id="bulk-items-container"></div>
+                </div><!-- /bulk-payload-mode -->
+
+                <!-- Script Mode (hidden by default) -->
+                <div id="bulk-script-mode" style="display:none;">
+                    ${this._bulkScriptModeHTML('items')}
+                </div>
             `;
 
         } else if (module.id === 'vendors' && operation.id === 'contacts_create') {
@@ -1668,6 +1678,9 @@ class UIController {
 
                 <!-- ⑥ Custom Fields from Template -->
                 <div id="item-create-custom-fields-container"></div>
+
+                <!-- ⑦ Additional Costs from Template -->
+                <div id="item-create-additional-costs-container"></div>
                 </div>
 
                 <!-- Bulk Mode Form (hidden by default) -->
@@ -1734,7 +1747,9 @@ class UIController {
                     </div>
                     <div class="form-group">
                         <label>Template Name</label>
-                        <input type="text" name="template_name" class="input-field" value="API Test">
+                        <select id="project_template_select" name="template_name" class="input-field">
+                            <option value="">Loading templates...</option>
+                        </select>
                     </div>
                 </div>
 
@@ -1790,6 +1805,8 @@ class UIController {
             `;
         } else if (module.id === 'projects' && operation.id === 'bulk_create') {
             bodyInputsHtml = `
+                ${this._bulkModeToggleHTML()}
+                <div id="bulk-payload-mode">
                 <!-- Project Bulk Create Form -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -1817,7 +1834,9 @@ class UIController {
                 <div class="form-row">
                     <div class="form-group">
                         <label>Template Name</label>
-                        <input type="text" name="bp_template_name" class="input-field" value="API Test">
+                        <select id="bp_project_template_select" name="bp_template_name" class="input-field">
+                            <option value="">Loading templates...</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Project Status *</label>
@@ -1840,6 +1859,11 @@ class UIController {
                 <button type="button" class="btn-add-row" onclick="window.uiController._addBulkProject()" style="margin-top: 12px;">
                     ＋ Add Project
                 </button>
+                </div><!-- /bulk-payload-mode -->
+
+                <div id="bulk-script-mode" style="display:none;">
+                    ${this._bulkScriptModeHTML('projects')}
+                </div>
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'create') {
             bodyInputsHtml = `
@@ -2250,8 +2274,6 @@ class UIController {
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
             // Expose this instance globally so inline onclick handlers can call methods on it
             window.uiController = this;
-            // Show the Generate Script button only for this operation
-            if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.classList.remove('hidden');
 
             // Load item templates and then add first item
             this._loadItemTemplates().then(() => {
@@ -2286,8 +2308,13 @@ class UIController {
             window.uiController = this;
             // Load item templates and populate custom fields
             this._loadItemTemplates().then((config) => {
-                if (config && config.customFields && config.customFields.length > 0) {
-                    this._populateItemCreateCustomFields(config.customFields);
+                if (config) {
+                    if (config.customFields && config.customFields.length > 0) {
+                        this._populateItemCreateCustomFields(config.customFields);
+                    }
+                    if (config.additionalCosts && config.additionalCosts.length > 0) {
+                        this._populateItemCreateAdditionalCosts(config.additionalCosts);
+                    }
                 }
             });
         } else if (module.id === 'projects' && operation.id === 'create') {
@@ -2334,10 +2361,11 @@ class UIController {
             this._addPOItem();
         }
 
-        // Hide Generate Script button on non-applicable operations
-        if (!(module.id === 'items' && operation.id === 'bulk_create')) {
-            if (this.elements.btnGenerateScript) this.elements.btnGenerateScript.classList.add('hidden');
-        }
+        // Show script buttons only for bulk_create operations
+        const isBulkCreate = operation.id === 'bulk_create';
+        if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.toggle('hidden', !isBulkCreate);
+        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.toggle('hidden', !isBulkCreate);
+        this._currentBulkMode = 'payload';
     }
 
     // ============================================================
@@ -2529,19 +2557,46 @@ class UIController {
             fieldsHTML += `</div>`;
         }
 
-        // Custom fields from template
+        // Custom fields from template — grouped by section, collected via data-custom-section
         if (config.customFields && config.customFields.length > 0) {
             fieldsHTML += `<p class="cc-sub-title" style="margin-top: 16px;">🔧 Custom Fields</p>`;
 
-            // Group custom fields in rows of 2
-            for (let i = 0; i < config.customFields.length; i += 2) {
-                fieldsHTML += `<div class="form-row">`;
-                fieldsHTML += this.templateManager.generateFieldHTML(config.customFields[i], itemIndex);
-                if (i + 1 < config.customFields.length) {
-                    fieldsHTML += this.templateManager.generateFieldHTML(config.customFields[i + 1], itemIndex);
-                }
-                fieldsHTML += `</div>`;
-            }
+            const cfSections = {};
+            config.customFields.forEach(field => {
+                const key = field.section_alternate_name || field.section_name || 'Custom Fields';
+                if (!cfSections[key]) cfSections[key] = { displayName: field.section_name || key, fields: [] };
+                cfSections[key].fields.push(field);
+            });
+
+            Object.entries(cfSections).forEach(([sectionKey, { fields }]) => {
+                fieldsHTML += `<div data-custom-section="${sectionKey}"><div class="form-row">`;
+                fields.forEach((field, fi) => {
+                    const altName = field.alternate_name || field.name;
+                    const ft = field.field_type || 'SHORTTEXT';
+                    const c = field.constraints || {};
+                    let inp = '';
+                    if (ft === 'BOOLEAN') {
+                        inp = `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" value="true"><span>${altName}</span></label>`;
+                    } else if (ft === 'CHOICE') {
+                        const isMulti = c.choice_type === 'MULTI_SELECT';
+                        const opts = (c.choices || []).map(ch => `<option value="${ch}">${ch}</option>`).join('');
+                        if (isMulti) {
+                            inp = `<div style="border:1px solid #d1d5db;border-radius:4px;padding:8px;">${(c.choices||[]).map(ch=>`<label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" value="${ch}"><span>${ch}</span></label>`).join('')}</div>`;
+                        } else {
+                            inp = `<select class="input-field"><option value="">Select...</option>${opts}</select>`;
+                        }
+                    } else if (ft === 'DATE') {
+                        inp = `<input type="date" class="input-field">`;
+                    } else if (ft === 'FLOAT' || ft === 'PERCENTAGE') {
+                        inp = `<input type="number" class="input-field" step="0.01" min="${c.min_limit||0}" max="${c.max_limit||''}" placeholder="${altName}">`;
+                    } else {
+                        inp = `<input type="text" class="input-field" placeholder="${altName}" maxlength="${c.max_limit||500}">`;
+                    }
+                    fieldsHTML += `<div class="form-group" data-custom-field="${altName}" data-field-type="${ft}"><label>${altName}${ft==='PERCENTAGE'?' (%)':''}</label>${inp}</div>`;
+                    if ((fi + 1) % 2 === 0 && fi < fields.length - 1) fieldsHTML += `</div><div class="form-row">`;
+                });
+                fieldsHTML += `</div></div>`;
+            });
         }
 
         // Buyer/Seller Pricing (toggle-controlled)
@@ -2576,6 +2631,21 @@ class UIController {
                 </div>
             </div>
         `;
+
+        // Additional Costs from template (if present)
+        if (config.additionalCosts && config.additionalCosts.length > 0) {
+            const acOptions = config.additionalCosts.map(f => {
+                const valueType = f.cost_info?.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
+                const alloc = f.cost_info?.allocation_type ? ` (${f.cost_info.allocation_type.replace('_', ' ')})` : '';
+                return `<option value="${f.alternate_name}" data-value-type="${valueType}">${f.name}${alloc}</option>`;
+            }).join('');
+            const acOptionsEscaped = acOptions.replace(/'/g, "\\'");
+            fieldsHTML += `
+                <p class="cc-sub-title" style="margin-top:16px;">💰 Additional Costs</p>
+                <div id="bi-item-${itemIndex}-ac-rows"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addBulkItemCostRow(${itemIndex}, '${acOptionsEscaped}')">+ Add Cost</button>
+            `;
+        }
 
         // Tags (if available in template)
         if (config.hasTags) {
@@ -2815,6 +2885,27 @@ class UIController {
     }
 
     /** Re-numbers item cards after removal */
+    _addBulkItemCostRow(itemIndex, optionsHTML) {
+        const container = document.getElementById(`bi-item-${itemIndex}-ac-rows`);
+        if (!container) return;
+        const index = container.children.length;
+        const html = `
+            <div class="bi-item-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <select name="bi_item_${itemIndex}_ac_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onItemCostSelectChange(this)">
+                        <option value="">-- Select --</option>
+                        ${optionsHTML}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="item-ac-value-label">Value</label>
+                    <input type="number" name="bi_item_${itemIndex}_ac_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
     _refreshBulkItemLabels() {
         const container = document.getElementById('bulk-items-container');
         if (!container) return;
@@ -2882,14 +2973,25 @@ class UIController {
                 custom_ids: customIds,
                 tags: tags,
                 entities: [entity],
-                custom_sections: []
+                custom_sections: this._collectCustomSections(card)
             };
+
+            // Collect additional costs from template-driven rows
+            const acContainer = card.querySelector(`#bi-item-${i}-ac-rows`);
+            const additionalCosts = [];
+            if (acContainer) {
+                acContainer.querySelectorAll('.bi-item-cost-row').forEach((row, acIdx) => {
+                    const name = row.querySelector(`[name="bi_item_${i}_ac_${acIdx}_name"]`)?.value;
+                    const value = parseFloat(row.querySelector(`[name="bi_item_${i}_ac_${acIdx}_value"]`)?.value);
+                    if (name && !isNaN(value)) additionalCosts.push({ name, value });
+                });
+            }
 
             if (t.buyer) {
                 item.buyer_pricing_information = {
                     price: cnum('buyer_price'),
                     currency_code_id: cget('buyer_currency') || cget('currency_id'),
-                    additional_costs: [],
+                    additional_costs: [...additionalCosts],
                     taxes: []
                 };
             } else {
@@ -2900,7 +3002,7 @@ class UIController {
                 item.seller_pricing_information = {
                     price: cnum('seller_price'),
                     currency_code_id: cget('seller_currency') || cget('currency_id'),
-                    additional_costs: [],
+                    additional_costs: [...additionalCosts],
                     taxes: []
                 };
             } else {
@@ -3294,6 +3396,17 @@ class UIController {
             }
         });
 
+        // Collect additional costs from template-driven rows
+        const additionalCostRows = form.querySelectorAll('.item-cost-row');
+        const collectedAdditionalCosts = [];
+        additionalCostRows.forEach((row, i) => {
+            const name = row.querySelector(`[name="item_ac_${i}_name"]`)?.value;
+            const value = parseFloat(row.querySelector(`[name="item_ac_${i}_value"]`)?.value);
+            if (name && !isNaN(value)) {
+                collectedAdditionalCosts.push({ name, value });
+            }
+        });
+
         // Buyer pricing information
         const isBuyer = get('is_buyer');
         payload.is_buyer = isBuyer === 'true';
@@ -3306,7 +3419,7 @@ class UIController {
                 payload.buyer_pricing_information = {
                     price: buyerPrice ? parseFloat(buyerPrice) : 0,
                     currency_code_id: buyerCurrency || null,
-                    additional_costs: [],
+                    additional_costs: [...collectedAdditionalCosts],
                     taxes: []
                 };
             }
@@ -3324,7 +3437,7 @@ class UIController {
                 payload.seller_pricing_information = {
                     price: sellerPrice ? parseFloat(sellerPrice) : 0,
                     currency_code_id: sellerCurrency || null,
-                    additional_costs: [],
+                    additional_costs: [...collectedAdditionalCosts],
                     taxes: []
                 };
             }
@@ -3361,15 +3474,18 @@ class UIController {
             });
         }
 
-        // Custom sections from template
-        payload.custom_sections = [];
-        const customSectionContainers = form.querySelectorAll('[data-custom-section]');
-        customSectionContainers.forEach(container => {
+        payload.custom_sections = this._collectCustomSections(form);
+
+        return payload;
+    }
+
+    _collectCustomSections(root) {
+        const result = [];
+        root.querySelectorAll('[data-custom-section]').forEach(container => {
             const sectionName = container.dataset.customSection;
             const customFields = [];
 
-            const fieldElements = container.querySelectorAll('[data-custom-field]');
-            fieldElements.forEach(fieldEl => {
+            container.querySelectorAll('[data-custom-field]').forEach(fieldEl => {
                 const fieldName = fieldEl.dataset.customField;
                 const fieldType = fieldEl.dataset.fieldType;
                 let value = null;
@@ -3378,14 +3494,20 @@ class UIController {
                     const checkbox = fieldEl.querySelector('input[type="checkbox"]');
                     value = checkbox ? checkbox.checked : false;
                 } else if (fieldType === 'CHOICE') {
-                    const select = fieldEl.querySelector('select');
-                    value = select ? select.value : '';
+                    const isMulti = fieldEl.querySelectorAll('input[type="checkbox"]').length > 0;
+                    if (isMulti) {
+                        const checked = [...fieldEl.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+                        value = checked.length > 0 ? checked : null;
+                    } else {
+                        const select = fieldEl.querySelector('select');
+                        value = select ? select.value : '';
+                    }
                 } else {
                     const input = fieldEl.querySelector('input, textarea');
                     value = input ? input.value : '';
                 }
 
-                if (value !== null && value !== '') {
+                if (value !== null && value !== '' && !(Array.isArray(value) && value.length === 0)) {
                     customFields.push({
                         name: fieldName,
                         value: fieldType === 'FLOAT' || fieldType === 'PERCENTAGE' ? parseFloat(value) : value
@@ -3394,14 +3516,10 @@ class UIController {
             });
 
             if (customFields.length > 0) {
-                payload.custom_sections.push({
-                    name: sectionName,
-                    custom_fields: customFields
-                });
+                result.push({ name: sectionName, custom_fields: customFields });
             }
         });
-
-        return payload;
+        return result;
     }
 
     /**
@@ -3643,18 +3761,19 @@ class UIController {
         // Group by section
         const fieldsBySection = {};
         customFields.forEach(field => {
-            const sectionName = field.section_name || 'Custom Fields';
-            if (!fieldsBySection[sectionName]) {
-                fieldsBySection[sectionName] = [];
+            const sectionKey = field.section_alternate_name || field.section_name || 'Custom Fields';
+            if (!fieldsBySection[sectionKey]) {
+                fieldsBySection[sectionKey] = [];
             }
-            fieldsBySection[sectionName].push(field);
+            fieldsBySection[sectionKey].push(field);
         });
 
         // Generate HTML for each section
-        Object.entries(fieldsBySection).forEach(([sectionName, fields]) => {
+        Object.entries(fieldsBySection).forEach(([sectionKey, fields]) => {
+            const sectionDisplayName = fields[0].section_name || sectionKey;
             const sectionHTML = `
-                <p class="cc-sub-title" style="margin-top: 16px;">🔧 ${sectionName}</p>
-                <div data-custom-section="${sectionName}">
+                <p class="cc-sub-title" style="margin-top: 16px;">🔧 ${sectionDisplayName}</p>
+                <div data-custom-section="${sectionKey}">
                     ${fields.map(field => this._generateBulkProjectFieldHTML(field, projectIndex)).join('')}
                 </div>
             `;
@@ -3667,7 +3786,7 @@ class UIController {
      */
     _generateBulkProjectFieldHTML(field, projectIndex) {
         const fieldType = field.field_type;
-        const fieldName = field.name;
+        const fieldName = field.alternate_name || field.name;
         const constraints = field.constraints || {};
         const inputName = `bp_project_${projectIndex}_custom_${fieldName}`;
 
@@ -4578,6 +4697,271 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
      * Handles the "Generate Script" button click.
      * Shows the generated Postman script in the cURL output panel.
      */
+    _bulkModeToggleHTML() {
+        return `
+        <div style="display:flex;gap:0;margin-bottom:20px;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;width:fit-content;">
+            <button type="button" id="bulk-mode-payload" onclick="window.uiController._switchBulkMode('payload')"
+                style="padding:8px 20px;font-weight:600;font-size:13px;background:#6366f1;color:white;border:none;cursor:pointer;">
+                Payload Mode
+            </button>
+            <button type="button" id="bulk-mode-script" onclick="window.uiController._switchBulkMode('script')"
+                style="padding:8px 20px;font-weight:600;font-size:13px;background:#f8fafc;color:#475569;border:none;cursor:pointer;border-left:1px solid #e2e8f0;">
+                Script Mode
+            </button>
+        </div>`;
+    }
+
+    _bulkScriptModeHTML(type) {
+        const fields = {
+            items: [
+                { key: 'name', label: 'Item Name', default: 'Test Item', canIncrement: true },
+                { key: 'ERP_item_code', label: 'ERP Item Code', default: 'ERP-ITEM-001', canIncrement: true },
+                { key: 'factwise_item_code', label: 'Factwise Item Code', default: 'BKT-001', canIncrement: true },
+                { key: 'description', label: 'Description', default: 'Item created via script', canIncrement: false },
+                { key: 'measurement_units', label: 'Measurement Unit ID', default: '66d42245-5a0d-4801-8cb2-43bf627f7cbe', canIncrement: false },
+                { key: 'item_type', label: 'Item Type', default: 'RAW_MATERIAL', canIncrement: false },
+                { key: 'buyer_price', label: 'Buyer Price', default: '1000', canIncrement: false },
+                { key: 'seller_price', label: 'Seller Price', default: '1200', canIncrement: false },
+            ],
+            projects: [
+                { key: 'project_name', label: 'Project Name', default: 'Test Project', canIncrement: true },
+                { key: 'project_code', label: 'Project Code', default: 'PRJ-001', canIncrement: true },
+                { key: 'ERP_project_code', label: 'ERP Project Code', default: 'ERP-PRJ-001', canIncrement: true },
+                { key: 'project_status', label: 'Status', default: 'DRAFT', canIncrement: false },
+                { key: 'description', label: 'Description', default: 'Project created via script', canIncrement: false },
+            ],
+            contracts: [
+                { key: 'contract_name', label: 'Contract Name', default: 'Test Contract', canIncrement: true },
+                { key: 'ERP_contract_id', label: 'ERP Contract ID', default: 'ERP-CON-001', canIncrement: true },
+                { key: 'status', label: 'Status', default: 'DRAFT', canIncrement: false },
+            ],
+            vendors: [
+                { key: 'vendor_name', label: 'Vendor Name', default: 'Test Vendor', canIncrement: true },
+                { key: 'ERP_vendor_code', label: 'ERP Vendor Code', default: 'V-001', canIncrement: true },
+            ],
+            purchase_order: [
+                { key: 'ERP_po_id', label: 'ERP PO ID', default: 'PO-001', canIncrement: true },
+            ],
+        };
+
+        const typeFields = fields[type] || [];
+        const fieldRows = typeFields.map(f => `
+            <div class="form-row" style="align-items:center;gap:8px;margin-bottom:6px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label style="font-size:12px;">${f.label}</label>
+                    <input type="text" name="script_field_${f.key}" class="input-field" value="${f.default}" style="font-size:12px;">
+                </div>
+                ${f.canIncrement ? `
+                <div class="form-group" style="flex:0 0 auto;margin:0;display:flex;align-items:center;gap:6px;padding-top:18px;">
+                    <label style="font-size:11px;color:#64748b;white-space:nowrap;">
+                        <input type="checkbox" name="script_increment_${f.key}" checked> Increment
+                    </label>
+                    <input type="number" name="script_step_${f.key}" value="1" min="1" style="width:50px;" class="input-field" title="Step">
+                </div>` : '<div style="flex:0 0 130px;"></div>'}
+            </div>`).join('');
+
+        return `
+            <div class="cc-config-box">
+                <p class="cc-config-box-title">Script Configuration</p>
+                <div class="cc-config-panel" style="border-left:none;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>How many?</label>
+                            <input type="number" name="script_count" class="input-field" value="5" min="1" max="1000">
+                        </div>
+                        <div class="form-group">
+                            <label>Start index</label>
+                            <input type="number" name="script_start_index" class="input-field" value="1" min="0">
+                        </div>
+                    </div>
+                    <p style="font-size:12px;color:#64748b;margin:8px 0 12px;">Fields marked "Increment" will have the counter appended (e.g. <code>ERP-ITEM-001</code> → <code>ERP-ITEM-002</code>). Step controls how much to add per iteration.</p>
+                    ${fieldRows}
+                </div>
+            </div>`;
+    }
+
+    _switchBulkMode(mode) {
+        const payloadDiv = document.getElementById('bulk-payload-mode');
+        const scriptDiv = document.getElementById('bulk-script-mode');
+        const payloadBtn = document.getElementById('bulk-mode-payload');
+        const scriptBtn = document.getElementById('bulk-mode-script');
+        if (!payloadDiv || !scriptDiv) return;
+
+        const isScript = mode === 'script';
+        payloadDiv.style.display = isScript ? 'none' : '';
+        scriptDiv.style.display = isScript ? '' : 'none';
+        if (payloadBtn) { payloadBtn.style.background = isScript ? '#f8fafc' : '#6366f1'; payloadBtn.style.color = isScript ? '#475569' : 'white'; }
+        if (scriptBtn) { scriptBtn.style.background = isScript ? '#6366f1' : '#f8fafc'; scriptBtn.style.color = isScript ? 'white' : '#475569'; }
+
+        this._currentBulkMode = mode;
+    }
+
+    _generateBulkScript() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+        const checked = (name) => form.querySelector(`[name="${name}"]`)?.checked ?? false;
+
+        const count = parseInt(get('script_count')) || 5;
+        const startIndex = parseInt(get('script_start_index')) || 1;
+
+        const env = this.environmentManager.getEnvironment();
+        const account = this.currentAccount;
+        const token = account?.token || 'YOUR_TOKEN_HERE';
+        const baseUrl = env?.curlerBaseUrl || 'http://localhost:8000/dev/api';
+
+        // Determine endpoint and module
+        const mod = this.currentModule;
+        const endpointMap = {
+            items: `${baseUrl}/items/bulk-create/`,
+            projects: `${baseUrl}/project/bulk-create/`,
+            contracts: `${baseUrl}/contract/bulk-create/`,
+            vendors: `${baseUrl}/vendors/bulk-create/`,
+            purchase_order: `${baseUrl}/purchase_order/bulk-create/`,
+        };
+        const endpoint = endpointMap[mod] || `${baseUrl}/${mod}/bulk-create/`;
+
+        // Collect script fields
+        const fieldInputs = form.querySelectorAll('[name^="script_field_"]');
+        const fields = [];
+        fieldInputs.forEach(input => {
+            const key = input.name.replace('script_field_', '');
+            const value = input.value;
+            const increment = checked(`script_increment_${key}`);
+            const step = parseInt(get(`script_step_${key}`)) || 1;
+            fields.push({ key, value, increment, step });
+        });
+
+        // Build the item generator function body
+        const fieldLines = fields.map(f => {
+            if (f.increment) {
+                // Try to find trailing number in value; if none, append _i
+                const match = f.value.match(/^(.*?)(\d+)([^0-9]*)$/);
+                if (match) {
+                    const prefix = match[1];
+                    const num = parseInt(match[2]);
+                    const suffix = match[3];
+                    const padLen = match[2].length;
+                    return `        "${f.key}": \`${prefix}\${String(${num} + (i - ${startIndex}) * ${f.step}).padStart(${padLen}, '0')}${suffix}\``;
+                }
+                return `        "${f.key}": \`${f.value}_\${i}\``;
+            }
+            return `        "${f.key}": "${f.value}"`;
+        }).join(',\n');
+
+        // Measurement units needs array wrapping for items
+        const payloadWrap = mod === 'items'
+            ? `{ "items": items }`
+            : `{ "${mod}s": items }`;
+
+        return `#!/bin/bash
+# Bulk ${mod} create script
+# Generated by The cURLer at ${new Date().toISOString()}
+# Count: ${count}, Start: ${startIndex}
+
+TOKEN="${token}"
+ENDPOINT="${endpoint}"
+
+generate_item() {
+  local i=$1
+  cat <<EOF
+{
+${fieldLines}
+}
+EOF
+}
+
+ITEMS="["
+for i in $(seq ${startIndex} $((${startIndex} + ${count} - 1))); do
+  ITEM=$(generate_item $i)
+  if [ $i -eq ${startIndex} ]; then
+    ITEMS="$ITEMS$ITEM"
+  else
+    ITEMS="$ITEMS,$ITEM"
+  fi
+done
+ITEMS="$ITEMS]"
+
+PAYLOAD='{"${mod === 'items' ? 'items' : mod + 's'}'":'"$ITEMS"'}'
+
+curl -s -X POST "$ENDPOINT" \\
+  -H "Authorization: Bearer $TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d "$PAYLOAD"
+
+echo ""
+echo "[Done: ${count} ${mod} records]"
+`;
+    }
+
+    handleCopyScript() {
+        try {
+            if (this._currentBulkMode !== 'script') {
+                this._displayError('Switch to Script Mode first to generate a script.');
+                return;
+            }
+            const script = this._generateBulkScript();
+            navigator.clipboard.writeText(script).then(() => {
+                const btn = this.elements.btnCopyScript;
+                const orig = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = orig, 2000);
+            });
+            // Also show in curl panel
+            this.elements.curlDisplay.innerHTML = `<pre><code>${this._escapeHtml(script)}</code></pre>`;
+            const header = this.elements.actionsSection.querySelector('h3');
+            if (header) header.textContent = 'Generated Bash Script';
+            this.elements.actionsSection.classList.remove('hidden');
+            this.elements.responseSection.classList.add('hidden');
+            this.elements.actionsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (err) {
+            this._displayError(err.message);
+        }
+    }
+
+    async handleExecuteScript() {
+        try {
+            if (this._currentBulkMode !== 'script') {
+                this._displayError('Switch to Script Mode first to generate a script.');
+                return;
+            }
+            const script = this._generateBulkScript();
+
+            // Show script first
+            this.elements.curlDisplay.innerHTML = `<pre><code>${this._escapeHtml(script)}</code></pre>`;
+            const header = this.elements.actionsSection.querySelector('h3');
+            if (header) header.textContent = 'Executing Script...';
+            this.elements.actionsSection.classList.remove('hidden');
+            this.elements.responseSection.classList.remove('hidden');
+            this.elements.responseSection.innerHTML = '<pre style="color:#64748b;">Running...</pre>';
+
+            const env = this.environmentManager.getEnvironment();
+            const executeUrl = `${env?.curlerBaseUrl?.replace('/dev/api', '') || 'http://localhost:8000'}/dev/api/execute-script/`;
+
+            const response = await fetch(executeUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ script })
+            });
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let output = '';
+            this.elements.responseSection.innerHTML = '<pre id="script-output" style="white-space:pre-wrap;font-family:monospace;font-size:12px;"></pre>';
+            const outputEl = document.getElementById('script-output');
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                output += decoder.decode(value, { stream: true });
+                if (outputEl) outputEl.textContent = output;
+            }
+
+            if (header) header.textContent = 'Script Output';
+        } catch (err) {
+            this._displayError(err.message);
+        }
+    }
+
     handleGenerateScript() {
         try {
             const script = this._generateBulkItemScript();
@@ -4887,12 +5271,14 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                             ${this._renderPricingTiers(itemIndex, tiersCount, showTierCosts)}
                         </div>
 
+                        ${this._renderItemCostsSection(itemIndex)}
+
                         ${showItemCustom ? `
                             <p class="cc-sub-title">🔧 Item Custom Sections</p>
-                            <div class="form-group">
-                                <label>Custom Section Name</label>
-                                <input type="text" name="item_${itemIndex}_custom_section_name" class="input-field" value="Essential Terms">
+                            <div id="item-${itemIndex}-custom">
+                                ${this._renderItemCustomSectionRow(itemIndex, 0)}
                             </div>
+                            <button type="button" class="btn-add-row" onclick="window.uiController._addItemCustomSection(${itemIndex})">+ Add Custom Section</button>
                         ` : ''}
                     </div>
                 </div>
@@ -4966,16 +5352,9 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                         </div>
                     </div>
                     ${showCosts ? `
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Additional Cost Name</label>
-                                <input type="text" name="item_${itemIndex}_tier_${i}_cost_name" class="input-field" placeholder="e.g., Shipping">
-                            </div>
-                            <div class="form-group">
-                                <label>Additional Cost Value</label>
-                                <input type="number" name="item_${itemIndex}_tier_${i}_cost_value" class="input-field" step="0.01">
-                            </div>
-                        </div>
+                        <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs / Taxes</p>
+                        <div id="item-${itemIndex}-tier-${i}-costs"></div>
+                        <button type="button" class="btn-add-row" style="font-size:11px;padding:4px 10px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i})">+ Add Cost / Tax</button>
                     ` : ''}
                 </div>
             `;
@@ -4983,45 +5362,268 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         return html;
     }
 
+    _buildCostOptions(level) {
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const levelConfig = config[level + 'Level'] || {};
+        const costFields = levelConfig.costFields || [];
+        const taxFields = levelConfig.taxFields || [];
+        const discountFields = levelConfig.discountFields || [];
+
+        const toOption = (f, type) => {
+            const label = type === 'cost' ? 'Cost' : type === 'tax' ? 'Tax' : 'Discount';
+            const valueType = f.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
+            return `<option value="${f.alternate_name}" data-type="${type}" data-value-type="${valueType}">[${label}] ${f.name}</option>`;
+        };
+
+        const options = [
+            ...costFields.map(f => toOption(f, 'cost')),
+            ...taxFields.map(f => toOption(f, 'tax')),
+            ...discountFields.map(f => toOption(f, 'discount'))
+        ];
+
+        if (options.length === 0) {
+            // Fallback: no template loaded, allow manual entry
+            return null;
+        }
+        return options.join('');
+    }
+
     _addContractCost() {
         const container = document.getElementById('contract-costs-container');
         const index = container.children.length;
-        const html = `
-            <div class="cc-cost-item">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select name="contract_cost_${index}_type" class="input-field">
-                            <option value="additional_costs">Additional Cost</option>
-                            <option value="taxes">Tax</option>
-                            <option value="discounts">Discount</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Name</label>
-                        <input type="text" name="contract_cost_${index}_name" class="input-field" placeholder="e.g., GST">
-                    </div>
-                    <div class="form-group">
-                        <label>Value</label>
-                        <input type="number" name="contract_cost_${index}_value" class="input-field" step="0.01">
-                    </div>
+        const optionsHTML = this._buildCostOptions('contract');
+
+        let html;
+        if (optionsHTML) {
+            html = `
+            <div class="cc-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Cost / Tax / Discount</label>
+                    <select name="contract_cost_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onCostSelectChange(this)">
+                        <option value="">-- Select --</option>
+                        ${optionsHTML}
+                    </select>
+                    <input type="hidden" name="contract_cost_${index}_type" value="">
                 </div>
-            </div>
-        `;
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="cc-cost-value-label">Value</label>
+                    <input type="number" name="contract_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else {
+            html = `
+            <div class="cc-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Type</label>
+                    <select name="contract_cost_${index}_type" class="input-field">
+                        <option value="cost">Additional Cost</option>
+                        <option value="tax">Tax</option>
+                        <option value="discount">Discount</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Name</label>
+                    <input type="text" name="contract_cost_${index}_name" class="input-field" placeholder="e.g., GST">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Value</label>
+                    <input type="number" name="contract_cost_${index}_value" class="input-field" step="0.01">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
         container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _onCostSelectChange(selectEl) {
+        const row = selectEl.closest('.cc-cost-row');
+        if (!row) return;
+        const selected = selectEl.options[selectEl.selectedIndex];
+        const type = selected?.dataset?.type || '';
+        const valueType = selected?.dataset?.valueType || 'abs';
+
+        // Update hidden type input
+        const typeInput = row.querySelector('input[name$="_type"]');
+        if (typeInput) typeInput.value = type;
+
+        // Update value label to show % for percentage fields
+        const valueLabel = row.querySelector('.cc-cost-value-label');
+        if (valueLabel) valueLabel.textContent = valueType === 'pct' ? 'Value (%)' : 'Value';
     }
 
     _addContractCustomSection() {
         const container = document.getElementById('contract-custom-container');
         const index = container.children.length;
-        const html = `
-            <div class="cc-custom-item">
-                <div class="form-group">
-                    <label>Section Name</label>
-                    <input type="text" name="contract_custom_${index}_name" class="input-field" value="Contract Details">
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const customSections = config.contractLevel?.customSections || [];
+
+        // Build options: unique section alternate_names from template
+        const seen = new Set();
+        const sectionOptions = customSections
+            .filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; })
+            .map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`)
+            .join('');
+
+        let html;
+        if (sectionOptions) {
+            html = `
+            <div class="cc-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Custom Section</label>
+                    <select name="contract_custom_${index}_section_name" class="input-field">
+                        ${sectionOptions}
+                    </select>
                 </div>
-            </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else {
+            html = `
+            <div class="cc-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Section Name</label>
+                    <input type="text" name="contract_custom_${index}_section_name" class="input-field" placeholder="e.g., Contract Details">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _renderItemCostsSection(itemIndex) {
+        const optionsHTML = this._buildCostOptions('item');
+        if (!optionsHTML) return '';
+        return `
+            <p class="cc-sub-title">💰 Item Costs / Taxes</p>
+            <div id="item-${itemIndex}-costs"></div>
+            <button type="button" class="btn-add-row" onclick="window.uiController._addItemCostRow(${itemIndex})">+ Add Cost / Tax</button>
         `;
+    }
+
+    _addItemCostRow(itemIndex) {
+        const container = document.getElementById(`item-${itemIndex}-costs`);
+        if (!container) return;
+        const index = container.children.length;
+        const optionsHTML = this._buildCostOptions('item');
+
+        let html;
+        if (optionsHTML) {
+            html = `
+            <div class="cc-item-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Cost / Tax</label>
+                    <select name="item_${itemIndex}_cost_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onCostSelectChange(this)">
+                        <option value="">-- Select --</option>
+                        ${optionsHTML}
+                    </select>
+                    <input type="hidden" name="item_${itemIndex}_cost_${index}_type" value="">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="cc-cost-value-label">Value</label>
+                    <input type="number" name="item_${itemIndex}_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else {
+            html = `
+            <div class="cc-item-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Type</label>
+                    <select name="item_${itemIndex}_cost_${index}_type" class="input-field">
+                        <option value="cost">Cost</option>
+                        <option value="tax">Tax</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Name</label>
+                    <input type="text" name="item_${itemIndex}_cost_${index}_name" class="input-field" placeholder="e.g., GST">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Value</label>
+                    <input type="number" name="item_${itemIndex}_cost_${index}_value" class="input-field" step="0.01">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _renderItemCustomSectionRow(itemIndex, rowIndex) {
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const customSections = config.itemLevel?.customSections || [];
+        const seen = new Set();
+        const sectionOptions = customSections
+            .filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; })
+            .map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`)
+            .join('');
+
+        if (sectionOptions) {
+            return `
+            <div class="cc-item-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <select name="item_${itemIndex}_custom_section_${rowIndex}_section_name" class="input-field">
+                        ${sectionOptions}
+                    </select>
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
+        return `
+            <div class="cc-item-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <input type="text" name="item_${itemIndex}_custom_section_${rowIndex}_section_name" class="input-field" placeholder="e.g., Essential Terms">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+    }
+
+    _addItemCustomSection(itemIndex) {
+        const container = document.getElementById(`item-${itemIndex}-custom`);
+        if (!container) return;
+        const index = container.children.length;
+        container.insertAdjacentHTML('beforeend', this._renderItemCustomSectionRow(itemIndex, index));
+    }
+
+    _addTierCostRow(itemIndex, tierIndex) {
+        const container = document.getElementById(`item-${itemIndex}-tier-${tierIndex}-costs`);
+        if (!container) return;
+        const index = container.children.length;
+        const optionsHTML = this._buildCostOptions('item');
+
+        let html;
+        if (optionsHTML) {
+            html = `
+            <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <select name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onCostSelectChange(this)">
+                        <option value="">-- Select --</option>
+                        ${optionsHTML}
+                    </select>
+                    <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" value="">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else {
+            html = `
+            <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <select name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" class="input-field">
+                        <option value="cost">Cost</option>
+                        <option value="tax">Tax</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:2;margin:0;">
+                    <input type="text" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_name" class="input-field" placeholder="e.g., Shipping">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_value" class="input-field" step="0.01">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
         container.insertAdjacentHTML('beforeend', html);
     }
 
@@ -5306,12 +5908,14 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                             ${this._renderPricingTiersUpdate(itemIndex, tiersCount, showTierCosts)}
                         </div>
 
+                        ${this._renderItemCostsSection(itemIndex)}
+
                         ${showItemCustom ? `
                             <p class="cc-sub-title">🔧 Item Custom Sections</p>
-                            <div class="form-group">
-                                <label>Custom Section Name</label>
-                                <input type="text" name="item_${itemIndex}_custom_section_name" class="input-field" value="Essential Terms">
+                            <div id="item-${itemIndex}-custom">
+                                ${this._renderItemCustomSectionRow(itemIndex, 0)}
                             </div>
+                            <button type="button" class="btn-add-row" onclick="window.uiController._addItemCustomSection(${itemIndex})">+ Add Custom Section</button>
                         ` : ''}
                     </div>
                 </div>
@@ -5381,16 +5985,9 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                         </div>
                     </div>
                     ${showCosts ? `
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Additional Cost Name</label>
-                                <input type="text" name="item_${itemIndex}_tier_${i}_cost_name" class="input-field" placeholder="e.g., Shipping">
-                            </div>
-                            <div class="form-group">
-                                <label>Additional Cost Value</label>
-                                <input type="number" name="item_${itemIndex}_tier_${i}_cost_value" class="input-field" step="0.01">
-                            </div>
-                        </div>
+                        <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs / Taxes</p>
+                        <div id="item-${itemIndex}-tier-${i}-costs"></div>
+                        <button type="button" class="btn-add-row" style="font-size:11px;padding:4px 10px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i})">+ Add Cost / Tax</button>
                     ` : ''}
                 </div>
             `;
@@ -5426,42 +6023,85 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
     _addContractCostUpdate() {
         const container = document.getElementById('contract-costs-container-update');
         const index = container.children.length;
-        const html = `
-            <div class="cc-cost-item">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Type</label>
-                        <select name="contract_cost_${index}_type" class="input-field">
-                            <option value="additional_costs">Additional Cost</option>
-                            <option value="taxes">Tax</option>
-                            <option value="discounts">Discount</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Name</label>
-                        <input type="text" name="contract_cost_${index}_name" class="input-field" placeholder="e.g., GST">
-                    </div>
-                    <div class="form-group">
-                        <label>Value</label>
-                        <input type="number" name="contract_cost_${index}_value" class="input-field" step="0.01">
-                    </div>
+        const optionsHTML = this._buildCostOptions('contract');
+
+        let html;
+        if (optionsHTML) {
+            html = `
+            <div class="cc-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Cost / Tax / Discount</label>
+                    <select name="contract_cost_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onCostSelectChange(this)">
+                        <option value="">-- Select --</option>
+                        ${optionsHTML}
+                    </select>
+                    <input type="hidden" name="contract_cost_${index}_type" value="">
                 </div>
-            </div>
-        `;
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="cc-cost-value-label">Value</label>
+                    <input type="number" name="contract_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else {
+            html = `
+            <div class="cc-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Type</label>
+                    <select name="contract_cost_${index}_type" class="input-field">
+                        <option value="cost">Additional Cost</option>
+                        <option value="tax">Tax</option>
+                        <option value="discount">Discount</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Name</label>
+                    <input type="text" name="contract_cost_${index}_name" class="input-field" placeholder="e.g., GST">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Value</label>
+                    <input type="number" name="contract_cost_${index}_value" class="input-field" step="0.01">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
         container.insertAdjacentHTML('beforeend', html);
     }
 
     _addContractCustomSectionUpdate() {
         const container = document.getElementById('contract-custom-container-update');
         const index = container.children.length;
-        const html = `
-            <div class="cc-custom-item">
-                <div class="form-group">
-                    <label>Section Name</label>
-                    <input type="text" name="contract_custom_${index}_name" class="input-field" value="Contract Details">
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const customSections = config.contractLevel?.customSections || [];
+
+        const seen = new Set();
+        const sectionOptions = customSections
+            .filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; })
+            .map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`)
+            .join('');
+
+        let html;
+        if (sectionOptions) {
+            html = `
+            <div class="cc-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Custom Section</label>
+                    <select name="contract_custom_${index}_section_name" class="input-field">
+                        ${sectionOptions}
+                    </select>
                 </div>
-            </div>
-        `;
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else {
+            html = `
+            <div class="cc-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label>Section Name</label>
+                    <input type="text" name="contract_custom_${index}_section_name" class="input-field" placeholder="e.g., Contract Details">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        }
         container.insertAdjacentHTML('beforeend', html);
     }
 
@@ -5675,31 +6315,118 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         const container = document.getElementById('item-create-custom-fields-container');
         if (!container || !customFields || customFields.length === 0) return;
 
-        // Add section title
-        const sectionTitle = `
+        // Group by section_alternate_name
+        const sections = {};
+        customFields.forEach(field => {
+            const key = field.section_alternate_name || field.section_name || 'Custom Fields';
+            if (!sections[key]) sections[key] = { displayName: field.section_name || key, fields: [] };
+            sections[key].fields.push(field);
+        });
+
+        let html = `
             <div class="form-section-title">
                 <span class="fst-icon">🔧</span>
                 <h4>Custom Fields</h4>
                 <span class="fst-badge" style="background: #94a3b8;">From Template</span>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', sectionTitle);
+            </div>`;
 
-        // Generate fields in rows of 2
-        let fieldsHTML = '<div class="form-row">';
-        customFields.forEach((field, index) => {
-            const fieldHTML = this.templateManager.generateFieldHTML(field, 'item_create');
-            fieldsHTML += fieldHTML;
+        Object.entries(sections).forEach(([sectionKey, { displayName, fields }]) => {
+            html += `<div data-custom-section="${sectionKey}"><p class="cc-sub-title">${displayName}</p><div class="form-row">`;
+            fields.forEach((field, index) => {
+                const fieldAlternateName = field.alternate_name || field.name;
+                const fieldType = field.field_type || 'SHORTTEXT';
+                const constraints = field.constraints || {};
+                let inputHTML = '';
 
-            // Close row after every 2 fields
-            if ((index + 1) % 2 === 0 && index < customFields.length - 1) {
-                fieldsHTML += '</div><div class="form-row">';
-            }
+                if (fieldType === 'BOOLEAN') {
+                    inputHTML = `<label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" value="true"><span>${fieldAlternateName}</span></label>`;
+                } else if (fieldType === 'CHOICE') {
+                    const isMulti = constraints.choice_type === 'MULTI_SELECT';
+                    const choices = (constraints.choices || []).map(c => `<option value="${c}">${c}</option>`).join('');
+                    if (isMulti) {
+                        inputHTML = (constraints.choices || []).map(c =>
+                            `<label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" value="${c}"><span>${c}</span></label>`
+                        ).join('');
+                        inputHTML = `<div style="border:1px solid #d1d5db;border-radius:4px;padding:8px;">${inputHTML}</div>`;
+                    } else {
+                        inputHTML = `<select class="input-field"><option value="">Select...</option>${choices}</select>`;
+                    }
+                } else if (fieldType === 'DATE') {
+                    inputHTML = `<input type="date" class="input-field">`;
+                } else if (fieldType === 'FLOAT' || fieldType === 'PERCENTAGE') {
+                    inputHTML = `<input type="number" class="input-field" step="0.01" min="${constraints.min_limit || 0}" max="${constraints.max_limit || ''}" placeholder="${fieldAlternateName}">`;
+                } else {
+                    inputHTML = `<input type="text" class="input-field" placeholder="${fieldAlternateName}" maxlength="${constraints.max_limit || 500}">`;
+                }
+
+                html += `
+                    <div class="form-group" data-custom-field="${fieldAlternateName}" data-field-type="${fieldType}">
+                        <label>${fieldAlternateName}${fieldType === 'PERCENTAGE' ? ' (%)' : ''}</label>
+                        ${inputHTML}
+                    </div>`;
+
+                if ((index + 1) % 2 === 0 && index < fields.length - 1) {
+                    html += '</div><div class="form-row">';
+                }
+            });
+            html += '</div></div>';
         });
-        fieldsHTML += '</div>';
 
-        container.insertAdjacentHTML('beforeend', fieldsHTML);
+        container.innerHTML = html;
         console.log('✓ Populated', customFields.length, 'custom fields for item create');
+    }
+
+    _populateItemCreateAdditionalCosts(additionalCosts) {
+        const container = document.getElementById('item-create-additional-costs-container');
+        if (!container || !additionalCosts || additionalCosts.length === 0) return;
+
+        // Build options from template cost fields
+        const optionsHTML = additionalCosts.map(f => {
+            const valueType = f.cost_info?.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
+            const alloc = f.cost_info?.allocation_type ? ` (${f.cost_info.allocation_type.replace('_', ' ')})` : '';
+            return `<option value="${f.alternate_name}" data-value-type="${valueType}">${f.name}${alloc}</option>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="form-section-title">
+                <span class="fst-icon">💰</span>
+                <h4>Additional Costs</h4>
+                <span class="fst-badge" style="background: #94a3b8;">From Template</span>
+            </div>
+            <div id="item-additional-costs-rows"></div>
+            <button type="button" class="btn-add-row" onclick="window.uiController._addItemAdditionalCostRow('${optionsHTML.replace(/'/g, "\\'")}')">+ Add Additional Cost</button>
+        `;
+    }
+
+    _addItemAdditionalCostRow(optionsHTML) {
+        const container = document.getElementById('item-additional-costs-rows');
+        if (!container) return;
+        const index = container.children.length;
+        const html = `
+            <div class="item-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label>Cost</label>
+                    <select name="item_ac_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onItemCostSelectChange(this)">
+                        <option value="">-- Select --</option>
+                        ${optionsHTML}
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="item-ac-value-label">Value</label>
+                    <input type="number" name="item_ac_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', html);
+    }
+
+    _onItemCostSelectChange(selectEl) {
+        const row = selectEl.closest('.item-cost-row');
+        if (!row) return;
+        const selected = selectEl.options[selectEl.selectedIndex];
+        const valueType = selected?.dataset?.valueType || 'abs';
+        const label = row.querySelector('.item-ac-value-label');
+        if (label) label.textContent = valueType === 'pct' ? 'Value (%)' : 'Value';
     }
 
     /**
@@ -6366,6 +7093,16 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
                 this.templateManager.projectTemplates = templates;
                 console.log('✓ Stored', templates.length, 'project templates in TemplateManager');
 
+                // Populate dropdowns
+                const optionsHTML = templates.map(t => {
+                    const name = t.name || t.template_name || 'Unnamed Template';
+                    return `<option value="${name}">${name}</option>`;
+                }).join('');
+                const singleSelect = document.getElementById('project_template_select');
+                const bulkSelect = document.getElementById('bp_project_template_select');
+                if (singleSelect) singleSelect.innerHTML = optionsHTML;
+                if (bulkSelect) bulkSelect.innerHTML = optionsHTML;
+
                 // Parse the first (default) template
                 const defaultTemplate = templates[0];
                 const config = this.templateManager.parseProjectTemplateConfig(defaultTemplate);
@@ -6395,22 +7132,23 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         // Group custom fields by section
         const fieldsBySection = {};
         customFields.forEach(field => {
-            const sectionName = field.section_name || 'Custom Fields';
-            if (!fieldsBySection[sectionName]) {
-                fieldsBySection[sectionName] = [];
+            const sectionKey = field.section_alternate_name || field.section_name || 'Custom Fields';
+            if (!fieldsBySection[sectionKey]) {
+                fieldsBySection[sectionKey] = [];
             }
-            fieldsBySection[sectionName].push(field);
+            fieldsBySection[sectionKey].push(field);
         });
 
         // Generate HTML for each section
-        Object.entries(fieldsBySection).forEach(([sectionName, fields]) => {
+        Object.entries(fieldsBySection).forEach(([sectionKey, fields]) => {
+            const sectionDisplayName = fields[0].section_name || sectionKey;
             const sectionHTML = `
                 <div class="form-section-title">
                     <span class="fst-icon">🔧</span>
-                    <h4>${sectionName}</h4>
+                    <h4>${sectionDisplayName}</h4>
                     <span class="fst-badge" style="background: #94a3b8;">From Template</span>
                 </div>
-                <div data-custom-section="${sectionName}">
+                <div data-custom-section="${sectionKey}">
                     ${fields.map(field => this._generateProjectCustomFieldHTML(field)).join('')}
                 </div>
             `;
@@ -6428,7 +7166,7 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
      */
     _generateProjectCustomFieldHTML(field) {
         const fieldType = field.field_type;
-        const fieldName = field.name;
+        const fieldName = field.alternate_name || field.name;
         const constraints = field.constraints || {};
 
         let inputHTML = '';

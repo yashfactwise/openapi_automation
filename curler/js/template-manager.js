@@ -127,12 +127,18 @@ class TemplateManager {
                 additionalCosts: false,
                 taxes: false,
                 discounts: false,
+                costFields: [],
+                taxFields: [],
+                discountFields: [],
                 customSections: []
             },
             itemLevel: {
                 additionalCosts: false,
                 taxes: false,
                 discounts: false,
+                costFields: [],
+                taxFields: [],
+                discountFields: [],
                 customSections: []
             },
             tierLevel: {
@@ -183,19 +189,42 @@ class TemplateManager {
                     }
                 }
 
-                // Custom fields (non-builtin)
+                // Non-builtin fields: separate costs/taxes/discounts from true custom fields
                 if (!item.is_builtin_field && isVisible) {
-                    const customField = {
+                    const fieldDef = {
                         name: item.name,
                         alternate_name: item.alternate_name,
                         field_type: item.constraints?.field_type,
-                        section_name: section.name
+                        section_name: section.name,
+                        section_alternate_name: section.alternate_name
                     };
 
-                    if (isItemLevel) {
-                        config.itemLevel.customSections.push(customField);
-                    } else if (isContractLevel) {
-                        config.contractLevel.customSections.push(customField);
+                    const addInfo = item.additional_information;
+                    const target = isItemLevel ? config.itemLevel : isContractLevel ? config.contractLevel : null;
+                    if (!target) return;
+
+                    if (addInfo?.additional_cost_information) {
+                        fieldDef.cost_type = addInfo.additional_cost_information.cost_type;
+                        fieldDef.allocation_type = addInfo.additional_cost_information.allocation_type;
+                        fieldDef.cost_source = addInfo.additional_cost_information.cost_source;
+                        target.costFields.push(fieldDef);
+                        target.additionalCosts = true;
+                        if (isItemLevel) config.tierLevel.additionalCosts = true;
+                    } else if (addInfo?.taxes_information) {
+                        fieldDef.cost_type = addInfo.taxes_information.cost_type;
+                        fieldDef.allocation_type = addInfo.taxes_information.allocation_type;
+                        target.taxFields.push(fieldDef);
+                        target.taxes = true;
+                        if (isItemLevel) config.tierLevel.taxes = true;
+                    } else if (addInfo?.discount_information) {
+                        fieldDef.cost_type = addInfo.discount_information.cost_type;
+                        fieldDef.allocation_type = addInfo.discount_information.allocation_type;
+                        target.discountFields.push(fieldDef);
+                        target.discounts = true;
+                        if (isItemLevel) config.tierLevel.discounts = true;
+                    } else {
+                        fieldDef.field_type = item.constraints?.field_type;
+                        target.customSections.push(fieldDef);
                     }
                 }
             });
@@ -210,8 +239,8 @@ class TemplateManager {
      */
     getCurrentConfig() {
         return this.templateConfig || {
-            contractLevel: { additionalCosts: false, taxes: false, discounts: false, customSections: [] },
-            itemLevel: { additionalCosts: false, taxes: false, discounts: false, customSections: [] },
+            contractLevel: { additionalCosts: false, taxes: false, discounts: false, costFields: [], taxFields: [], discountFields: [], customSections: [] },
+            itemLevel: { additionalCosts: false, taxes: false, discounts: false, costFields: [], taxFields: [], discountFields: [], customSections: [] },
             tierLevel: { additionalCosts: false, taxes: false, discounts: false }
         };
     }
@@ -488,7 +517,8 @@ class TemplateManager {
                         field_type: item.constraints?.field_type,
                         constraints: item.constraints,
                         parent: item.parent_section_item,
-                        section_name: section.name
+                        section_name: section.name,
+                        section_alternate_name: section.alternate_name
                     });
                 }
             });
@@ -558,7 +588,8 @@ class TemplateManager {
                         name: item.name,
                         alternate_name: item.alternate_name,
                         field_type: item.constraints?.field_type,
-                        section_name: section.name
+                        section_name: section.name,
+                        section_alternate_name: section.alternate_name
                     };
 
                     if (isItemLevel) {
