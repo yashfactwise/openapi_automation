@@ -27,10 +27,16 @@ class BulkTask(models.Model):
 
     TASK_TYPE_PROJECT = "project"
     TASK_TYPE_ITEM = "item"
+    TASK_TYPE_CONTRACT = "contract"
+    TASK_TYPE_PO = "purchase_order"
+    TASK_TYPE_VENDOR = "vendor"
 
     TASK_TYPE_CHOICES = (
         (TASK_TYPE_PROJECT, "Project"),
         (TASK_TYPE_ITEM, "Item"),
+        (TASK_TYPE_CONTRACT, "Contract"),
+        (TASK_TYPE_PO, "Purchase Order"),
+        (TASK_TYPE_VENDOR, "Vendor"),
     )
 
     task_id = models.CharField(

@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from custom.states import CustomFieldType
@@ -60,6 +61,11 @@ def validate_custom_field(*, custom_field, template_item, section_name):
                 else []
             )
         else:
+            # Expect list for multi-select
+            if not isinstance(custom_field.value, list):
+                raise ValueError(
+                    f"Field '{custom_field.name}' in section '{section_name}' must be a list of choices."
+                )
             invalid_values = [val for val in custom_field.value if val not in choices]
 
         if invalid_values:
@@ -90,6 +96,92 @@ def validate_custom_field(*, custom_field, template_item, section_name):
             raise ValueError(
                 f"Value of '{custom_field.name}' in section '{section_name}' "
                 f"cannot exceed 120 characters."
+            )
+
+    # INTEGER
+    if field_type == ModuleTemplateFieldType.INTEGER and custom_field.value is not None:
+        if not isinstance(custom_field.value, int):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be an integer."
+            )
+
+    # FLOAT
+    if field_type == ModuleTemplateFieldType.FLOAT and custom_field.value is not None:
+        try:
+            float(custom_field.value)
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be a float."
+            )
+
+    # PERCENTAGE
+    if (
+        field_type == ModuleTemplateFieldType.PERCENTAGE
+        and custom_field.value is not None
+    ):
+        try:
+            value = float(custom_field.value)
+            if not 0 <= value <= 100:
+                raise ValueError
+        except (TypeError, ValueError):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be a percentage between 0 and 100."
+            )
+
+    # BOOLEAN
+    if field_type == ModuleTemplateFieldType.BOOLEAN and custom_field.value is not None:
+        if not isinstance(custom_field.value, bool):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be a boolean."
+            )
+
+    # PERIOD (expects { "term": int, "period": str })
+    if field_type == ModuleTemplateFieldType.PERIOD and custom_field.value:
+        if not isinstance(custom_field.value, dict):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be a period object."
+            )
+
+        if not isinstance(custom_field.value.get("term"), int):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' requires integer 'term'."
+            )
+
+        if not isinstance(custom_field.value.get("period"), str):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' requires string 'period'."
+            )
+
+    # ATTACHMENT / LOGO / BANNER
+    if (
+        field_type
+        in {
+            ModuleTemplateFieldType.ATTACHMENT,
+            ModuleTemplateFieldType.LOGO,
+            ModuleTemplateFieldType.BANNER,
+        }
+        and custom_field.value
+    ):
+        if (
+            not isinstance(custom_field.value, dict)
+            or "file_id" not in custom_field.value
+        ):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must reference a valid file."
+            )
+
+    # COLLECTION
+    if field_type == ModuleTemplateFieldType.COLLECTION and custom_field.value:
+        if not isinstance(custom_field.value, list):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be a list."
+            )
+
+    # TEMPLATE
+    if field_type == ModuleTemplateFieldType.TEMPLATE and custom_field.value:
+        if not isinstance(custom_field.value, dict):
+            raise ValueError(
+                f"Field '{custom_field.name}' in section '{section_name}' must be a template object."
             )
 
     # Validate mandatory/optional fields

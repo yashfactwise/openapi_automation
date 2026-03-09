@@ -30,9 +30,19 @@ po_urls = [
         name="create_purchase_order",
     ),
     path(
+        "purchase_order/bulk-create/",
+        po_views.PurchaseOrderBulkCreateAPI.as_view(),
+        name="bulk_create_purchase_order",
+    ),
+    path(
         "purchase_order/update/",
         po_views.PurchaseOrderUpdateAPI.as_view(),
         name="update_purchase_order",
+    ),
+    path(
+        "purchase_order/bulk-update/",
+        po_views.PurchaseOrderBulkUpdateAPI.as_view(),
+        name="bulk_update_purchase_order",
     ),
     path(
         "purchase_order/state/",
@@ -62,9 +72,19 @@ contract_urls = [
         name="create_contract",
     ),
     path(
+        "contract/bulk-create/",
+        contract_views.ContractBulkCreateAPI.as_view(),
+        name="bulk_create_contract",
+    ),
+    path(
         "contract/update/",
         contract_views.ContractUpdateAPI.as_view(),
         name="update_contract",
+    ),
+    path(
+        "contract/bulk-update/",
+        contract_views.ContractBulkUpdateAPI.as_view(),
+        name="bulk_update_contract",
     ),
     path(
         "contract/state/",
@@ -151,8 +171,16 @@ vendor_urls = [
         vendor_views.CreateEnterpriseVendorAPI.as_view(),
     ),
     path(
+        "vendors/bulk-create/",
+        vendor_views.BulkCreateEnterpriseVendorAPI.as_view(),
+    ),
+    path(
         "vendors/update/",
         vendor_views.UpdateEnterpriseVendorAPI.as_view(),
+    ),
+    path(
+        "vendors/bulk-update/",
+        vendor_views.BulkUpdateEnterpriseVendorAPI.as_view(),
     ),
     # path(
     #     "vendors/contacts/",
@@ -217,11 +245,6 @@ default_url = [
         "tasks/<uuid:task_id>/",
         default_views.BulkTaskStatusAPI.as_view(),
         name="bulk_task_status",
-    ),
-    path(
-        "execute-script/",
-        default_views.ExecuteScriptAPI.as_view(),
-        name="execute_script",
     ),
 ]
 

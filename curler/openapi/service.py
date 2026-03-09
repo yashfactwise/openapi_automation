@@ -13,6 +13,7 @@ from module_templates.types import ModuleTemplateSectionItemLevel
 from openapi.models import BulkTask, CustomTokens
 from organization.services import enterprise_user_service
 from rest_framework.exceptions import NotFound
+from rest_framework.fields import ErrorDetail
 
 __SECRET_KEY_LENGTH__ = 25
 __SECRET_KEY_CHARS__ = string.ascii_letters + string.digits
@@ -103,6 +104,25 @@ def _format_costs(*, additional_costs, taxes, discounts, costs_map, level):
         "taxes": taxes_dataclass,
         "discounts": discounts_dataclass,
     }
+
+
+def normalize_serializer_errors(errors):
+    if isinstance(errors, dict):
+        normalized = {}
+        for field, value in errors.items():
+            if field == "non_field_errors":
+                normalized[field] = normalize_serializer_errors(value)
+            else:
+                normalized[field] = normalize_serializer_errors(value)
+        return normalized
+
+    if isinstance(errors, list):
+        return [normalize_serializer_errors(e) for e in errors]
+
+    if isinstance(errors, ErrorDetail):
+        return str(errors)
+
+    return errors
 
 
 def make_json_safe(obj):

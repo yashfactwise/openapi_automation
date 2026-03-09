@@ -2,6 +2,7 @@ import gc
 from collections import defaultdict
 
 from additional_costs.models import AdditionalCostLinkage
+from attachment import service as attachment_service
 from attachment.models import Attachment
 from attachment.types import AttachmentModuleType
 from attributes.models import AttributeLinkage
@@ -142,12 +143,10 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
         # ---------------- SHEET ATTACHMENTS ----------------
 
         sheet_attachments = [
-            request.build_absolute_uri(
-                clean_path + f"/attachments/{att.attachment_id}/download/"
-            )
+            attachment_service.generate_download_url(attachment_id=att.attachment_id)
             for att in Attachment.objects.filter(
-                resource_id__in=[sheet.costing_sheet_id],
-                attachment_type__in=[AttachmentModuleType.COSTING_SHEET.value],
+                resource_id=sheet.costing_sheet_id,
+                attachment_type=AttachmentModuleType.COSTING_SHEET.value,
             ).only("attachment_id")
         ]
 
@@ -178,14 +177,14 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for att in (
                 Attachment.objects.filter(
                     resource_id__in=batch_ids,
-                    attachment_type__in=[AttachmentModuleType.COSTING_SHEET_ITEM.value],
+                    attachment_type=AttachmentModuleType.COSTING_SHEET_ITEM.value,
                 )
                 .only("attachment_id")
                 .iterator(chunk_size=BATCH_SIZE)
             ):
                 item_attachment_map[att.resource_id].append(
-                    request.build_absolute_uri(
-                        clean_path + f"/attachments/{att.attachment_id}/download/"
+                    attachment_service.generate_download_url(
+                        attachment_id=att.attachment_id
                     )
                 )
 
@@ -308,7 +307,11 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                     {
                         "item_information": {
                             "factwise_costing_sheet_item_id": item.costing_sheet_item_id,
-                            "erp_item_code": None,
+                            "erp_item_code": (
+                                enterprise_item.ERP_item_code
+                                if enterprise_item
+                                else None
+                            ),
                             "factwise_item_code": (
                                 enterprise_item.code if enterprise_item else None
                             ),

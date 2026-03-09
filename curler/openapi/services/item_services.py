@@ -677,7 +677,7 @@ def _create_items_bulk_impl(*, enterprise_id, items_payload, task_id=None):
                     is_buyer = True
 
                 # -------- Code Validation --------
-                factwise_item_code = payload.get("factwise_item_code")
+                factwise_item_code = payload.get("factwise_item_code") or None
                 if not item_code_mode or (item_code_mode and item_code_mode.selected):
                     # auto-generation enabled
                     if factwise_item_code:
@@ -735,7 +735,7 @@ def _create_items_bulk_impl(*, enterprise_id, items_payload, task_id=None):
 
                 seen_factwise_codes.add(code)
 
-                erp_code = payload.get("ERP_item_code")
+                erp_code = payload.get("ERP_item_code") or None
                 if erp_code:
                     if erp_code in existing_erp_codes or erp_code in seen_erp_codes:
                         raise ValidationException(
@@ -983,7 +983,7 @@ def _create_items_bulk_impl(*, enterprise_id, items_payload, task_id=None):
                     "index": index,
                     "status": "success",
                     "erp_item_code": erp_code,
-                    "item_code": factwise_item_code,
+                    "item_code": code,
                     "item_id": str(enterprise_item_id),
                 }
             )
@@ -1383,6 +1383,7 @@ def update_item(
         user_id=user.user_id,
         enterprise_id=enterprise_id,
         item_id=enterprise_item.enterprise_item_id,
+        ERP_item_code=enterprise_item.ERP_item_code,
         code=enterprise_item.code,
         name=name,
         description=description,
@@ -1842,6 +1843,7 @@ def _update_items_bulk_impl(*, enterprise_id, items_payload, task_id=None):
                     user_id=user.user_id,
                     enterprise_id=enterprise_id,
                     item_id=enterprise_item.enterprise_item_id,
+                    ERP_item_code=enterprise_item.ERP_item_code,
                     code=enterprise_item.code,
                     name=payload["name"],
                     description=payload.get("description"),

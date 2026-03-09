@@ -244,17 +244,3 @@ class BulkCreateProjectAPI(APIView):
             },
             status=status.HTTP_207_MULTI_STATUS,
         )
-
-
-class BulkCreateProjectTaskStatusAPI(APIView):
-    def get(self, request, task_id):
-        try:
-            data = project_services.get_bulk_project_task_status(
-                enterprise_id=request.enterprise_id,
-                task_id=task_id,
-            )
-            return Response(data, status=status.HTTP_200_OK)
-        except NotFound:
-            return Response(
-                data={"error": "Task not found"}, status=status.HTTP_404_NOT_FOUND
-            )

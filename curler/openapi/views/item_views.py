@@ -429,6 +429,11 @@ class UpdateItemBaseInputSerializer(serializers.Serializer):
     )
 
     def validate(self, data):  # type: ignore
+        if not data.get("ERP_item_code") and not data.get("factwise_item_code"):
+            raise ValidationError(
+                "Either factwise_item_code or ERP_item_code is required"
+            )
+
         # Validate buyer pricing information
         buyer_pricing_info = data.get("buyer_pricing_information")
         if buyer_pricing_info:

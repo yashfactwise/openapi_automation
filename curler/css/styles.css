@@ -1101,3 +1101,9 @@ button {
     background: #6366f1;
     color: white;
 }
+
+.input-field.api-error {
+    outline: 2px solid #ef4444 !important;
+    border-color: #ef4444 !important;
+    background: #fff5f5 !important;
+}

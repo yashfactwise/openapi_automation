@@ -1,24 +1,26 @@
+from decimal import Decimal
+
 from attributes.states import AttributeType
-from openapi.structures import AddressStruct
-from openapi.structures import EntityAddressInputRequest
-from openapi.structures import EntityTermsAndConditionsInputRequest
-from openapi.structures import Identification
-from openapi.structures import InvitedContact
-from openapi.structures import PurchaseOrderItem
-from openapi.structures import TermsAndConditionsStruct
-from openapi.structures import VendorContactDeleteRequest
-from organization.org_models.vendor_master_model import EntityVendorMaster
-from organization.org_models.vendor_master_model import VendorContact
+from openapi.structures import (
+    AddressStruct,
+    EntityAddressInputRequest,
+    EntityTermsAndConditionsInputRequest,
+    Identification,
+    InvitedContact,
+    PurchaseOrderItem,
+    TermsAndConditionsStruct,
+    VendorContactDeleteRequest,
+)
+from organization.org_models.vendor_master_model import (
+    EntityVendorMaster,
+    VendorContact,
+)
 from organization.structures import VendorContactDetailList
+from purchase_order.states import PurchaseOrderInternalStatus
 from rest_framework import serializers
 from rest_framework_dataclasses.serializers import DataclassSerializer
 
-from purchase_order.states import PurchaseOrderInternalStatus
-
-
-from factwise.states import states_as_list
-from factwise.states import PeriodType
-from factwise.states import AppliedFromType
+from factwise.states import AppliedFromType, PeriodType, states_as_list
 
 
 class AddressSerializer(serializers.Serializer):
@@ -247,13 +249,40 @@ class PurchaseOrderItemDetailsSerializer(serializers.Serializer):
 
 
 class VendorIdentificationSerializer(serializers.Serializer):
-    identification_name = serializers.CharField()
-    identification_value = serializers.CharField()
+    identification_name = serializers.CharField(
+        error_messages={
+            "required": "Identification name is required.",
+            "blank": "Identification name cannot be empty.",
+            "invalid": "Invalid identification name.",
+        }
+    )
+
+    identification_value = serializers.CharField(
+        error_messages={
+            "required": "Identification value is required.",
+            "blank": "Identification value cannot be empty.",
+            "invalid": "Invalid identification value.",
+        }
+    )
 
 
 class AddressSerializer(serializers.Serializer):
-    address_id = serializers.CharField(allow_null=True)
-    full_address = serializers.CharField(allow_null=True)
+    address_id = serializers.CharField(
+        allow_null=True,
+        required=False,
+        error_messages={
+            "invalid": "Invalid address ID.",
+            "blank": "Address ID cannot be empty.",
+        },
+    )
+    full_address = serializers.CharField(
+        allow_null=True,
+        required=False,
+        error_messages={
+            "invalid": "Invalid address.",
+            "blank": "Full address cannot be empty.",
+        },
+    )
 
 
 class AttributeValueInputSerializer(serializers.Serializer):
@@ -261,57 +290,235 @@ class AttributeValueInputSerializer(serializers.Serializer):
 
 
 class AttributeInputSerializer(serializers.Serializer):
-    attribute_name = serializers.CharField()
-    attribute_type = serializers.ChoiceField(choices=states_as_list(AttributeType))
-    attribute_value = serializers.ListField(child=AttributeValueInputSerializer())
+    attribute_name = serializers.CharField(
+        error_messages={
+            "required": "Attribute name is required.",
+            "blank": "Attribute name cannot be empty.",
+            "invalid": "Invalid attribute name.",
+        }
+    )
+    attribute_type = serializers.ChoiceField(
+        choices=states_as_list(AttributeType),
+        error_messages={
+            "required": "Attribute type is required.",
+            "invalid_choice": "Invalid attribute type.",
+        },
+    )
+    attribute_value = serializers.ListField(
+        child=AttributeValueInputSerializer(),
+        error_messages={
+            "required": "Attribute value is required.",
+            "not_a_list": "Attribute value must be a list.",
+            "invalid": "Invalid attribute value.",
+        },
+    )
 
 
 class AttachmentSerializer(serializers.Serializer):
-    base64EncodedData = serializers.CharField()
-    filename = serializers.CharField()
+    base64EncodedData = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "base64EncodedData is required",
+            "blank": "base64EncodedData cannot be empty",
+            "invalid": "base64EncodedData must be a string",
+        },
+    )
+    filename = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "filename is required",
+            "blank": "filename cannot be empty",
+            "invalid": "filename must be a string",
+        },
+    )
 
 
 class PaymentTermsSerializer(serializers.Serializer):
-    term = serializers.IntegerField(min_value=0)
-    period = serializers.ChoiceField(states_as_list(PeriodType))
-    applied_from = serializers.CharField()
+    term = serializers.IntegerField(
+        min_value=0,
+        error_messages={
+            "required": "Payment term is required.",
+            "invalid": "Payment term must be an integer.",
+            "min_value": "Payment term cannot be negative.",
+        },
+    )
+    period = serializers.ChoiceField(
+        states_as_list(PeriodType),
+        error_messages={
+            "required": "Payment period is required.",
+            "invalid_choice": "Invalid payment period.",
+        },
+    )
+    applied_from = serializers.CharField(
+        error_messages={
+            "required": "Applied-from value is required.",
+            "blank": "Applied-from cannot be empty.",
+            "invalid": "Invalid applied-from value.",
+        },
+    )
 
 
 class DeliverablesPaymentTermsSerializer(serializers.Serializer):
     allocation_percentage = serializers.DecimalField(
-        max_digits=7, decimal_places=4, min_value=0, max_value=100
+        max_digits=7,
+        decimal_places=4,
+        min_value=0,
+        max_value=100,
+        error_messages={
+            "required": "Allocation percentage is required.",
+            "invalid": "Invalid allocation percentage.",
+            "min_value": "Allocation percentage cannot be less than 0.",
+            "max_value": "Allocation percentage cannot exceed 100.",
+            "max_digits": "Allocation percentage exceeds the maximum allowed digits.",
+            "max_decimal_places": "Allocation percentage exceeds the maximum allowed decimal places.",
+        },
     )
-    term = serializers.IntegerField(min_value=0)
-    period = serializers.ChoiceField(states_as_list(PeriodType))
-    applied_from_milestone = serializers.CharField(allow_null=True)
-    applied_from_fixed_date = serializers.DateField(allow_null=True)
+    term = serializers.IntegerField(
+        min_value=0,
+        error_messages={
+            "required": "Payment term is required.",
+            "invalid": "Payment term must be an integer.",
+            "min_value": "Payment term cannot be negative.",
+        },
+    )
+    period = serializers.ChoiceField(
+        states_as_list(PeriodType),
+        error_messages={
+            "required": "Payment period is required.",
+            "invalid_choice": "Invalid payment period.",
+        },
+    )
+    applied_from_milestone = serializers.CharField(
+        allow_null=True,
+        required=False,
+        error_messages={
+            "invalid": "Invalid milestone value.",
+            "blank": "Milestone value cannot be empty.",
+        },
+    )
+    applied_from_fixed_date = serializers.DateField(
+        allow_null=True,
+        required=False,
+        error_messages={
+            "invalid": "Invalid fixed date.",
+        },
+    )
 
 
 class AdditionalCostInputSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    value = serializers.DecimalField(max_digits=30, decimal_places=10)
+    name = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "name is required",
+            "blank": "name cannot be empty",
+            "invalid": "name must be a string",
+        },
+    )
+    value = serializers.DecimalField(
+        max_digits=30,
+        decimal_places=10,
+        min_value=0,
+        required=True,
+        error_messages={
+            "required": "value is required",
+            "invalid": "value must be a decimal number",
+            "min_value": "value cannot be negative",
+            "max_digits": "value exceeds maximum precision",
+            "max_decimal_places": "value exceeds decimal precision",
+        },
+    )
 
 
 class TermsAndConditionsSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    data = serializers.CharField(allow_blank=True, allow_null=True)
+    name = serializers.CharField(
+        error_messages={
+            "required": "Terms and conditions name is required.",
+            "blank": "Terms and conditions name cannot be empty.",
+            "invalid": "Invalid terms and conditions name.",
+        }
+    )
+    data = serializers.CharField(  # type: ignore
+        allow_blank=True,
+        allow_null=True,
+        required=False,
+        error_messages={
+            "invalid": "Invalid terms and conditions data.",
+        },
+    )
 
 
 class PricingTierInputSerializer(serializers.Serializer):
-    pricing_tier_id = serializers.CharField(allow_null=True, required=False)
     rate = serializers.DecimalField(
-        max_digits=30, decimal_places=10, min_value=0, default=None, allow_null=True
+        max_digits=30,
+        decimal_places=10,
+        min_value=Decimal("0.0000000001"),
+        allow_null=True,
+        required=False,
+        error_messages={
+            "invalid": "Invalid rate value.",
+            "min_value": "Rate must be greater than 0.",
+            "max_digits": "Rate exceeds the maximum allowed digits.",
+            "max_decimal_places": "Rate exceeds the maximum allowed decimal places.",
+        },
     )
     min_quantity = serializers.DecimalField(
         max_digits=30,
         decimal_places=10,
-        min_value=0,
+        min_value=Decimal("0.0000000001"),
+        error_messages={
+            "required": "Minimum quantity is required.",
+            "invalid": "Invalid minimum quantity.",
+            "min_value": "Minimum quantity must be greater than 0.",
+            "max_digits": "Minimum quantity exceeds the maximum allowed digits.",
+            "max_decimal_places": "Minimum quantity exceeds the maximum allowed decimal places.",
+        },
     )
     max_quantity = serializers.DecimalField(
         max_digits=30,
         decimal_places=10,
-        min_value=0,
+        min_value=Decimal("0.0000000001"),
+        error_messages={
+            "required": "Maximum quantity is required.",
+            "invalid": "Invalid maximum quantity.",
+            "min_value": "Maximum quantity must be greater than 0.",
+            "max_digits": "Maximum quantity exceeds the maximum allowed digits.",
+            "max_decimal_places": "Maximum quantity exceeds the maximum allowed decimal places.",
+        },
     )
-    additional_costs = AdditionalCostInputSerializer(many=True, default=[])
-    taxes = AdditionalCostInputSerializer(many=True, default=[])
-    discounts = AdditionalCostInputSerializer(many=True, default=[])
+    additional_costs = AdditionalCostInputSerializer(
+        many=True,
+        default=[],
+        error_messages={
+            "invalid": "Invalid additional cost data.",
+        },
+    )
+    taxes = AdditionalCostInputSerializer(
+        many=True,
+        default=[],
+        error_messages={
+            "invalid": "Invalid tax data.",
+        },
+    )
+    discounts = AdditionalCostInputSerializer(
+        many=True,
+        default=[],
+        error_messages={
+            "invalid": "Invalid discount data.",
+        },
+    )
+
+    def validate(self, attrs):
+        min_q = attrs.get("min_quantity")
+        max_q = attrs.get("max_quantity")
+
+        if min_q is not None and max_q is not None and min_q >= max_q:
+            raise serializers.ValidationError(
+                {
+                    "max_quantity": "Maximum quantity must be greater than minimum quantity."
+                }
+            )
+
+        return attrs

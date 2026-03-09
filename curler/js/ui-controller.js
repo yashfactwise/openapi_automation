@@ -334,11 +334,11 @@ class UIController {
                 <div class="form-row">
                     <div class="form-group">
                         <label>ERP Contract ID</label>
-                        <input type="text" name="ERP_contract_id" class="input-field" value="ERPTEST22">
+                        <input type="text" name="ERP_contract_id" class="input-field" id="contract_erp_id_input">
                     </div>
                     <div class="form-group">
                         <label>Factwise Contract ID</label>
-                        <input type="text" name="factwise_contract_id" class="input-field" value="C000001">
+                        <input type="text" name="factwise_contract_id" class="input-field" id="contract_fw_id_input">
                     </div>
                 </div>
 
@@ -2361,10 +2361,9 @@ class UIController {
             this._addPOItem();
         }
 
-        // Show script buttons for bulk_create operations AND create operations with bulk mode
-        const hasScriptMode = operation.id === 'bulk_create' || (operation.id === 'create' && ['contract', 'vendors', 'purchase_order', 'items', 'projects'].includes(module.id));
-        if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.toggle('hidden', !hasScriptMode);
-        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.toggle('hidden', !hasScriptMode);
+        // Script buttons only visible in bulk mode — always hide on initial render (default is single)
+        if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.add('hidden');
+        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.add('hidden');
         this._currentBulkMode = 'payload';
     }
 
@@ -5217,6 +5216,14 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         });
 
         this._currentBulkMode = mode;
+
+        // Script buttons only visible in bulk script mode
+        if (this.elements.btnCopyScript) {
+            this.elements.btnCopyScript.classList.toggle('hidden', !isScript);
+        }
+        if (this.elements.btnExecuteScript) {
+            this.elements.btnExecuteScript.classList.toggle('hidden', !isScript);
+        }
     }
 
     _generateBulkScript() {
@@ -5743,6 +5750,374 @@ echo "[Done: ${count} vendors created sequentially]"
 
         // Set default dates after form is ready
         if (typeof setDefaultDates === 'function') setTimeout(setDefaultDates, 50);
+
+        // Auto-increment contract IDs
+        this._setContractIdDefaults();
+
+        // Attach inline field validation
+        this._attachContractInlineValidation();
+    }
+
+    _setFieldHint(input, msg) {
+        let hint = input.nextElementSibling;
+        if (!hint || !hint.classList.contains('field-hint-error')) {
+            hint = document.createElement('span');
+            hint.className = 'field-hint-error';
+            hint.style.cssText = 'display:block;color:#ef4444;font-size:11px;margin-top:3px;';
+            input.insertAdjacentElement('afterend', hint);
+        }
+        if (msg) {
+            hint.textContent = msg;
+            input.classList.add('field-error');
+        } else {
+            hint.textContent = '';
+            input.classList.remove('field-error');
+        }
+    }
+
+    _setContractIdDefaults() {
+        const now = Math.floor(Date.now() / 1000); // epoch seconds — unique per user per moment
+        const short = String(now).slice(-6);       // last 6 digits fits within 20-char FW limit
+
+        const erpEl = document.getElementById('contract_erp_id_input');
+        const fwEl = document.getElementById('contract_fw_id_input');
+
+        if (erpEl) erpEl.value = `OPENAPIERP${now}`;
+        if (fwEl) fwEl.value = `C${short}`;
+    }
+
+    _attachContractInlineValidation() {
+        const form = this.elements.operationForm;
+        if (!form) return;
+
+        const watch = (name, fn, event = 'input') => {
+            const el = form.querySelector(`[name="${name}"]`);
+            if (!el) return;
+            const check = () => fn(el);
+            el.addEventListener(event, check);
+            el.addEventListener('blur', check);
+        };
+
+        // contract_name: required, max 200
+        watch('contract_name', el => {
+            if (!el.value.trim()) this._setFieldHint(el, 'Contract name is required.');
+            else if (el.value.length > 200) this._setFieldHint(el, 'Cannot exceed 200 characters.');
+            else this._setFieldHint(el, '');
+        });
+
+        // dates: required + end must be after start
+        const checkDates = () => {
+            const startEl = form.querySelector('[name="contract_start_date"]');
+            const endEl = form.querySelector('[name="contract_end_date"]');
+            if (!startEl || !endEl) return;
+            if (!startEl.value) { this._setFieldHint(startEl, 'Start date is required.'); }
+            else { this._setFieldHint(startEl, ''); }
+            if (!endEl.value) { this._setFieldHint(endEl, 'End date is required.'); }
+            else if (startEl.value && endEl.value <= startEl.value) { this._setFieldHint(endEl, 'End date must be after start date.'); }
+            else { this._setFieldHint(endEl, ''); }
+        };
+        const startEl = form.querySelector('[name="contract_start_date"]');
+        const endEl = form.querySelector('[name="contract_end_date"]');
+        if (startEl) { startEl.addEventListener('change', checkDates); startEl.addEventListener('blur', checkDates); }
+        if (endEl) { endEl.addEventListener('change', checkDates); endEl.addEventListener('blur', checkDates); }
+
+        // entity_name: required
+        watch('entity_name', el => {
+            this._setFieldHint(el, el.value.trim() ? '' : 'Entity name is required.');
+        });
+
+        // buyer_contact: required, email
+        watch('buyer_contact', el => {
+            if (!el.value.trim()) this._setFieldHint(el, 'Buyer contact email is required.');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value)) this._setFieldHint(el, 'Enter a valid email address.');
+            else this._setFieldHint(el, '');
+        });
+
+        // vendor_contact: required, email
+        watch('vendor_contact', el => {
+            if (!el.value.trim()) this._setFieldHint(el, 'Vendor contact email is required.');
+            else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value)) this._setFieldHint(el, 'Enter a valid email address.');
+            else this._setFieldHint(el, '');
+        });
+
+        // vendor codes: at least one required — check both on change of either
+        const checkVendorCodes = () => {
+            const fwEl = form.querySelector('[name="factwise_vendor_code"]');
+            const erpEl = form.querySelector('[name="ERP_vendor_code"]');
+            if (!fwEl || !erpEl) return;
+            const missing = !fwEl.value.trim() && !erpEl.value.trim();
+            this._setFieldHint(fwEl, missing ? 'At least one of Factwise or ERP vendor code is required.' : '');
+            this._setFieldHint(erpEl, missing ? 'At least one of Factwise or ERP vendor code is required.' : '');
+        };
+        const fwEl = form.querySelector('[name="factwise_vendor_code"]');
+        const erpEl = form.querySelector('[name="ERP_vendor_code"]');
+        if (fwEl) { fwEl.addEventListener('input', checkVendorCodes); fwEl.addEventListener('blur', checkVendorCodes); }
+        if (erpEl) { erpEl.addEventListener('input', checkVendorCodes); erpEl.addEventListener('blur', checkVendorCodes); }
+
+        // prepayment_percentage: 0–100
+        watch('prepayment_percentage', el => {
+            const v = parseFloat(el.value);
+            if (el.value !== '' && (isNaN(v) || v < 0 || v > 100))
+                this._setFieldHint(el, 'Must be between 0 and 100.');
+            else this._setFieldHint(el, '');
+        });
+
+        // lead_time: > 0 if provided
+        watch('lead_time', el => {
+            const v = parseFloat(el.value);
+            if (el.value !== '' && (isNaN(v) || v <= 0))
+                this._setFieldHint(el, 'Lead time must be greater than 0.');
+            else this._setFieldHint(el, '');
+        });
+
+        // Run all checks immediately on load so empty required fields are red from the start
+        setTimeout(() => {
+            ['contract_name', 'entity_name', 'buyer_contact', 'vendor_contact', 'prepayment_percentage', 'lead_time'].forEach(name => {
+                const el = form.querySelector(`[name="${name}"]`);
+                if (el) el.dispatchEvent(new Event('blur'));
+            });
+            checkDates();
+            checkVendorCodes();
+        }, 100);
+
+        // Vendor code lookup — auto-fill vendor fields and contacts dropdown
+        this._setupVendorLookup(form);
+
+        // Item code search dropdowns on all item code inputs
+        this._setupItemSearchDropdowns(form);
+    }
+
+    // ── Shared autocomplete dropdown ──────────────────────────────────────────
+
+    _attachSearchDropdown(inputEl, fetchResults, onSelect) {
+        let debounceTimer = null;
+        let dropdownEl = null;
+
+        const close = () => {
+            if (dropdownEl) { dropdownEl.remove(); dropdownEl = null; }
+        };
+
+        const show = (results) => {
+            close();
+            if (!results.length) return;
+
+            dropdownEl = document.createElement('div');
+            dropdownEl.style.cssText = `
+                position:absolute; z-index:9999; background:#fff; border:1px solid #cbd5e1;
+                border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.12);
+                max-height:220px; overflow-y:auto; width:${inputEl.offsetWidth}px;
+                font-size:12px;
+            `;
+
+            results.forEach(r => {
+                const item = document.createElement('div');
+                item.style.cssText = 'padding:8px 12px; cursor:pointer; border-bottom:1px solid #f1f5f9; color:#1e293b;';
+                item.innerHTML = r.html;
+                item.addEventListener('mouseenter', () => item.style.background = '#f8fafc');
+                item.addEventListener('mouseleave', () => item.style.background = '');
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // prevent blur before click
+                    onSelect(r);
+                    close();
+                });
+                dropdownEl.appendChild(item);
+            });
+
+            // Position below the input
+            inputEl.parentElement.style.position = 'relative';
+            inputEl.parentElement.appendChild(dropdownEl);
+            dropdownEl.style.top = `${inputEl.offsetTop + inputEl.offsetHeight + 2}px`;
+            dropdownEl.style.left = `${inputEl.offsetLeft}px`;
+        };
+
+        inputEl.addEventListener('input', () => {
+            clearTimeout(debounceTimer);
+            const q = inputEl.value.trim();
+            if (q.length < 2) { close(); return; }
+            debounceTimer = setTimeout(async () => {
+                const results = await fetchResults(q);
+                show(results);
+            }, 400);
+        });
+
+        inputEl.addEventListener('blur', () => setTimeout(close, 150));
+        inputEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    }
+
+    // ── Item search dropdowns ─────────────────────────────────────────────────
+
+    _setupItemSearchDropdowns(form) {
+        // Attach to all existing item code inputs; also re-attach when items are re-rendered
+        const attach = () => {
+            form.querySelectorAll('.item-code-input').forEach(input => {
+                if (input.dataset.searchAttached) return;
+                input.dataset.searchAttached = '1';
+
+                const fetch = (q) => this._searchItems(q);
+                const onSelect = (r) => {
+                    input.value = r.code;
+                    // Trigger existing item validation / autofill
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('blur', { bubbles: true }));
+                };
+                this._attachSearchDropdown(input, fetch, onSelect);
+            });
+        };
+
+        attach();
+        // Re-attach after items are added (observer on the container)
+        const container = form.querySelector('#contract-items-container');
+        if (container) {
+            new MutationObserver(attach).observe(container, { childList: true, subtree: true });
+        }
+    }
+
+    async _searchItems(q) {
+        const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+        if (!token) return [];
+        const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+        try {
+            const res = await fetch(`${baseUrl}dashboard/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dashboard_view: 'enterprise_item', tab: 'active',
+                    page_number: 1, items_per_page: 8,
+                    sort_fields: [], search_text: q, filters: null
+                })
+            });
+            if (!res.ok) return [];
+            const data = await res.json();
+            return (data.data || []).map(i => ({
+                code: i.code,
+                html: `<strong>${i.code}</strong> <span style="color:#64748b;">— ${i.name || ''}</span>`,
+            }));
+        } catch { return []; }
+    }
+
+    // ── Vendor search dropdown ────────────────────────────────────────────────
+
+    _setupVendorLookup(form) {
+        const fetchVendors = async (q) => {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            if (!token) return [];
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            try {
+                const res = await fetch(`${baseUrl}dashboard/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dashboard_view: 'enterprise_vendor', tab: 'active',
+                        page_number: 1, items_per_page: 8,
+                        sort_fields: [], search_text: q,
+                        query_data: { vendor_entity_status: null }, filters: null
+                    })
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                const records = data?.data || data?.results || (Array.isArray(data) ? data : []);
+                return records.map(v => ({
+                    vendor: v,
+                    code: v.vendor_code,
+                    html: `<strong>${v.vendor_code}</strong>${v.ERP_vendor_code ? ` / ${v.ERP_vendor_code}` : ''} <span style="color:#64748b;">— ${v.vendor_name || ''}</span>`
+                }));
+            } catch { return []; }
+        };
+
+        const onSelect = (r) => this._fillVendorFromRecord(form, r.vendor);
+
+        const fwEl = form.querySelector('[name="factwise_vendor_code"]');
+        const erpEl = form.querySelector('[name="ERP_vendor_code"]');
+        if (fwEl) this._attachSearchDropdown(fwEl, fetchVendors, onSelect);
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect);
+    }
+
+    async _fillVendorFromRecord(form, vendor) {
+        // Step 1: fill codes immediately from dashboard result
+        const fwEl = form.querySelector('[name="factwise_vendor_code"]');
+        const erpEl = form.querySelector('[name="ERP_vendor_code"]');
+        if (fwEl && vendor.vendor_code) fwEl.value = vendor.vendor_code;
+        if (erpEl && vendor.ERP_vendor_code) erpEl.value = vendor.ERP_vendor_code;
+
+        this._setVendorTag(`Loading ${vendor.vendor_name || vendor.vendor_code}...`, '#64748b', form);
+
+        // Step 2: fetch admin detail API for full data
+        let detail = vendor;
+        const masterId = vendor.enterprise_vendor_master_id;
+        if (masterId) {
+            try {
+                const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+                const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+                const res = await fetch(`${baseUrl}organization/vendor_master/${masterId}/admin/`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                if (res.ok) detail = await res.json();
+            } catch (e) {
+                console.warn('Vendor admin fetch failed, using dashboard data', e);
+            }
+        }
+
+        // Step 3: identification from seller_identifications[0]
+        const vidNameEl = form.querySelector('[name="vendor_identification_name"]');
+        const vidValEl = form.querySelector('[name="vendor_identification_value"]');
+        const firstId = detail.seller_identifications?.[0];
+        if (vidNameEl) vidNameEl.value = firstId?.identification_name || '';
+        if (vidValEl) vidValEl.value = firstId?.identification_value || '';
+
+        // Step 4: address from seller_address_information[0] (string or object)
+        const addrEl = form.querySelector('[name="vendor_full_address"]');
+        const firstAddr = detail.seller_address_information?.[0];
+        if (addrEl && firstAddr) {
+            if (typeof firstAddr === 'string') {
+                addrEl.value = firstAddr;
+            } else {
+                const parts = [firstAddr.address1, firstAddr.address2, firstAddr.city, firstAddr.state_or_territory, firstAddr.country].filter(Boolean);
+                addrEl.value = parts.join(', ');
+            }
+        }
+
+        // Step 5: contacts dropdown (primary + secondary, deduplicated by email)
+        const seen = new Set();
+        const contacts = [];
+        if (detail.primary_vendor_contact?.primary_email) {
+            const c = detail.primary_vendor_contact;
+            seen.add(c.primary_email);
+            contacts.push({ email: c.primary_email, label: `${c.full_name || ''} (${c.primary_email}) — Primary` });
+        }
+        (detail.secondary_vendor_contacts || []).forEach(c => {
+            if (c.primary_email && !seen.has(c.primary_email)) {
+                seen.add(c.primary_email);
+                contacts.push({ email: c.primary_email, label: `${c.full_name || ''} (${c.primary_email})` });
+            }
+        });
+
+        const vcEl = form.querySelector('[name="vendor_contact"]');
+        if (vcEl && contacts.length > 0) {
+            const currentVal = vcEl.value;
+            const select = document.createElement('select');
+            select.name = 'vendor_contact';
+            select.className = vcEl.className;
+            select.innerHTML = contacts.map(c =>
+                `<option value="${c.email}" ${c.email === currentVal ? 'selected' : ''}>${c.label}</option>`
+            ).join('');
+            vcEl.replaceWith(select);
+            this._setFieldHint(select, '');
+        }
+
+        this._setVendorTag(`✓ ${detail.vendor_name || detail.vendor_code} — filled`, '#16a34a', form);
+    }
+
+    _setVendorTag(text, color, form) {
+        let tag = document.getElementById('vendor-lookup-tag');
+        if (!tag) {
+            tag = document.createElement('div');
+            tag.id = 'vendor-lookup-tag';
+            tag.style.cssText = 'font-size:11px;margin-top:4px;';
+            const refEl = form.querySelector('[name="factwise_vendor_code"]') || form.querySelector('[name="ERP_vendor_code"]');
+            refEl?.closest('.form-row')?.insertAdjacentElement('afterend', tag);
+        }
+        tag.style.color = color;
+        tag.textContent = text;
     }
 
     _addPricingTier(itemIndex) {
@@ -6011,12 +6386,9 @@ echo "[Done: ${count} vendors created sequentially]"
     _renderPricingTiers(itemIndex, count, showCosts, lastAddedMax) {
         let html = '';
         for (let i = 0; i < count; i++) {
-            // Tier 1 min is always 0 (locked)
-            // Subsequent tiers: min = previous tier max (readonly, auto-linked)
             const isFirstTier = i === 0;
             // For newly appended tier (count > 1 and i is last), prefill min from lastAddedMax
-            const minVal = isFirstTier ? 0 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
-            const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
+            const minVal = isFirstTier ? 1 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
             html += `
                 <div class="cc-tier-card" data-tier-index="${i}">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -6029,12 +6401,12 @@ echo "[Done: ${count} vendors created sequentially]"
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(always 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(= prev max)</small>'}</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" required value="${minVal}" step="0.01" ${minReadonly}>
+                            <label>Min Quantity${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(default: 1)</small>' : ' <small style="color:#64748b;font-size:10px">(suggested: prev max)</small>'}</label>
+                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" value="${minVal}" step="0.01">
                         </div>
                         <div class="form-group">
-                            <label>Max Quantity *</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" required value="${i === 0 ? 100 : ''}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
+                            <label>Max Quantity</label>
+                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" value="${i === 0 ? 100 : ''}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
                         </div>
                         <div class="form-group">
                             <label>Rate</label>
@@ -6648,7 +7020,7 @@ echo "[Done: ${count} vendors created sequentially]"
         let html = '';
         for (let i = 0; i < count; i++) {
             const isFirstTier = i === 0;
-            const minVal = isFirstTier ? 0 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
+            const minVal = isFirstTier ? 1 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
             const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
             html += `
                 <div class="cc-tier-card" data-tier-index="${i}">
@@ -8000,10 +8372,15 @@ echo "[Done: ${count} vendors created sequentially]"
             singleForm.style.display = 'block';
             bulkForm.style.display = 'none';
             this.currentMode = 'single';
+            // Hide script buttons in single mode
+            if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.add('hidden');
+            if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.add('hidden');
         } else {
             singleForm.style.display = 'none';
             bulkForm.style.display = 'block';
             this.currentMode = 'bulk';
+            // Script buttons only show when in bulk script mode (not payload mode)
+            // _switchBulkMode will control their visibility when user switches sub-mode
 
             // Load bulk form if not already loaded
             if (!bulkForm.innerHTML.trim()) {
@@ -8836,6 +9213,17 @@ echo "[Done: ${count} vendors created sequentially]"
             }
         });
 
+        // Contract-specific: vendor code pair (at least one required)
+        if (this.currentModule === 'contract' && this.currentOperation === 'create') {
+            const fwEl = this.elements.operationForm.querySelector('[name="factwise_vendor_code"]');
+            const erpEl = this.elements.operationForm.querySelector('[name="ERP_vendor_code"]');
+            if (fwEl && erpEl && !fwEl.value.trim() && !erpEl.value.trim()) {
+                allValid = false;
+                invalidFields.push(fwEl);
+                invalidFields.push(erpEl);
+            }
+        }
+
         // Update Button Text (but NEVER disable - this is a testing tool!)
         if (this.elements.btnExecute) {
             this.elements.btnExecute.textContent = allValid ? "Execute Request" : "Execute Incomplete Request";
@@ -8965,6 +9353,8 @@ echo "[Done: ${count} vendors created sequentially]"
                 } else {
                     console.log('Building contract create payload...');
                     payload = this._buildContractPayload(op);
+                    const warnings = this._getContractWarnings(payload);
+                    this._showContractWarnings(warnings);
                 }
             } else if (this.currentModule === 'contract') {
                 payload = this._buildContractPayload(op);
@@ -9112,6 +9502,60 @@ echo "[Done: ${count} vendors created sequentially]"
         } catch (error) {
             this._displayError(error.message);
         }
+    }
+
+    _getContractWarnings(payload) {
+        const warnings = [];
+        const items = payload.contract_items || [];
+
+        items.forEach((item, itemIdx) => {
+            const label = `Item ${itemIdx + 1}`;
+
+            if (!item.factwise_item_code && !item.ERP_item_code) {
+                warnings.push(`${label}: Both factwise_item_code and ERP_item_code are empty — API requires at least one.`);
+            }
+
+            const tiers = item.pricing_tiers || [];
+            if (tiers.length === 0) {
+                warnings.push(`${label}: No pricing tiers — API requires at least one.`);
+            }
+
+        });
+
+        if (!payload.ERP_vendor_code && !payload.factwise_vendor_code) {
+            warnings.push('Contract: Both ERP_vendor_code and factwise_vendor_code are empty — API requires at least one.');
+        }
+
+        return warnings;
+    }
+
+    _showContractWarnings(warnings) {
+        // Find or create warning container inside the operation form
+        let container = document.getElementById('contract-warnings-box');
+        if (!container) {
+            const form = this.elements?.operationForm;
+            if (!form) return;
+            container = document.createElement('div');
+            container.id = 'contract-warnings-box';
+            form.prepend(container);
+        }
+
+        if (!warnings || warnings.length === 0) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:6px;padding:12px 16px;margin-bottom:16px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <strong style="color:#b45309;font-size:13px;">⚠ Warnings (non-blocking — payload will still be sent)</strong>
+                    <button type="button" onclick="document.getElementById('contract-warnings-box').innerHTML=''" style="background:none;border:none;cursor:pointer;color:#b45309;font-size:16px;line-height:1;">✕</button>
+                </div>
+                <ul style="margin:0;padding-left:18px;color:#92400e;font-size:12px;">
+                    ${warnings.map(w => `<li style="margin-bottom:3px;">${w}</li>`).join('')}
+                </ul>
+            </div>
+        `;
     }
 
     _buildContractPayload(operation) {
@@ -9609,7 +10053,133 @@ echo "[Done: ${count} vendors created sequentially]"
         // JSON body inside the dark code block
         const bodyToDisplay = response.body || { message: 'No response body' };
         const jsonStr = this._escapeHtml(JSON.stringify(bodyToDisplay, null, 2));
-        this.elements.responseDisplay.innerHTML = `<pre><code class="language-json">${jsonStr}</code></pre>`;
+
+        // For error responses, show a plain-English translation above the raw JSON
+        let translationHtml = '';
+        if (response.status >= 400) {
+            const errorResults = this._translateApiErrors(bodyToDisplay, response.status);
+            if (errorResults.length > 0) {
+                this._highlightErrorFields(errorResults);
+                const items = errorResults.map(({ path, msg }) => {
+                    const where = path.length ? `<span style="color:#9ca3af;font-weight:400;">[${path.join(' › ')}]</span> ` : '';
+                    return `<li style="margin-bottom:5px;">${where}${this._escapeHtml(msg)}</li>`;
+                }).join('');
+                translationHtml = `
+                    <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:12px 16px;margin-bottom:12px;">
+                        <div style="font-weight:600;color:#b91c1c;margin-bottom:8px;font-size:13px;">❌ What went wrong</div>
+                        <ul style="margin:0;padding-left:18px;color:#7f1d1d;font-size:12px;line-height:1.8;">
+                            ${items}
+                        </ul>
+                    </div>`;
+            }
+        }
+
+        this.elements.responseDisplay.innerHTML = `${translationHtml}<pre><code class="language-json">${jsonStr}</code></pre>`;
+    }
+
+    // Walk a DRF validation error object and collect { path, msg } pairs
+    _extractDrfErrors(node, pathParts, results) {
+        if (typeof node === 'string') {
+            // Strip Python ErrorDetail repr → plain message
+            const m = node.match(/ErrorDetail\(string='([^']+)'/);
+            results.push({ path: pathParts.filter(Boolean), msg: m ? m[1] : node });
+        } else if (Array.isArray(node)) {
+            node.forEach((item, idx) => {
+                const nextParts = (typeof item === 'object' && item !== null && !Array.isArray(item))
+                    ? [...pathParts, `#${idx + 1}`] : pathParts;
+                this._extractDrfErrors(item, nextParts, results);
+            });
+        } else if (node && typeof node === 'object') {
+            Object.entries(node).forEach(([key, val]) => {
+                this._extractDrfErrors(val, [...pathParts, key], results);
+            });
+        }
+    }
+
+    _translateApiErrors(body, status) {
+        if (!body) return [];
+
+        // body.detail = simple DRF auth/permission error string
+        if (body.detail && typeof body.detail === 'string') {
+            return [{ path: [], msg: body.detail }];
+        }
+
+        // body is a plain string (raw traceback from server)
+        if (typeof body === 'string') {
+            // Try pulling ErrorDetail messages first
+            const re = /ErrorDetail\(string='([^']+)'/g;
+            const results = [];
+            let m;
+            while ((m = re.exec(body)) !== null) results.push({ path: [], msg: m[1] });
+            if (results.length) return results;
+            // Otherwise find the first non-traceback line
+            const line = body.split('\n').find(l => l.trim() && !l.includes('File "') && !l.includes('/site-packages/') && !l.includes('Traceback'));
+            return line ? [{ path: [], msg: line.trim() }] : [];
+        }
+
+        // body is an object — check if it's the custom {"ErrorCode": ..., "Cause": ...} wrapper
+        if (body.ErrorCode !== undefined) {
+            // ErrorCode may itself be a nested DRF error object or a string
+            const results = [];
+            if (typeof body.ErrorCode === 'object') {
+                this._extractDrfErrors(body.ErrorCode, [], results);
+            } else if (typeof body.ErrorCode === 'string') {
+                // Strip ErrorDetail repr if present
+                const m = body.ErrorCode.match(/ErrorDetail\(string='([^']+)'/);
+                results.push({ path: [], msg: m ? m[1] : body.ErrorCode });
+            }
+            return results;
+        }
+
+        // Standard DRF validation error object — walk it
+        const results = [];
+        this._extractDrfErrors(body, [], results);
+        return results;
+    }
+
+    _highlightErrorFields(errorResults) {
+        // Remove previous red highlights
+        document.querySelectorAll('.input-field.api-error').forEach(el => {
+            el.classList.remove('api-error');
+            el.style.outline = '';
+        });
+
+        let firstEl = null;
+        errorResults.forEach(({ path }) => {
+            if (!path.length) return;
+            // Try to find a matching input by name fragments
+            // path like ['contract_items', '#1', 'pricing_tiers', '#1', 'min_quantity']
+            // map to input name like item_0_tier_0_min
+            const fieldName = path[path.length - 1];
+            const indexHints = path.filter(p => p.startsWith('#')).map(p => parseInt(p.slice(1)) - 1);
+
+            let el = null;
+
+            // Try exact name match variants
+            const itemIdx = indexHints[0] ?? 0;
+            const tierIdx = indexHints[1] ?? 0;
+
+            const candidates = [
+                `[name="item_${itemIdx}_tier_${tierIdx}_${fieldName}"]`,
+                `[name="item_${itemIdx}_${fieldName}"]`,
+                `[name="${fieldName}"]`,
+            ];
+
+            for (const sel of candidates) {
+                el = document.querySelector(sel);
+                if (el) break;
+            }
+
+            if (el) {
+                el.classList.add('api-error');
+                el.style.outline = '2px solid #ef4444';
+                if (!firstEl) firstEl = el;
+            }
+        });
+
+        if (firstEl) {
+            firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     _displayError(message) {
@@ -10027,8 +10597,13 @@ echo "[Done: ${count} vendors created sequentially]"
 
             // API returns an array with one object containing templates
             const responseData = Array.isArray(data) ? data[0] : data;
-            const templates = responseData.templates || [];
-            console.log('✓ Templates array:', templates);
+            const allTemplates = responseData.templates || [];
+            // Only show non-draft templates (ongoing, published, active, etc.)
+            const templates = allTemplates.filter(t => {
+                const status = (t.status || '').toUpperCase();
+                return status !== 'DRAFT' && status !== '';
+            });
+            console.log('✓ Templates array (non-draft):', templates, 'of', allTemplates.length);
 
             // Store templates in templateManager for later use
             if (this.templateManager && templates.length > 0) {
@@ -10040,10 +10615,8 @@ echo "[Done: ${count} vendors created sequentially]"
             const select = document.getElementById('template_name_select');
             if (select && templates && templates.length > 0) {
                 select.innerHTML = templates.map(t => {
-                    // Use name field from API response
                     const name = t.name || t.template_name || 'Unnamed Template';
-                    const templateId = t.template_id;
-                    return `<option value="${templateId}">${name}</option>`;
+                    return `<option value="${name}">${name}</option>`;
                 }).join('');
                 select.selectedIndex = 0;
                 console.log('✓ Populated dropdown with', templates.length, 'templates');

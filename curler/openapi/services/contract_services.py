@@ -1,24 +1,29 @@
+import uuid
 from dataclasses import asdict
-from django.db import transaction
 
 from additional_costs import services as additional_cost_service
 from additional_costs.models import AdditionalCostLinkage
-from additional_costs.states import AdditionalCostType
-from additional_costs.states import AdditionalCostLinkageModule
+from additional_costs.states import AdditionalCostLinkageModule, AdditionalCostType
 from additional_costs.structures import AdditionalCostDataClass
 from attributes import services as attribute_service
-from attributes.models import AttributeLinkage
-from attributes.models import AttributeValueLinkage
+from attributes.models import AttributeLinkage, AttributeValueLinkage
 from attributes.states import AttributeLinkageModule
 from attributes.structures import (
     AttributeLinkageInputStruct,
     AttributeValueLinkageInputStruct,
 )
 from backbone import service as backbone_service
+from celery import shared_task
 from contract import workflows as contract_workflows
 from contract.models.contract_item_model import ContractItem
-from contract.services import contract_item_service
-from contract.services import contract_service
+from contract.models.contract_model import Contract
+from contract.models.pricing_tier_model import PricingTier
+from contract.services import (
+    contract_item_service,
+    contract_service,
+    pricing_tier_service,
+)
+from contract.states import ContractState
 from contract.structures import (
     ContractAdditionalDetails,
     ContractItemPricingInformation,
@@ -26,38 +31,42 @@ from contract.structures import (
 )
 from custom import service as custom_service
 from custom.models import CustomField, CustomSection
-from contract.models.contract_model import Contract
-from contract.models.pricing_tier_model import PricingTier
-from contract.services import pricing_tier_service
-from contract.states import ContractState
-from organization.states import EntitySettingKeyType
-from organization.services import identification_service
+from django.db import transaction
+from django.db.models import F, JSONField, Q, Value
 from module_templates import services as template_services
 from module_templates.types import (
     ModuleTemplateSectionItemLevel,
     ModuleTemplateSectionType,
     ModuleTemplateType,
 )
+from openapi.models import BulkTask
 from openapi.services import custom_services
+from organization.models import Entity
+from organization.org_models.identification_model import EntityIdentification
 from organization.org_models.item_master_model import EnterpriseItem
 from organization.org_models.vendor_master_model import (
     EntityVendorMaster,
     VendorContact,
 )
-from organization.services import address_service
-from organization.services import enterprise_user_service
-from organization.services import entity_service
-from organization.services import entity_settings_service
-from organization.services import item_service
-from organization.services import project_service
-from organization.services import terms_and_conditions_service
-from organization.services import vendor_contact_service
-from organization.services import vendor_master_service
+from organization.services import (
+    address_service,
+    enterprise_user_service,
+    entity_service,
+    identification_service,
+    item_service,
+    project_service,
+    terms_and_conditions_service,
+    vendor_contact_service,
+    vendor_master_service,
+)
 from purchase_order.structures.event_po_structures import (
     EventPurchaseOrderTermsAndConditions,
 )
 
+from factwise.backbone.states import EnterpriseItemState
 from factwise.exception import BadRequestException, ValidationException
+from factwise.openapi.service import JsonbConcat, make_json_safe
+from factwise.utils import set_statement_timeout
 
 
 @transaction.atomic
@@ -66,6 +75,7 @@ def create_contract(
     enterprise_id,
     created_by_user_email,
     contract_name,
+    factwise_contract_id,
     ERP_contract_id,
     contract_start_date,
     contract_end_date,
@@ -96,13 +106,41 @@ def create_contract(
     terms_and_conditions,
     contract_items,
 ):
-    print(f"[OPENAPI-CONTRACT] >>> create_contract ENTERED enterprise={enterprise_id} status={status} name={contract_name}", flush=True)
+    print(
+        f"[OPENAPI-CONTRACT] >>> create_contract ENTERED enterprise={enterprise_id} status={status} name={contract_name}",
+        flush=True,
+    )
     user = enterprise_user_service.get_user_by_enterprise_email(
         enterprise_id=enterprise_id, email=created_by_user_email
     )
     if not user:
         raise ValidationException("User email does not exist in the enterprise")
     user_id = user.user_id
+
+    # factwise_contract_id uniqueness
+    if (
+        factwise_contract_id
+        and Contract.objects.filter(
+            buyer_enterprise_id=enterprise_id,
+            custom_contract_id=factwise_contract_id,
+        ).exists()
+    ):
+        raise ValidationException(
+            "Contract with the same factwise_contract_id already exists"
+        )
+
+    # ERP_contract_id uniqueness
+    if (
+        ERP_contract_id
+        and Contract.objects.filter(
+            buyer_enterprise_id=enterprise_id,
+            ERP_contract_id=ERP_contract_id,
+        ).exists()
+    ):
+        raise ValidationException(
+            "Contract with the same ERP_contract_id already exists"
+        )
+
     buyer_entity_name = entity_name
     buyer_entity = entity_service.get_entity_via_name(
         entity_name=buyer_entity_name, enterprise_id=enterprise_id
@@ -312,6 +350,7 @@ def create_contract(
     for additional_cost in existing_item_additional_costs:
         item_costs_map[additional_cost.cost_name] = additional_cost
     contract = contract_service._save_contract(
+        custom_contract_id=factwise_contract_id,
         ERP_contract_id=ERP_contract_id,
         contract_name=contract_name,
         contract_start_date=contract_start_date,
@@ -667,11 +706,729 @@ def create_contract(
 
     # Explicitly trigger pricing repo sync for OpenAPI-created contracts
     # (Django signal skips on created=True, and bulk_create doesn't fire signals)
-    print(f"[OPENAPI-CONTRACT] >>> ABOUT TO CALL _queue_contract_pricing_sync contract={contract_id} enterprise={enterprise_id}", flush=True)
+    print(
+        f"[OPENAPI-CONTRACT] >>> ABOUT TO CALL _queue_contract_pricing_sync contract={contract_id} enterprise={enterprise_id}",
+        flush=True,
+    )
     _queue_contract_pricing_sync(contract_id, enterprise_id)
-    print(f"[OPENAPI-CONTRACT] >>> _queue_contract_pricing_sync DONE, returning {contract.custom_contract_id}", flush=True)
+    print(
+        f"[OPENAPI-CONTRACT] >>> _queue_contract_pricing_sync DONE, returning {contract.custom_contract_id}",
+        flush=True,
+    )
 
     return contract.custom_contract_id
+
+
+def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=None):
+    results = []
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="running")
+
+    # -------------------------------------------------
+    # PRELOAD (READ-ONLY, BULK SAFE)
+    # -------------------------------------------------
+
+    emails = {p.get("created_by_user_email") for p in contracts_payload}
+    user_map = enterprise_user_service.get_users_by_enterprise_emails(
+        enterprise_id=enterprise_id,
+        emails=emails,
+    )
+    user_id_map = {email: u.user_id for email, u in user_map.items()}
+
+    # -------------------------------------------------
+    # PRELOAD EXISTING CONTRACT IDS (MAPS)
+    # -------------------------------------------------
+
+    existing_factwise_id_map = set(
+        Contract.objects.filter(
+            buyer_enterprise_id=enterprise_id,
+            custom_contract_id__isnull=False,
+        ).values_list("custom_contract_id", flat=True)
+    )
+
+    existing_erp_id_map = set(
+        Contract.objects.filter(
+            buyer_enterprise_id=enterprise_id,
+            ERP_contract_id__isnull=False,
+        ).values_list("ERP_contract_id", flat=True)
+    )
+
+    entity_names = {p.get("entity_name") for p in contracts_payload}
+    entities = Entity.objects.filter(
+        enterprise_id=enterprise_id,
+        entity_name__in=entity_names,
+    ).values("entity_id", "entity_name")
+    entity_map = {e["entity_name"]: e["entity_id"] for e in entities}
+    entity_ids = list(entity_map.values())
+
+    template_names = {
+        p.get("template_name") for p in contracts_payload if p.get("template_name")
+    }
+    templates = template_services._get_templates_from_names(
+        entity_ids=entity_ids,
+        names=template_names,
+        type=ModuleTemplateType.CLM_TEMPLATE,
+    )
+    template_map = {(t.entity_id, t.name): t for t in templates}
+
+    template_section_cache = {}
+
+    def get_template_section_maps(template_id):
+        if template_id not in template_section_cache:
+            sections = template_services.get_template_sections(template_id=template_id)
+            items = template_services.get_template_section_items(
+                template_id=template_id
+            ).filter(is_builtin_field=False)
+            template_section_cache[template_id] = (
+                {s.alternate_name: s for s in sections},
+                {(i.section.alternate_name, i.alternate_name): i for i in items},
+            )
+        return template_section_cache[template_id]
+
+    currency_ids = set()
+    incoterm_names = set()
+    attribute_names = set()
+    overall_cost_names = set()
+    item_cost_names = set()
+
+    for payload in contracts_payload:
+        for cost in payload.get("additional_costs"):
+            overall_cost_names.add(cost["name"])
+        for cost in payload.get("taxes"):
+            overall_cost_names.add(cost["name"])
+        for cost in payload.get("discounts"):
+            overall_cost_names.add(cost["name"])
+
+        for item in payload.get("contract_items"):
+            currency_ids.add(item["currency_code_id"])
+            incoterm_names.add(item["incoterm"])
+            for attr in item["attributes"]:
+                attribute_names.add(attr["attribute_name"])
+            for tier in item["pricing_tiers"]:
+                for c in tier["additional_costs"]:
+                    item_cost_names.add(c["name"])
+                for c in tier["taxes"]:
+                    item_cost_names.add(c["name"])
+                for c in tier["discounts"]:
+                    item_cost_names.add(c["name"])
+
+    currency_map = {
+        c.entry_id: c
+        for c in backbone_service.get_currency_list_via_ids(
+            currency_code_id_list=list(currency_ids)
+        )
+    }
+
+    incoterm_map = {
+        i.incoterm_abbreviation: i
+        for i in backbone_service.get_incoterm_list(incoterms=list(incoterm_names))
+    }
+
+    attributes_map = {
+        a.attribute_name: a
+        for a in attribute_service.get_attributes_via_names(
+            enterprise_id=enterprise_id,
+            attribute_names=list(attribute_names),
+        )
+    }
+
+    overall_costs_map = {
+        c.cost_name: c
+        for c in additional_cost_service.get_additional_costs_from_names(
+            enterprise_id=enterprise_id,
+            additional_cost_names=list(overall_cost_names),
+        ).filter(field_level=ModuleTemplateSectionItemLevel.OTHER.value)
+    }
+
+    item_costs_map = {
+        c.cost_name: c
+        for c in additional_cost_service.get_additional_costs_from_names(
+            enterprise_id=enterprise_id,
+            additional_cost_names=list(item_cost_names),
+        ).filter(field_level=ModuleTemplateSectionItemLevel.ITEM.value)
+    }
+
+    # -------------------------------------------------
+    # MAIN LOOP (PER-CONTRACT ATOMICITY)
+    # -------------------------------------------------
+
+    for index, payload in enumerate(contracts_payload):
+        try:
+            with transaction.atomic():
+                set_statement_timeout(900000)
+
+                user_id = user_id_map.get(payload.get("created_by_user_email"))
+                if not user_id:
+                    raise ValidationException(
+                        "User email does not exist in the enterprise"
+                    )
+
+                factwise_contract_id = payload.get("factwise_contract_id")
+                ERP_contract_id = payload.get("ERP_contract_id")
+
+                if (
+                    factwise_contract_id
+                    and factwise_contract_id in existing_factwise_id_map
+                ):
+                    raise ValidationException(
+                        "Contract with the same factwise_contract_id already exists"
+                    )
+
+                if ERP_contract_id and ERP_contract_id in existing_erp_id_map:
+                    raise ValidationException(
+                        "Contract with the same ERP_contract_id already exists"
+                    )
+
+                buyer_entity_id = entity_map.get(payload.get("entity_name"))
+                if not buyer_entity_id:
+                    raise BadRequestException("Invalid entity")
+
+                buyer_identifications = (
+                    _get_buyer_identiifications_from_entity_and_identification_names(
+                        buyer_entity_id=buyer_entity_id,
+                        identification_name_list=payload.get("buyer_identifications"),
+                    )
+                )
+                buyer_address_information = (
+                    _get_buyer_address_information_from_entity_and_nickname(
+                        buyer_entity_id=buyer_entity_id,
+                        buyer_address=payload.get("buyer_address"),
+                    )
+                )
+                buyer_contact_information = _get_buyer_contact_information_from_email(
+                    enterprise_id=enterprise_id,
+                    email=payload.get("buyer_contact"),
+                )
+
+                entity_vm = _get_entity_vm_from_code(
+                    buyer_entity_id=buyer_entity_id,
+                    factwise_vendor_code=payload.get("factwise_vendor_code"),
+                    ERP_vendor_code=payload.get("ERP_vendor_code"),
+                )
+                enterprise_vm = entity_vm.enterprise_vendor_master
+
+                vendor_contact_information = _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
+                    buyer_entity_id=buyer_entity_id,
+                    seller_entity_id=enterprise_vm.seller_entity_id,
+                    vendor_contact=payload.get("vendor_contact"),
+                )
+                vendor_address_information = (
+                    _get_vendor_address_information_from_seller_entity_and_nickname(
+                        seller_entity_id=enterprise_vm.seller_entity_id,
+                        vendor_address=payload.get("vendor_address"),
+                    )
+                )
+
+                vendor_ident_map = {
+                    (vi.identification_name, vi.identification_value): vi
+                    for vi in EntityIdentification.objects.filter(
+                        entity_id=enterprise_vm.seller_entity_id,
+                        deleted_datetime__isnull=True,
+                    )
+                }
+
+                for ident in payload.get("vendor_identifications", []):
+                    key = (
+                        ident["identification_name"],
+                        ident["identification_value"],
+                    )
+                    if key not in vendor_ident_map:
+                        raise ValidationException(
+                            f"Vendor identification {ident['identification_name']} with value {ident['identification_value']} does not belong to the vendor"
+                        )
+
+                template = template_map.get(
+                    (buyer_entity_id, payload.get("template_name"))
+                )
+                if not template:
+                    raise BadRequestException("Invalid template")
+
+                section_map, item_map = get_template_section_maps(template.template_id)
+
+                custom_sections = (
+                    custom_services.validate_and_autofill_custom_sections_from_template(
+                        custom_sections=payload.get("custom_sections"),
+                        template_section_map=section_map,
+                        template_section_item_map=item_map,
+                    )
+                )
+
+                contract = contract_service._save_contract(
+                    custom_contract_id=factwise_contract_id,
+                    ERP_contract_id=ERP_contract_id,
+                    contract_name=payload.get("contract_name"),
+                    contract_start_date=payload.get("contract_start_date"),
+                    contract_end_date=payload.get("contract_end_date"),
+                    buyer_entity_id=buyer_entity_id,
+                    buyer_enterprise_id=enterprise_id,
+                    seller_entity_id=enterprise_vm.seller_entity_id,
+                    seller_enterprise_id=enterprise_vm.seller_enterprise_id,
+                    buyer_address_information=buyer_address_information,
+                    buyer_contact_information=buyer_contact_information,
+                    buyer_identifications=buyer_identifications,
+                    status=payload.get("status"),
+                    additional_details=ContractAdditionalDetails(
+                        template_id=template.template_id
+                    ),
+                    project_information=_get_project_information_from_project_code(
+                        buyer_entity_id=buyer_entity_id,
+                        project_code=payload.get("project"),
+                    ),
+                    prepayment_percentage=payload.get("prepayment_percentage"),
+                    payment_type=payload.get("payment_type"),
+                    payment_terms=payload.get("payment_terms"),
+                    deliverables_payment_terms=payload.get(
+                        "deliverables_payment_terms"
+                    ),
+                    incoterm_id=backbone_service.get_incoterm_via_name(
+                        incoterm=payload.get("incoterm")
+                    ).entry_id,
+                    lead_time=payload.get("lead_time"),
+                    lead_time_period=payload.get("lead_time_period"),
+                    terms_and_conditions=_get_terms_and_conditions(
+                        enterprise_id=enterprise_id,
+                        terms_and_conditions=payload.get("terms_and_conditions"),
+                    ),
+                    vendor_identifications=payload.get("vendor_identifications"),
+                    vendor_address_information=vendor_address_information,
+                    vendor_contact_information=vendor_contact_information,
+                )
+                contract.created_by_user_id = user_id
+                contract.save()
+                contract_id = contract.contract_id
+
+                existing_factwise_id_map.add(contract.custom_contract_id)
+                existing_erp_id_map.add(contract.ERP_contract_id)
+
+                # CONTRACT-LEVEL ADDITIONAL COSTS (verbatim parity with single-create)
+                contract_additional_costs = []
+                contract_taxes = []
+                contract_discounts = []
+
+                for cost in payload.get("additional_costs"):
+                    additional_cost = overall_costs_map[cost["name"]]
+                    contract_additional_costs.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=additional_cost.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=additional_cost.cost_type,
+                            allocation_type=additional_cost.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in payload.get("taxes"):
+                    additional_cost = overall_costs_map[cost["name"]]
+                    contract_taxes.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=additional_cost.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=additional_cost.cost_type,
+                            allocation_type=additional_cost.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in payload.get("discounts"):
+                    if cost["name"] != "Overall discount":
+                        additional_cost = overall_costs_map[cost["name"]]
+                        contract_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=additional_cost.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=additional_cost.cost_type,
+                                allocation_type=additional_cost.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+                    else:
+                        contract_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=None,
+                                cost_name=cost["name"],
+                                cost_type="PERCENTAGE",
+                                allocation_type=None,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                additional_costs_to_create, _ = (
+                    additional_cost_service.handle_additional_costs(
+                        type=AdditionalCostType.ADDITIONAL_COST.value,
+                        user_id=user_id,
+                        enterprise_id=enterprise_id,
+                        module=AdditionalCostLinkageModule.CONTRACT.value,
+                        additional_costs=contract_additional_costs,
+                        contract_id=contract_id,
+                        is_create=True,
+                    )
+                )
+                taxes_to_create, _ = additional_cost_service.handle_additional_costs(
+                    type=AdditionalCostType.TAX.value,
+                    user_id=user_id,
+                    enterprise_id=enterprise_id,
+                    module=AdditionalCostLinkageModule.CONTRACT.value,
+                    additional_costs=contract_taxes,
+                    contract_id=contract_id,
+                    is_create=True,
+                )
+                discounts_to_create, _ = (
+                    additional_cost_service.handle_additional_costs(
+                        type=AdditionalCostType.DISCOUNT.value,
+                        user_id=user_id,
+                        enterprise_id=enterprise_id,
+                        module=AdditionalCostLinkageModule.CONTRACT.value,
+                        additional_costs=contract_discounts,
+                        contract_id=contract_id,
+                        is_create=True,
+                    )
+                )
+
+                AdditionalCostLinkage.objects.bulk_create(additional_costs_to_create)
+                AdditionalCostLinkage.objects.bulk_create(taxes_to_create)
+                AdditionalCostLinkage.objects.bulk_create(discounts_to_create)
+
+                # ============================
+                # FIX APPLIED: CONTRACT CUSTOM SECTIONS
+                # (verbatim from single-create)
+                # ============================
+                (
+                    custom_sections_to_create,
+                    _,
+                    custom_fields_to_create,
+                    custom_fields_attachments_to_create_map,
+                    custom_section_map,
+                ) = custom_service.create_custom_sections(
+                    user_id=user_id,
+                    custom_sections=custom_sections,
+                    enterprise_id=enterprise_id,
+                    contract_id=contract_id,
+                    custom_section_map={},
+                )
+
+                CustomSection.objects.bulk_create(custom_sections_to_create)
+                CustomField.objects.bulk_create(custom_fields_to_create)
+
+                (
+                    contract_items_to_create,
+                    pricing_tiers_to_create,
+                    custom_fields_to_create,
+                    additional_costs_to_create,
+                    taxes_to_create,
+                    discounts_to_create,
+                    attributes_to_create,
+                    attribute_values_to_create,
+                ) = ([], [], [], [], [], [], [], [])
+
+                for contract_item in payload.get("contract_items"):
+                    contract_item_attributes = []
+
+                    ERP_item_code = contract_item["ERP_item_code"]
+                    factwise_item_code = contract_item["factwise_item_code"]
+
+                    if factwise_item_code:
+                        try:
+                            enterprise_item = item_service.get_enterprise_item_via_code(
+                                enterprise_id=enterprise_id, code=factwise_item_code
+                            )
+                        except EnterpriseItem.DoesNotExist:
+                            raise ValidationException(
+                                f"Item with FactWise Item Code {factwise_item_code} does not exist"
+                            )
+                    else:
+                        enterprise_item = item_service.validate_and_get_enterprise_item(
+                            enterprise_id=enterprise_id,
+                            ERP_item_code=ERP_item_code,
+                        )
+
+                    if (
+                        enterprise_item.status
+                        == EnterpriseItemState.ITEM_INACTIVE.value
+                    ):
+                        if factwise_item_code:
+                            raise ValidationException(
+                                f"Item with FactWise Item Code {factwise_item_code} is disabled."
+                            )
+                        else:
+                            raise ValidationException(
+                                f"Item with ERP Item Code {ERP_item_code} is disabled."
+                            )
+
+                    enterprise_item_id = enterprise_item.enterprise_item_id
+
+                    currency_code = currency_map[contract_item["currency_code_id"]]
+                    measurement_unit_id = contract_item["measurement_unit_id"]
+
+                    for attribute in contract_item["attributes"]:
+                        name = attribute["attribute_name"]
+                        if name not in attributes_map:
+                            raise ValidationException(f"Attribute not found: {name}")
+                        attribute_def = attributes_map[name]
+                        contract_item_attributes.append(
+                            AttributeLinkageInputStruct(
+                                attribute_name=attribute_def.attribute_name,
+                                attribute_type=attribute_def.attribute_type,
+                                attribute_id=attribute_def.attribute_id,
+                                attribute_values=[
+                                    AttributeValueLinkageInputStruct(value=v["value"])
+                                    for v in attribute["attribute_value"]
+                                ],
+                            )
+                        )
+
+                    incoterm_id = incoterm_map[contract_item["incoterm"]].entry_id
+
+                    procurement_information = (
+                        contract_item_service._construct_procurement_information(
+                            lead_time=contract_item["lead_time"],
+                            lead_time_period=contract_item["lead_time_period"],
+                        )
+                    )
+
+                    pricing_tiers = contract_item["pricing_tiers"]
+                    item_quantity = 0
+
+                    for tier in pricing_tiers:
+                        format_costs_result = _format_costs(
+                            additional_costs=tier["additional_costs"],
+                            taxes=tier["taxes"],
+                            discounts=tier["discounts"],
+                            costs_map=item_costs_map,
+                        )
+
+                        tier["additional_costs"] = format_costs_result[
+                            "additional_costs"
+                        ]
+                        tier["taxes"] = format_costs_result["taxes"]
+                        tier["discounts"] = format_costs_result["discounts"]
+
+                        tier["effective_rate"] = (
+                            additional_cost_service._get_item_effective_rate(
+                                base_quantity=tier["max_quantity"]
+                                - tier["min_quantity"],
+                                base_rate=tier["rate"],
+                                additional_costs=[
+                                    asdict(c) for c in tier["additional_costs"]
+                                ],
+                                taxes=[asdict(c) for c in tier["taxes"]],
+                                discounts=[asdict(c) for c in tier["discounts"]],
+                            )
+                        )
+
+                        if item_quantity < tier["max_quantity"]:
+                            item_quantity = tier["max_quantity"]
+
+                    pricing_information = ContractItemPricingInformation(
+                        currency_code_id=currency_code.entry_id,
+                        currency_name=currency_code.currency_name,
+                        currency_symbol=currency_code.currency_symbol,
+                        currency_code_abbreviation=currency_code.currency_code_abbreviation,
+                        desired_price=None,
+                        total_price=0,
+                    )
+
+                    contract_item_obj = contract_item_service._save_contract_item(
+                        contract_id=contract_id,
+                        enterprise_item_id=enterprise_item_id,
+                        currency_id=currency_code.entry_id,
+                        measurement_unit_id=measurement_unit_id,
+                        rate=None,
+                        pricing_information=pricing_information,
+                        quantity=item_quantity,
+                        buyer_skus=[],
+                        prepayment_percentage=payload.get("prepayment_percentage"),
+                        payment_type=payload.get("payment_type"),
+                        payment_terms=payload.get("payment_terms"),
+                        deliverables_payment_terms=payload.get(
+                            "deliverables_payment_terms"
+                        ),
+                        incoterm_id=incoterm_id,
+                        procurement_information=procurement_information,
+                    )
+
+                    contract_items_to_create.append(contract_item_obj)
+
+                    _attrs, _vals, _ = attribute_service.handle_attributes(
+                        enterprise_id=enterprise_id,
+                        module=AttributeLinkageModule.CONTRACT_ITEM.value,
+                        attributes=contract_item_attributes,
+                        contract_item_id=contract_item_obj.contract_item_id,
+                        is_create=True,
+                    )
+                    attributes_to_create.extend(_attrs)
+                    attribute_values_to_create.extend(_vals)
+
+                    _attrs, _vals = attribute_service.clone_module_attributes(
+                        enterprise_id=enterprise_id,
+                        from_module=AttributeLinkageModule.ITEM.value,
+                        to_module=AttributeLinkageModule.CONTRACT_ITEM.value,
+                        old_enterprise_item_id=enterprise_item_id,
+                        new_contract_item_id=contract_item_obj.contract_item_id,
+                    )
+                    attributes_to_create.extend(_attrs)
+                    attribute_values_to_create.extend(_vals)
+
+                    pricing_result = pricing_tier_service.create_pricing_tiers(
+                        enterprise_id=enterprise_id,
+                        contract_item_id=contract_item_obj.contract_item_id,
+                        pricing_tiers=pricing_tiers,
+                    )
+
+                    pricing_tiers_to_create.extend(
+                        pricing_result["pricing_tiers_to_create"]
+                    )
+                    additional_costs_to_create.extend(
+                        pricing_result["additional_costs_to_create"]
+                    )
+                    taxes_to_create.extend(pricing_result["taxes_to_create"])
+                    discounts_to_create.extend(pricing_result["discounts_to_create"])
+
+                ContractItem.objects.bulk_create(contract_items_to_create)
+                AttributeLinkage.objects.bulk_create(attributes_to_create)
+                AttributeValueLinkage.objects.bulk_create(attribute_values_to_create)
+                PricingTier.objects.bulk_create(pricing_tiers_to_create)
+                AdditionalCostLinkage.objects.bulk_create(additional_costs_to_create)
+                AdditionalCostLinkage.objects.bulk_create(taxes_to_create)
+                AdditionalCostLinkage.objects.bulk_create(discounts_to_create)
+                CustomField.objects.bulk_create(custom_fields_to_create)
+
+                # ============================
+
+                _queue_contract_pricing_sync(contract_id, enterprise_id)
+
+            result = {
+                "index": index,
+                "status": "success",
+                "erp_contract_code": payload.get("ERP_contract_id"),
+                "contract_code": contract.custom_contract_id,
+                "contract_id": str(contract.contract_id),
+            }
+            results.append(result)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    success=F("success") + 1,
+                    results=JsonbConcat(
+                        F("results"),
+                        Value([result], output_field=JSONField()),
+                    ),
+                )
+
+        except Exception as exc:
+            failure = {
+                "index": index,
+                "status": "failed",
+                "erp_contract_code": payload.get("ERP_contract_id"),
+                "error": str(exc),
+            }
+            results.append(failure)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    failed=F("failed") + 1,
+                    results=JsonbConcat(
+                        F("results"),
+                        Value([failure], output_field=JSONField()),
+                    ),
+                )
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="success")
+
+    return {
+        "total": len(contracts_payload),
+        "success": sum(r["status"] == "success" for r in results),
+        "failed": sum(r["status"] == "failed" for r in results),
+        "results": results,
+    }
+
+
+@shared_task(
+    bind=True,
+    name="factwise.openapi.services.contract_services.create_contracts_bulk_task",
+)
+def create_contracts_bulk_task(self, *, enterprise_id, contracts_payload, task_id):
+    try:
+        return _create_contracts_bulk_impl(
+            enterprise_id=enterprise_id,
+            contracts_payload=contracts_payload,
+            task_id=task_id,
+        )
+    except Exception as exc:
+        BulkTask.objects.filter(task_id=task_id).update(
+            status="failed",
+            error=str(exc),
+        )
+        raise
+
+
+ASYNC_CONTRACT_THRESHOLD = 1000
+
+
+def create_contracts_bulk(
+    *, enterprise_id, contracts_payload, total_len, validation_errors
+):
+    """
+    Returns:
+    - Sync:
+        {
+            "total": int,
+            "success": int,
+            "failed": int,
+            "results": [...]
+        }
+
+    - Async:
+        {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str,
+        }
+    """
+
+    total = len(contracts_payload)
+
+    if total >= ASYNC_CONTRACT_THRESHOLD:
+        task_id = uuid.uuid4()
+        BulkTask.objects.create(
+            task_id=task_id,
+            task_type="contract",
+            enterprise_id=enterprise_id,
+            status="pending",
+            total=total_len,
+            processed=len(validation_errors),
+            success=0,
+            failed=len(validation_errors),
+            results=[
+                {
+                    "index": e["index"],
+                    "status": "failed",
+                    "erp_contract_code": e.get("erp_contract_code"),
+                    "error": e["error"],
+                }
+                for e in validation_errors
+            ],
+        )
+
+        create_contracts_bulk_task.delay(  # type: ignore
+            enterprise_id=enterprise_id,
+            projects_payload=make_json_safe(contracts_payload),
+            task_id=str(task_id),
+        )
+
+        return {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str(task_id),
+        }
+
+    return _create_contracts_bulk_impl(
+        enterprise_id=enterprise_id,
+        contracts_payload=contracts_payload,
+    )
 
 
 @transaction.atomic
@@ -975,6 +1732,474 @@ def update_contract(
     )
 
 
+def _update_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=None):
+    results = []
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="running")
+
+    # -------------------------------------------------
+    # PRELOAD (READ-ONLY, BULK SAFE)
+    # -------------------------------------------------
+
+    user_emails = set()
+    factwise_contract_ids = set()
+    erp_contract_ids = set()
+    attribute_names = set()
+    overall_cost_names = set()
+    item_cost_names = set()
+    currency_code_ids = set()
+    incoterm_names = set()
+
+    for payload in contracts_payload:
+        user_emails.add(payload.get("modified_by_user_email"))
+
+        if payload.get("factwise_contract_id"):
+            factwise_contract_ids.add(payload.get("factwise_contract_id"))
+        else:
+            erp_contract_ids.add(payload.get("ERP_contract_id"))
+
+        for cost in payload.get("additional_costs"):
+            overall_cost_names.add(cost["name"])
+        for cost in payload.get("taxes"):
+            overall_cost_names.add(cost["name"])
+        for cost in payload.get("discounts"):
+            overall_cost_names.add(cost["name"])
+
+        for item in payload.get("contract_items"):
+            currency_code_ids.add(item["currency_code_id"])
+            incoterm_names.add(item["incoterm"])
+
+            for attr in item["attributes"]:
+                attribute_names.add(attr["attribute_name"])
+
+            for tier in item["pricing_tiers"]:
+                for cost in tier["additional_costs"]:
+                    item_cost_names.add(cost["name"])
+                for cost in tier["taxes"]:
+                    item_cost_names.add(cost["name"])
+                for cost in tier["discounts"]:
+                    item_cost_names.add(cost["name"])
+
+    # ---- users ----
+    user_map = enterprise_user_service.get_users_by_enterprise_emails(
+        enterprise_id=enterprise_id,
+        emails=list(user_emails),
+    )
+
+    # ---- contracts ----
+    contracts = list(
+        contract_service.get_enterprise_contracts(
+            enterprise_id=enterprise_id,
+            custom_contract_ids=list(factwise_contract_ids),
+            ERP_contract_ids=list(erp_contract_ids),
+        )
+    )
+    contract_by_factwise = {
+        c.custom_contract_id: c for c in contracts if c.custom_contract_id
+    }
+    contract_by_erp = {c.ERP_contract_id: c for c in contracts if c.ERP_contract_id}
+
+    # ---- attributes ----
+    attributes = attribute_service.get_attributes_via_names(
+        enterprise_id=enterprise_id,
+        attribute_names=list(attribute_names),
+    )
+    attributes_map = {a.attribute_name: a for a in attributes}
+
+    # ---- costs ----
+    overall_costs = additional_cost_service.get_additional_costs_from_names(
+        enterprise_id=enterprise_id,
+        additional_cost_names=list(overall_cost_names),
+    ).filter(field_level=ModuleTemplateSectionItemLevel.OTHER.value)
+    overall_cost_map = {c.cost_name: c for c in overall_costs}
+
+    item_costs = additional_cost_service.get_additional_costs_from_names(
+        enterprise_id=enterprise_id,
+        additional_cost_names=list(item_cost_names),
+    )
+    item_costs_map = {c.cost_name: c for c in item_costs}
+
+    # ---- currencies ----
+    currencies = backbone_service.get_currency_list_via_ids(
+        currency_code_id_list=list(currency_code_ids)
+    )
+    currency_code_map = {c.entry_id: c for c in currencies}
+
+    # ---- incoterms ----
+    incoterms = backbone_service.get_incoterm_list(incoterms=list(incoterm_names))
+    incoterm_map = {i.incoterm_abbreviation: i for i in incoterms}
+
+    # -------------------------------------------------
+    # MAIN LOOP (PER-CONTRACT ATOMICITY)
+    # -------------------------------------------------
+
+    for index, payload in enumerate(contracts_payload):
+        try:
+            with transaction.atomic():
+                set_statement_timeout(900000)
+                # ---- user ----
+                user = user_map.get(payload.get("modified_by_user_email"))
+                if not user:
+                    raise ValidationException(
+                        "User email does not exist in the enterprise"
+                    )
+
+                # ---- contract ----
+                if payload.get("factwise_contract_id"):
+                    contract = contract_by_factwise.get(
+                        payload.get("factwise_contract_id")
+                    )
+                    if not contract:
+                        raise ValidationException(
+                            "Contract with Factwise contract id does not exist"
+                        )
+                else:
+                    contract = contract_by_erp.get(payload.get("ERP_contract_id"))
+                    if not contract:
+                        raise ValidationException(
+                            "Contract with ERP contract id does not exist"
+                        )
+
+                # ---- transition ----
+                transition = (contract.status, payload.get("status"))
+                status_workflow = get_and_validate_contract_update_transition(
+                    transition
+                )
+
+                # ---- buyer ----
+                buyer_entity_id = contract.buyer_entity_id
+
+                buyer_identifications = (
+                    _get_buyer_identiifications_from_entity_and_identification_names(
+                        buyer_entity_id=buyer_entity_id,
+                        identification_name_list=payload.get("buyer_identifications"),
+                    )
+                )
+
+                buyer_address_information = (
+                    _get_buyer_address_information_from_entity_and_nickname(
+                        buyer_entity_id=buyer_entity_id,
+                        buyer_address=payload.get("buyer_address"),
+                    )
+                )
+
+                buyer_contact_information = _get_buyer_contact_information_from_email(
+                    enterprise_id=enterprise_id,
+                    email=payload.get("buyer_contact"),
+                )
+
+                entity_vm = _get_entity_vm_from_code(
+                    buyer_entity_id=buyer_entity_id,
+                    factwise_vendor_code=payload.get("factwise_vendor_code"),
+                    ERP_vendor_code=payload.get("ERP_vendor_code"),
+                )
+
+                if contract.status == ContractState.CONTRACT_SUBMITTED.value:
+                    seller_entity_id = contract.seller_entity_id
+                    seller_enterprise_id = contract.seller_enterprise_id
+                else:
+                    seller_entity_id = (
+                        entity_vm.enterprise_vendor_master.seller_entity_id
+                    )
+                    seller_enterprise_id = (
+                        entity_vm.enterprise_vendor_master.seller_enterprise_id
+                    )
+
+                vendor_contact_information = _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
+                    buyer_entity_id=buyer_entity_id,
+                    seller_entity_id=seller_entity_id,
+                    vendor_contact=payload.get("vendor_contact"),
+                )
+
+                vendor_address_information = (
+                    _get_vendor_address_information_from_seller_entity_and_nickname(
+                        seller_entity_id=seller_entity_id,
+                        vendor_address=payload.get("vendor_address"),
+                    )
+                )
+
+                vendor_ident_map = {
+                    (vi.identification_name, vi.identification_value): vi
+                    for vi in EntityIdentification.objects.filter(
+                        entity_id=seller_entity_id,
+                        deleted_datetime__isnull=True,
+                    )
+                }
+
+                for ident in payload.get("vendor_identifications", []):
+                    key = (
+                        ident["identification_name"],
+                        ident["identification_value"],
+                    )
+                    if key not in vendor_ident_map:
+                        raise ValidationException(
+                            f"Vendor identification {ident['identification_name']} with value {ident['identification_value']} does not belong to the vendor"
+                        )
+
+                # ---- misc ----
+                terms_and_conditions = _get_terms_and_conditions(
+                    enterprise_id=enterprise_id,
+                    terms_and_conditions=payload.get("terms_and_conditions"),
+                )
+
+                project_information = _get_project_information_from_project_code(
+                    buyer_entity_id=buyer_entity_id,
+                    project_code=payload.get("project"),
+                )
+
+                incoterm_id = backbone_service.get_incoterm_via_name(
+                    incoterm=payload.get("incoterm")
+                ).entry_id
+
+                template_id = contract.additional_details["template_id"]
+                template_sections = template_services.get_template_sections(
+                    template_id=template_id
+                )
+                template_section_map = {s.alternate_name: s for s in template_sections}
+
+                template_section_items = template_services.get_template_section_items(
+                    template_id=template_id
+                ).filter(is_builtin_field=False)
+                template_section_item_map = {
+                    (i.section.alternate_name, i.alternate_name): i
+                    for i in template_section_items
+                }
+
+                custom_sections = (
+                    custom_services.validate_and_autofill_custom_sections_from_template(
+                        custom_sections=payload.get("custom_sections"),
+                        template_section_map=template_section_map,
+                        template_section_item_map=template_section_item_map,
+                    )
+                )
+
+                # ---- overall costs ----
+                contract_additional_costs = []
+                contract_taxes = []
+                contract_discounts = []
+
+                for cost in payload.get("additional_costs"):
+                    c = overall_cost_map[cost["name"]]
+                    contract_additional_costs.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=c.additional_cost_id,
+                            cost_name=c.cost_name,
+                            cost_type=c.cost_type,
+                            allocation_type=c.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in payload.get("taxes"):
+                    c = overall_cost_map[cost["name"]]
+                    contract_taxes.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=c.additional_cost_id,
+                            cost_name=c.cost_name,
+                            cost_type=c.cost_type,
+                            allocation_type=c.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in payload.get("discounts"):
+                    if cost["name"] == "Overall discount":
+                        contract_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=None,
+                                cost_name=cost["name"],
+                                cost_type="PERCENTAGE",  # type: ignore
+                                allocation_type=None,
+                                cost_value=cost["value"],
+                            )
+                        )
+                    else:
+                        c = overall_cost_map[cost["name"]]
+                        contract_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=c.additional_cost_id,
+                                cost_name=c.cost_name,
+                                cost_type=c.cost_type,
+                                allocation_type=c.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                # ---- workflow call (truth) ----
+                status_workflow(
+                    user_id=user.user_id,
+                    contract=contract,
+                    contract_name=payload.get("contract_name"),
+                    contract_start_date=payload.get("contract_start_date"),
+                    contract_end_date=payload.get("contract_end_date"),
+                    status=payload.get("status"),
+                    buyer_entity_id=buyer_entity_id,
+                    enterprise_id=enterprise_id,
+                    seller_entity_id=seller_entity_id,
+                    seller_enterprise_id=seller_enterprise_id,
+                    buyer_address_information=buyer_address_information,
+                    buyer_contact_information=buyer_contact_information,
+                    buyer_identifications=buyer_identifications,
+                    vendor_identifications=payload.get("vendor_identifications"),
+                    vendor_contact_information=vendor_contact_information,
+                    vendor_address_information=vendor_address_information,
+                    project_information=project_information,
+                    additional_costs=contract_additional_costs,
+                    taxes=contract_taxes,
+                    discounts=contract_discounts,
+                    prepayment_percentage=payload.get("prepayment_percentage"),
+                    payment_type=payload.get("payment_type"),
+                    payment_terms=payload.get("payment_terms"),
+                    deliverables_payment_terms=payload.get(
+                        "deliverables_payment_terms"
+                    ),
+                    incoterm_id=incoterm_id,
+                    lead_time=payload.get("lead_time"),
+                    lead_time_period=payload.get("lead_time_period"),
+                    terms_and_conditions=terms_and_conditions,
+                    custom_sections=custom_sections,
+                    attachments=payload.get("attachments"),
+                    contract_items=payload.get("contract_items"),
+                    template_section_map=template_section_map,
+                    template_section_item_map=template_section_item_map,
+                    currency_code_map=currency_code_map,
+                    incoterm_map=incoterm_map,
+                    attributes_map=attributes_map,
+                    item_costs_map=item_costs_map,
+                )
+
+            result = {
+                "index": index,
+                "status": "success",
+                "erp_contract_code": payload.get("ERP_contract_id"),
+                "contract_code": contract.custom_contract_id,
+                "contract_id": str(contract.contract_id),
+            }
+            results.append(result)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    success=F("success") + 1,
+                    results=JsonbConcat(
+                        F("results"),
+                        Value([result], output_field=JSONField()),
+                    ),
+                )
+
+        except Exception as exc:
+            failure = {
+                "index": index,
+                "status": "failed",
+                "erp_contract_code": payload.get("ERP_contract_id"),
+                "error": str(exc),
+            }
+            results.append(failure)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    failed=F("failed") + 1,
+                    results=JsonbConcat(
+                        F("results"),
+                        Value([failure], output_field=JSONField()),
+                    ),
+                )
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="success")
+
+    return {
+        "total": len(contracts_payload),
+        "success": sum(r["status"] == "success" for r in results),
+        "failed": sum(r["status"] == "failed" for r in results),
+        "results": results,
+    }
+
+
+@shared_task(
+    bind=True,
+    name="factwise.openapi.services.contract_services.update_contracts_bulk_task",
+)
+def update_contracts_bulk_task(self, *, enterprise_id, contracts_payload, task_id):
+    try:
+        return _update_contracts_bulk_impl(
+            enterprise_id=enterprise_id,
+            contracts_payload=contracts_payload,
+            task_id=task_id,
+        )
+    except Exception as exc:
+        BulkTask.objects.filter(task_id=task_id).update(
+            status="failed",
+            error=str(exc),
+        )
+        raise
+
+
+def update_contracts_bulk(
+    *, enterprise_id, contracts_payload, total_len, validation_errors
+):
+    """
+    Returns:
+    - Sync:
+        {
+            "total": int,
+            "success": int,
+            "failed": int,
+            "results": [...]
+        }
+
+    - Async:
+        {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str,
+        }
+    """
+
+    total = len(contracts_payload)
+
+    if total >= ASYNC_CONTRACT_THRESHOLD:
+        task_id = uuid.uuid4()
+        BulkTask.objects.create(
+            task_id=task_id,
+            task_type="contract",
+            enterprise_id=enterprise_id,
+            status="pending",
+            total=total_len,
+            processed=len(validation_errors),
+            success=0,
+            failed=len(validation_errors),
+            results=[
+                {
+                    "index": e["index"],
+                    "status": "failed",
+                    "erp_contract_code": e.get("erp_contract_code"),
+                    "error": e["error"],
+                }
+                for e in validation_errors
+            ],
+        )
+
+        update_contracts_bulk_task.delay(  # type: ignore
+            enterprise_id=enterprise_id,
+            projects_payload=make_json_safe(contracts_payload),
+            task_id=str(task_id),
+        )
+
+        return {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str(task_id),
+        }
+
+    return _update_contracts_bulk_impl(
+        enterprise_id=enterprise_id,
+        contracts_payload=contracts_payload,
+    )
+
+
 @transaction.atomic
 def update_contract_status(
     *,
@@ -997,7 +2222,7 @@ def update_contract_status(
             contract = contract_service.get_enterprise_contract_via_custom_id(
                 enterprise_id=enterprise_id, custom_id=factwise_contract_id
             )
-        except EnterpriseItem.DoesNotExist:
+        except Contract.DoesNotExist:
             raise ValidationException(
                 "Contract with Factwise contract id does not exist"
             )
@@ -1006,7 +2231,7 @@ def update_contract_status(
             contract = contract_service.get_enterprise_contract_via_ERP_contract_id(
                 enterprise_id=enterprise_id, ERP_contract_id=ERP_contract_id
             )
-        except EnterpriseItem.DoesNotExist:
+        except Contract.DoesNotExist:
             raise ValidationException("Contract with ERP contract id does not exist")
 
     contract_transition = (contract.status, status)
@@ -1281,11 +2506,23 @@ def _process_contract_items(
                     enterprise_id=enterprise_id, code=factwise_item_code
                 )
             except EnterpriseItem.DoesNotExist:
-                raise ValidationException("Item with Factwise item Code does not exist")
+                raise ValidationException(
+                    f"Item with FactWise Item Code {factwise_item_code} does not exist"
+                )
         else:
             enterprise_item = item_service.validate_and_get_enterprise_item(
                 enterprise_id=enterprise_id, ERP_item_code=ERP_item_code
             )
+
+        if enterprise_item.status == EnterpriseItemState.ITEM_INACTIVE.value:
+            if factwise_item_code:
+                raise ValidationException(
+                    f"Item with FactWise Item Code {factwise_item_code} is disabled."
+                )
+            else:
+                raise ValidationException(
+                    f"Item with ERP Item Code {ERP_item_code} is disabled."
+                )
 
         enterprise_item_id = enterprise_item.enterprise_item_id
         currency_code_id = contract_item["currency_code_id"]
@@ -1294,7 +2531,10 @@ def _process_contract_items(
         measurement_unit_id = contract_item["measurement_unit_id"]
         attributes = contract_item["attributes"]
         for attribute in attributes:
-            contract_item_attribute = attributes_map[attribute["attribute_name"]]
+            name = attribute["attribute_name"]
+            if name not in attributes_map:
+                raise ValidationException(f"Attribute not found: {name}")
+            contract_item_attribute = attributes_map[name]
             contract_item_attributes.append(
                 AttributeLinkageInputStruct(
                     attribute_name=contract_item_attribute.attribute_name,
@@ -1606,26 +2846,6 @@ def _process_contract_items(
                 discounts_to_create.extend(_discounts_to_create)
                 discounts_to_update.extend(_discounts_to_update)
 
-                # Handle pricing tier deletion
-                existing_pricing_tiers = PricingTier.objects.filter(
-                    contract_item_id=contract_item_id
-                )
-                provided_tier_ids = {
-                    tier.get("pricing_tier_id")
-                    for tier in pricing_tiers
-                    if tier.get("pricing_tier_id")
-                }
-                tiers_to_delete = existing_pricing_tiers.exclude(
-                    pricing_tier_id__in=provided_tier_ids
-                )
-                for tier_to_delete in tiers_to_delete:
-                    # Delete associated additional costs
-                    AdditionalCostLinkage.objects.filter(
-                        pricing_tier_id=tier_to_delete.pricing_tier_id
-                    ).delete()
-                    # Delete the tier itself
-                    tier_to_delete.delete()
-
                 (
                     _attributes_to_create,
                     _attribute_values_to_create,
@@ -1727,7 +2947,9 @@ def _process_contract_items(
                 additional_costs_to_create.extend(_additional_costs_to_create)
                 _taxes_to_create = create_pricing_tiers_result["taxes_to_create"]
                 taxes_to_create.extend(_taxes_to_create)
-                _discounts_to_create = create_pricing_tiers_result["discounts_to_create"]
+                _discounts_to_create = create_pricing_tiers_result[
+                    "discounts_to_create"
+                ]
                 discounts_to_create.extend(_discounts_to_create)
 
                 (
@@ -1816,6 +3038,39 @@ def _process_contract_items(
                 "modified_by_user_id",
             ],
         )
+
+
+def _resolve_enterprise_item_ids(*, enterprise_id, contract_items):
+    factwise_codes = set()
+    erp_codes = set()
+
+    for item in contract_items:
+        if item.get("factwise_item_code"):
+            factwise_codes.add(item["factwise_item_code"])
+        elif item.get("ERP_item_code"):
+            erp_codes.add(item["ERP_item_code"])
+
+    enterprise_items = (
+        EnterpriseItem.objects.filter(buyer_enterprise_id=enterprise_id)
+        .filter(Q(code__in=factwise_codes) | Q(ERP_item_code__in=erp_codes))
+        .only("enterprise_item_id", "code", "ERP_item_code")
+    )
+
+    code_map = {}
+    for ei in enterprise_items:
+        if ei.code:
+            code_map[("factwise", ei.code)] = ei.enterprise_item_id
+        if ei.ERP_item_code:
+            code_map[("erp", ei.ERP_item_code)] = ei.enterprise_item_id
+
+    resolved_ids = set()
+    for item in contract_items:
+        if item.get("factwise_item_code"):
+            resolved_ids.add(code_map[("factwise", item["factwise_item_code"])])
+        elif item.get("ERP_item_code"):
+            resolved_ids.add(code_map[("erp", item["ERP_item_code"])])
+
+    return resolved_ids
 
 
 def _update_contract(
@@ -1965,9 +3220,29 @@ def _update_contract(
             "modified_by_user_id",
         ],
     )
+
+    incoming_enterprise_item_ids = _resolve_enterprise_item_ids(
+        enterprise_id=enterprise_id,
+        contract_items=contract_items,
+    )
+
     existing_contract_items = contract_item_service.get_contract_items_for_update(
         contract_id=contract_id
     )
+
+    items_to_delete = [
+        item.contract_item_id
+        for item in existing_contract_items
+        if item.enterprise_item_id not in incoming_enterprise_item_ids
+    ]
+
+    if items_to_delete:
+        ContractItem.objects.filter(contract_item_id__in=items_to_delete).delete()
+
+    existing_contract_items = contract_item_service.get_contract_items_for_update(
+        contract_id=contract_id
+    )
+
     contract_items_map = {
         contract_item.enterprise_item_id: contract_item
         for contract_item in existing_contract_items
@@ -2165,19 +3440,30 @@ def _queue_contract_pricing_sync(contract_id, enterprise_id):
     """Queue pricing repo sync for a contract after transaction commits."""
     try:
         from pricing_repository.tasks import sync_contract_all_items
+
         _cid = str(contract_id)
         _eid = str(enterprise_id)
-        print(f"[OPENAPI-SYNC] REGISTERING on_commit for contract {_cid} enterprise {_eid}", flush=True)
+        print(
+            f"[OPENAPI-SYNC] REGISTERING on_commit for contract {_cid} enterprise {_eid}",
+            flush=True,
+        )
 
         def _do_sync():
-            print(f"[OPENAPI-SYNC] on_commit FIRED — sending celery task for contract {_cid}", flush=True)
-            result = sync_contract_all_items.delay(_cid, _eid, action='sync')
-            print(f"[OPENAPI-SYNC] celery task SENT for contract {_cid}, task_id={result.id}", flush=True)
+            print(
+                f"[OPENAPI-SYNC] on_commit FIRED — sending celery task for contract {_cid}",
+                flush=True,
+            )
+            result = sync_contract_all_items.delay(_cid, _eid, action="sync")
+            print(
+                f"[OPENAPI-SYNC] celery task SENT for contract {_cid}, task_id={result.id}",
+                flush=True,
+            )
 
         transaction.on_commit(_do_sync)
     except Exception as e:
         print(f"[OPENAPI-SYNC] ERROR queueing contract sync: {e}", flush=True)
         import traceback
+
         traceback.print_exc()
 
 
@@ -2186,6 +3472,7 @@ def _queue_contract_pricing_delete(contract_id):
     Direct DB delete (no Celery) — reliable on Lambda where signals may not fire."""
     try:
         from pricing_repository.models import PricingRepositoryEntry, SourceType
+
         _cid = str(contract_id)
 
         def _do_delete():

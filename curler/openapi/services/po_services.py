@@ -1,78 +1,76 @@
 import uuid
 from dataclasses import asdict
 from datetime import datetime
+from decimal import Decimal
 
 from additional_costs import services as additional_cost_service
 from additional_costs.structures import AdditionalCostDataClass
 from backbone import service as backbone_service
+from celery import shared_task
 from django.db import transaction
-from django.db.models import Count
-from django.db.models import Q
+from django.db.models import Count, F, JSONField, Q, Value
 from django.utils import timezone
-from decimal import Decimal
-from event.rfq.services import rfq_item_service
-from event.services import event_service
-from event.states import EventType, SellerState
-from event.po_group.services import po_group_service
-from event.po_group.services import po_group_item_service
+from event.po_group.services import po_group_item_service, po_group_service
 from event.po_group.states import PoGroupStandardTermsType
 from event.po_group.structures import (
     PoGroupItemAdditionalDetails,
     PoGroupItemDeliveryInformation,
     PoGroupItemSellerContacts,
 )
-
-# from custom.structures import CustomSectionDataClass, CustomFieldDataClass
-from factwise.openapi.services import custom_services
-from organization.org_models.vendor_master_model import EnterpriseVendorMaster
-from organization.services import address_service
-from organization.services import enterprise_user_service
-from organization.services import item_service
-from organization.services import project_service
-from organization.services import terms_and_conditions_service
-from invoice.states import InvoiceState
-from invoice.states import InvoiceType
+from event.services import event_service
+from event.states import EventType, SellerState
+from invoice.states import InvoiceState, InvoiceType
 from module_templates import services as template_services
 from module_templates.types import ModuleTemplateType
+from openapi.models import BulkTask
 from openapi.structures import ProcurementInfo
-
-from permission.models import Permission
-from organization.org_models.item_master_model import EnterpriseItem, EntityItem
-from organization.services import entity_service
-from organization.services import identification_service
-from organization.services import vendor_contact_service
-from organization.services import vendor_master_service
-from organization.services import custom_id_service as org_service
+from organization.org_models.item_master_model import EnterpriseItem
+from organization.org_models.vendor_master_model import EnterpriseVendorMaster
+from organization.services import (
+    address_service,
+    enterprise_user_service,
+    entity_service,
+    identification_service,
+    item_service,
+    project_service,
+    terms_and_conditions_service,
+    vendor_contact_service,
+    vendor_master_service,
+)
 from organization.subscriptions import services as subscription_service
 from organization.subscriptions.types import QuantityType
-from purchase_order.models.purchase_order_model import PurchaseOrder
+from permission.models import Permission
 from purchase_order.models.purchase_order_item_model import PurchaseOrderItem
-from purchase_order.services import event_po_service
-from purchase_order.services import event_po_item_service
-from purchase_order.services import purchase_order_service
-from purchase_order.services import purchase_order_item_service
+from purchase_order.models.purchase_order_model import PurchaseOrder
 from purchase_order.services import common as po_common_service
+from purchase_order.services import (
+    event_po_item_service,
+    event_po_service,
+    purchase_order_item_service,
+    purchase_order_service,
+)
 from purchase_order.states import (
-    PurchaseOrderItemInternalStatus,
-    PurchaseOrderState,
     PurchaseOrderCreationState,
+    PurchaseOrderState,
     PurchaseOrderTerminationStatus,
     PurchaseOrderType,
 )
 from purchase_order.structures.po_structures import (
-    PurchaseOrderPricingInformation,
     PurchaseOrderItemNotes,
     PurchaseOrderItemPricingInformation,
+    PurchaseOrderPricingInformation,
     PurchaseOrderTerminationInformation,
 )
-from purchase_order.workflows import po_workflows
-from purchase_order.workflows import event_po_workflows
+from purchase_order.workflows import event_po_workflows, po_workflows
+from pydantic import ValidationError
 
-from factwise.exception import BadRequestException
-from factwise.exception import ValidationException
+from factwise.exception import BadRequestException, ValidationException
+from factwise.openapi.service import JsonbConcat, make_json_safe
+
+# from custom.structures import CustomSectionDataClass, CustomFieldDataClass
+from factwise.openapi.services import custom_services
 from factwise.states import validate_state
 from factwise.utils import JSONUtils
-
 
 # @transaction.atomic
 # def create_direct_purchase_order(
@@ -603,7 +601,10 @@ def create_purchase_order(
     purchase_order_details,
     purchase_order_items,
 ):
-    print(f"[OPENAPI-PO] >>> create_purchase_order ENTERED enterprise={enterprise_id}", flush=True)
+    print(
+        f"[OPENAPI-PO] >>> create_purchase_order ENTERED enterprise={enterprise_id}",
+        flush=True,
+    )
     email = purchase_order_details.get("created_by_user_email")
     user = enterprise_user_service.get_user_by_enterprise_email(
         enterprise_id=enterprise_id, email=email
@@ -1255,11 +1256,1051 @@ def create_purchase_order(
         )
     # Explicitly trigger pricing repo sync for OpenAPI-created POs
     # (Django signal skips on created=True for initial insert)
-    print(f"[OPENAPI-PO] >>> ABOUT TO CALL _queue_po_pricing_sync po={purchase_order.purchase_order_id}", flush=True)
-    _queue_po_pricing_sync(str(purchase_order.purchase_order_id), str(purchase_order.buyer_enterprise_id))
-    print(f"[OPENAPI-PO] >>> _queue_po_pricing_sync DONE, returning {purchase_order.custom_purchase_order_id}", flush=True)
+    print(
+        f"[OPENAPI-PO] >>> ABOUT TO CALL _queue_po_pricing_sync po={purchase_order.purchase_order_id}",
+        flush=True,
+    )
+    _queue_po_pricing_sync(
+        str(purchase_order.purchase_order_id), str(purchase_order.buyer_enterprise_id)
+    )
+    print(
+        f"[OPENAPI-PO] >>> _queue_po_pricing_sync DONE, returning {purchase_order.custom_purchase_order_id}",
+        flush=True,
+    )
 
     return purchase_order.custom_purchase_order_id
+
+
+def _create_purchase_orders_bulk_impl(
+    *, enterprise_id, purchase_orders_payload, task_id=None
+):
+    results = []
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="running")
+
+    # ==============================================================
+    # PHASE 1 — BULK PREFETCH (READ-ONLY, SAFE)
+    # ==============================================================
+    creator_emails = set()
+    buyer_entity_names = set()
+    address_nicknames = set()
+    factwise_vendor_codes = set()
+    erp_vendor_codes = set()
+    item_codes = set()
+    additional_cost_names = set()
+    incoterm_names = set()
+    template_names = set()
+    tnc_names = set()
+
+    for payload in purchase_orders_payload:
+        pod = payload["purchase_order_details"]
+        bd = payload["buyer_details"]
+        sd = payload["seller_details"]
+
+        creator_emails.add(pod["created_by_user_email"])
+        buyer_entity_names.add(bd["entity_name"])
+
+        address_nicknames.add(bd["billing_address_id"])
+        address_nicknames.add(bd["shipping_address_id"])
+
+        if sd.get("seller_address_id"):
+            address_nicknames.add(sd["seller_address_id"])
+
+        if sd.get("factwise_vendor_code"):
+            factwise_vendor_codes.add(sd["factwise_vendor_code"])
+        else:
+            erp_vendor_codes.add(sd["ERP_vendor_code"])
+
+        template_names.add(pod["template_name"])
+
+        if pod.get("incoterm"):
+            incoterm_names.add(pod["incoterm"])
+
+        tnc = pod.get("terms_and_conditions", {}).get("terms_and_conditions_id")
+        if tnc:
+            tnc_names.add(tnc)
+
+        for cost in pod.get("additional_costs", []):
+            additional_cost_names.add(cost["name"])
+        for cost in pod.get("taxes", []):
+            additional_cost_names.add(cost["name"])
+        for cost in pod.get("discounts", []):
+            additional_cost_names.add(cost["name"])
+
+        for item in payload["purchase_order_items"]:
+            item_codes.add(item.get("factwise_item_code") or item.get("ERP_item_code"))
+
+            for cost in item.get("additional_costs", []):
+                additional_cost_names.add(cost["name"])
+            for cost in item.get("taxes", []):
+                additional_cost_names.add(cost["name"])
+            for cost in item.get("discounts", []):
+                additional_cost_names.add(cost["name"])
+
+            if item.get("incoterm"):
+                incoterm_names.add(item["incoterm"])
+
+    # ---------------- bulk DB fetches ----------------
+    users_by_email = enterprise_user_service.get_users_by_enterprise_emails(
+        enterprise_id=enterprise_id,
+        emails=list(creator_emails),
+    )
+
+    buyer_entities_by_name = {
+        e.entity_name: e
+        for e in entity_service.get_entities_via_names(
+            enterprise_id=enterprise_id,
+            entity_names=list(buyer_entity_names),
+        )
+    }
+
+    addresses_by_nickname = {
+        a.address_nickname: a
+        for a in address_service.get_addresses_via_names(
+            enterprise_id=enterprise_id,
+            address_names=list(address_nicknames),
+        )
+    }
+
+    vendor_by_factwise_code = {
+        v.vendor_code: v
+        for v in vendor_master_service.get_enterprise_vendor_master_via_code_list(
+            vendor_code_list=list(factwise_vendor_codes),
+            buyer_enterprise_id=enterprise_id,
+        )
+    }
+
+    vendor_by_erp_code = {
+        v.ERP_vendor_code: v
+        for v in vendor_master_service.get_enterprise_vendor_master_via_ERP_vendor_code_list(
+            buyer_enterprise_id=enterprise_id,
+            ERP_vendor_code_list=list(erp_vendor_codes),
+        ).filter(
+            seller_entity__isnull=False
+        )
+    }
+
+    enterprise_items_by_code = {
+        i.code: i
+        for i in item_service.get_enterprise_items_via_codes(
+            enterprise_id=enterprise_id,
+            codes=list(item_codes),
+        )
+    }
+
+    additional_costs_by_name = {
+        c.cost_name: c
+        for c in additional_cost_service.get_additional_costs_from_names(
+            enterprise_id=enterprise_id,
+            additional_cost_names=list(additional_cost_names),
+        )
+    }
+
+    incoterm_entry_id_by_name = {
+        i.incoterm_abbreviation: i.entry_id
+        for i in backbone_service.get_incoterm_list(incoterms=list(incoterm_names))
+    }
+
+    buyer_entity_ids = {e.entity_id for e in buyer_entities_by_name.values()}
+
+    templates_by_name = {
+        t.name: t
+        for t in template_services._get_templates_from_names(
+            entity_ids=list(buyer_entity_ids),
+            names=list(template_names),
+            type=ModuleTemplateType.PO_GROUP_TEMPLATE,
+        )
+    }
+
+    tnc_by_name = {
+        t.name: t
+        for t in terms_and_conditions_service.get_terms_and_conditions_by_names(
+            enterprise_id=enterprise_id,
+            names=list(tnc_names),
+        )
+    }
+
+    # ==============================================================
+    # ------------------ PROCESS EACH PO ---------------------------
+    # ==============================================================
+    for index, payload in enumerate(purchase_orders_payload):
+        try:
+            with transaction.atomic():
+                buyer_details = payload["buyer_details"]
+                seller_details = payload["seller_details"]
+                purchase_order_details = payload["purchase_order_details"]
+                purchase_order_items = payload["purchase_order_items"]
+
+                # --------------------------------------------------
+                # USER
+                # --------------------------------------------------
+                email = purchase_order_details.get("created_by_user_email")
+                user = users_by_email.get(email)
+                if not user:
+                    raise ValidationException(
+                        "User email does not exist in the enterprise"
+                    )
+                user_id = user.user_id
+
+                # --------------------------------------------------
+                # BUYER ENTITY + ADDRESSES
+                # --------------------------------------------------
+                buyer_entity = buyer_entities_by_name.get(
+                    buyer_details.get("entity_name")
+                )
+                if not buyer_entity:
+                    raise ValidationError(
+                        f"Entity {buyer_details.get('entity_name')} does not exist in the enterprise"
+                    )
+                buyer_entity_id = buyer_entity.entity_id
+
+                billing_nickname = buyer_details.get("billing_address_id")
+                shipping_nickname = buyer_details.get("shipping_address_id")
+
+                try:
+                    buyer_billing_address_id = addresses_by_nickname[
+                        billing_nickname
+                    ].address_id
+                except KeyError:
+                    raise ValidationException(
+                        f"Invalid billing_address_id: {billing_nickname}"
+                    )
+
+                try:
+                    buyer_shipping_address_id = addresses_by_nickname[
+                        shipping_nickname
+                    ].address_id
+                except KeyError:
+                    raise ValidationException(
+                        f"Invalid shipping_address_id: {shipping_nickname}"
+                    )
+
+                buyer_identifications = identification_service.get_identification_list(
+                    identification_name_list=buyer_details.get("identifications"),
+                    entity_id=buyer_entity_id,
+                ).values_list("identification_id", flat=True)
+
+                # --------------------------------------------------
+                # SELLER / VENDOR
+                # --------------------------------------------------
+                factwise_vendor_code = seller_details.get("factwise_vendor_code")
+                if factwise_vendor_code:
+                    enterprise_vm = vendor_by_factwise_code.get(factwise_vendor_code)
+                    if enterprise_vm is None or enterprise_vm.seller_entity_id is None:
+                        raise ValidationException(
+                            f"Vendor {factwise_vendor_code} does not exist"
+                        )
+                else:
+                    ERP_vendor_code = seller_details.get("ERP_vendor_code")
+                    enterprise_vm = vendor_by_erp_code.get(ERP_vendor_code)
+                    if enterprise_vm is None:
+                        raise ValidationException(
+                            "Vendor with ERP vendor Code does not exist"
+                        )
+
+                seller_entity_id = enterprise_vm.seller_entity_id
+                seller_enterprise_id = enterprise_vm.seller_enterprise_id
+
+                seller_address_id = None
+                seller_address_nickname = seller_details.get("seller_address_id")
+                if seller_address_nickname:
+                    try:
+                        seller_address_id = addresses_by_nickname[
+                            seller_address_nickname
+                        ].address_id
+                    except KeyError:
+                        raise ValidationException(
+                            f"Invalid seller_address_id: {seller_address_nickname}"
+                        )
+
+                seller_full_address = seller_details.get("seller_full_address")
+
+                seller_identifications_input = seller_details.get("identifications")
+                seller_identifications_qs = (
+                    identification_service.get_identification_list(
+                        identification_name_list=seller_identifications_input,
+                        entity_id=seller_entity_id,
+                    )
+                )
+                if (
+                    seller_identifications_input
+                    and not seller_identifications_qs.exists()
+                ):
+                    raise ValidationException(
+                        f"Invalid seller identifications: {seller_identifications_input}"
+                    )
+
+                seller_identifications = seller_identifications_qs.values_list(
+                    "identification_id", flat=True
+                )
+
+                seller_contacts_input = seller_details.get("contacts")
+                vcs = vendor_contact_service.get_vendor_contacts_from_emails(
+                    seller_entity_id=seller_entity_id,
+                    emails=seller_contacts_input,
+                )
+                if seller_contacts_input and not vcs.exists():
+                    raise ValidationException(
+                        f"Invalid seller contacts (emails not found): {seller_contacts_input}"
+                    )
+                seller_contact_list = vcs.values_list("user_id", flat=True)
+
+                # --------------------------------------------------
+                # EVENT / RFQ
+                # --------------------------------------------------
+                custom_event_id = purchase_order_details.get("event")
+                event_id = None
+                rfq_items_map = {}
+
+                if custom_event_id:
+                    event = event_service.get_event_from_custom_event_id(
+                        enterprise_id=enterprise_id,
+                        custom_event_id=custom_event_id,
+                    )
+                    if event.event_type != EventType.EVENT_RFQ.value:
+                        raise ValidationException(
+                            f"Event {custom_event_id} does not have a RFQ"
+                        )
+
+                    rfq_items = event.sub_event.rfqeventitem_set.filter(
+                        deleted_datetime__isnull=True
+                    )
+                    for rfq_item in rfq_items:
+                        rfq_items_map[rfq_item.enterprise_item.ERP_item_code] = rfq_item
+
+                    event_id = event.event_id
+
+                # --------------------------------------------------
+                # TEMPLATE
+                # --------------------------------------------------
+                ERP_po_id = purchase_order_details.get("ERP_po_id")
+                template_name = purchase_order_details.get("template_name")
+                template = templates_by_name.get(template_name)
+                if not template:
+                    raise ValidationException(f"Template '{template_name}' not found")
+                template_id = template.template_id
+
+                template_sections = template_services.get_template_sections(
+                    template_id=template_id
+                )
+                template_section_map = {s.alternate_name: s for s in template_sections}
+
+                template_section_items = template_services.get_template_section_items(
+                    template_id=template_id
+                ).filter(is_builtin_field=False)
+                template_section_item_map = {
+                    (i.section.alternate_name, i.alternate_name): i
+                    for i in template_section_items
+                }
+
+                # --------------------------------------------------
+                # HEADER FIELDS
+                # --------------------------------------------------
+                issued_date = purchase_order_details.get("issued_date")
+                accepted_date = purchase_order_details.get("accepted_date")
+
+                currency_id = purchase_order_details.get("currency_code")
+                notes = purchase_order_details.get("notes")
+
+                incoterm_name = purchase_order_details.get("incoterm")
+                if incoterm_name:
+                    try:
+                        overall_incoterm_id = incoterm_entry_id_by_name[incoterm_name]
+                    except KeyError:
+                        raise ValidationException(f"Invalid incoterm: {incoterm_name}")
+                else:
+                    overall_incoterm_id = None
+
+                prepayment_percentage = purchase_order_details.get(
+                    "prepayment_percentage"
+                )
+                payment_type = purchase_order_details.get("payment_type")
+                payment_terms = purchase_order_details.get("payment_terms")
+                deliverables_payment_terms = purchase_order_details.get(
+                    "deliverables_payment_terms"
+                )
+                lead_time = purchase_order_details.get("lead_time")
+                lead_time_period = purchase_order_details.get("lead_time_period")
+
+                custom_sections = (
+                    custom_services.validate_and_autofill_custom_sections_from_template(
+                        custom_sections=purchase_order_details.get("custom_sections"),
+                        template_section_map=template_section_map,
+                        template_section_item_map=template_section_item_map,
+                    )
+                )
+
+                terms_and_conditions = purchase_order_details.get(
+                    "terms_and_conditions"
+                )
+                if terms_and_conditions.get("terms_and_conditions_id"):
+                    tnc_id = terms_and_conditions["terms_and_conditions_id"]
+                    if tnc_id not in tnc_by_name:
+                        raise ValidationException(
+                            f"Invalid terms_and_conditions_id: {tnc_id}"
+                        )
+
+                    tnc = tnc_by_name[tnc_id]
+                    terms_and_conditions["terms_and_conditions_id"] = (
+                        tnc.terms_and_conditions_id
+                    )
+
+                # --------------------------------------------------
+                # COSTS (OVERALL)
+                # --------------------------------------------------
+                po_additional_costs = []
+                po_taxes = []
+                po_discounts = []
+
+                for cost in purchase_order_details.get("additional_costs"):
+                    ac = additional_costs_by_name[cost["name"]]
+                    po_additional_costs.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=ac.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=ac.cost_type,
+                            allocation_type=ac.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in purchase_order_details.get("taxes"):
+                    ac = additional_costs_by_name[cost["name"]]
+                    po_taxes.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=ac.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=ac.cost_type,
+                            allocation_type=ac.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in purchase_order_details.get("discounts"):
+                    if cost["name"] == "Overall discount":
+                        po_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=None,
+                                cost_name=cost["name"],
+                                cost_type="PERCENTAGE",
+                                allocation_type=None,
+                                cost_value=cost["value"],
+                            )
+                        )
+                    else:
+                        ac = additional_costs_by_name[cost["name"]]
+                        po_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=ac.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=ac.cost_type,
+                                allocation_type=ac.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                # --------------------------------------------------
+                # PO GROUP (NON-RFQ)
+                # --------------------------------------------------
+                if not event_id:
+                    po_group_id, custom_section_map = po_group_service.create_po_group(
+                        user_id=user_id,
+                        template_id=template_id,
+                        event_name=None,
+                        event_entity_id=buyer_entity_id,
+                        event_end_datetime=None,
+                        buyer_billing_address_id=buyer_billing_address_id,
+                        buyer_shipping_address_id=buyer_shipping_address_id,
+                        requisition_information=[],
+                        additional_costs=po_additional_costs,
+                        taxes=po_taxes,
+                        discounts=po_discounts,
+                        item_taxes_total=0,
+                        item_additional_costs_total=0,
+                        item_discounts_total=0,
+                        item_subtotal=0,
+                        item_total=0,
+                        total_price=0,
+                        standard_terms_type=PoGroupStandardTermsType.NONE.value,
+                        default_event_prepayment_percentage=0,
+                        default_event_payment_type=None,
+                        default_event_payment_terms=None,
+                        default_event_deliverables_payment_terms=None,
+                        default_event_incoterm_id=overall_incoterm_id,
+                        default_event_lead_time=None,
+                        default_event_lead_time_period=None,
+                        default_currency_id=currency_id,
+                        default_delivery_date=None,
+                        default_event_project_id=None,
+                        default_event_gl_id=None,
+                        default_event_cost_centre_id=None,
+                        lead_time=lead_time,
+                        lead_time_period=lead_time_period,
+                        incoterm_id=overall_incoterm_id,
+                        project_id=None,
+                        gl_id=None,
+                        cost_centre_id=None,
+                        prepayment_percentage=prepayment_percentage,
+                        payment_type=payment_type,
+                        payment_terms=payment_terms,
+                        deliverables_payment_terms=deliverables_payment_terms,
+                        custom_additional_information=None,
+                        gr_tolerance=None,
+                        custom_fields={"section_list": []},
+                        custom_sections=custom_sections,
+                    )
+
+                    po_group = po_group_service.get_po_group_event(
+                        po_group_id=po_group_id
+                    )
+                    po_group.additional_details["vendor_count"] = 1
+                    po_group.save()
+
+                    seller_event_access = (
+                        po_group_item_service._create_seller_event_access(
+                            seller_enterprise_id,
+                            seller_entity_id,
+                            po_group.event_id,
+                            SellerState.SELLER_PO_PENDING.value,
+                            item_count=len(purchase_order_items),
+                        )
+                    )
+                    seller_event_access.save()
+
+                    event = po_group.event
+                    event.event_name = event.custom_event_id + timezone.now().strftime(
+                        "%y%m%d %I:%M %p"
+                    )
+                    event.save()
+                    event_id = po_group.event_id
+
+                # --------------------------------------------------
+                # ITEMS (IDENTICAL LOOP TO SINGLE CREATE)
+                # --------------------------------------------------
+                created_purchase_order_items_dicts = []
+                permissions_to_create = []
+
+                for purchase_order_item in purchase_order_items:
+                    (
+                        po_item_additional_costs,
+                        po_item_taxes,
+                        po_item_discounts,
+                        po_group_item_delivery_schedules,
+                    ) = ([], [], [], [])
+
+                    factwise_item_code = purchase_order_item.get("factwise_item_code")
+                    ERP_item_code = purchase_order_item.get("ERP_item_code")
+
+                    # ---------------- ITEM RESOLUTION (BULK OPTIMISED) ----------------
+                    if factwise_item_code:
+                        enterprise_item = enterprise_items_by_code.get(
+                            factwise_item_code
+                        )
+                        if not enterprise_item:
+                            raise ValidationException(
+                                "Item with Factwise item Code does not exist"
+                            )
+                    else:
+                        enterprise_item = enterprise_items_by_code.get(ERP_item_code)
+                        if not enterprise_item:
+                            raise ValidationException(
+                                "Item with ERP item Code does not exist"
+                            )
+
+                    enterprise_item_id = enterprise_item.enterprise_item_id
+
+                    internal_notes = purchase_order_item.get("internal_notes")
+                    external_notes = purchase_order_item.get("external_notes")
+                    price = purchase_order_item.get("price")
+
+                    item_additional_costs = purchase_order_item.get("additional_costs")
+                    item_taxes = purchase_order_item.get("taxes")
+                    item_discounts = purchase_order_item.get("discounts")
+
+                    incoterm = purchase_order_item.get("incoterm")
+                    incoterm_id = incoterm_entry_id_by_name.get(incoterm)
+
+                    prepayment_percentage = purchase_order_item.get(
+                        "prepayment_percentage"
+                    )
+                    payment_type = purchase_order_item.get("payment_type")
+                    payment_terms = purchase_order_item.get("payment_terms")
+                    deliverables_payment_terms = purchase_order_item.get(
+                        "deliverables_payment_terms"
+                    )
+                    lead_time = purchase_order_item.get("lead_time")
+                    lead_time_period = purchase_order_item.get("lead_time_period")
+
+                    procurement_informations = {
+                        "lead_time": lead_time,
+                        "lead_time_period": lead_time_period,
+                    }
+
+                    # ---------------- COSTS ----------------
+                    for cost in item_additional_costs:
+                        additional_cost = additional_costs_by_name[cost["name"]]
+                        po_item_additional_costs.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=additional_cost.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=additional_cost.cost_type,
+                                allocation_type=additional_cost.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                    for cost in item_taxes:
+                        additional_cost = additional_costs_by_name[cost["name"]]
+                        po_item_taxes.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=additional_cost.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=additional_cost.cost_type,
+                                allocation_type=additional_cost.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                    for cost in item_discounts:
+                        cost_name = cost["name"]
+                        if cost_name != "Discount":
+                            additional_cost = additional_costs_by_name[cost_name]
+                            po_item_discounts.append(
+                                AdditionalCostDataClass(
+                                    additional_cost_id=additional_cost.additional_cost_id,
+                                    cost_name=cost_name,
+                                    cost_type=additional_cost.cost_type,
+                                    allocation_type=additional_cost.allocation_type,
+                                    cost_value=cost["value"],
+                                )
+                            )
+                        else:
+                            po_item_discounts.append(
+                                AdditionalCostDataClass(
+                                    additional_cost_id=None,
+                                    cost_name=cost_name,
+                                    cost_type="PERCENTAGE",
+                                    allocation_type=None,
+                                    cost_value=cost["value"],
+                                )
+                            )
+
+                    measurement_unit = purchase_order_item.get("measurement_unit")
+                    quantity = purchase_order_item.get("quantity")
+                    delivery_schedules = purchase_order_item.get("delivery_schedules")
+
+                    # ---------------- DELIVERY SCHEDULE MUTATION ----------------
+                    for delivery_schedule in delivery_schedules:
+                        project_code = delivery_schedule.get("project_id")
+                        if project_code:
+                            project = project_service.get_project_via_code(
+                                enterprise_id=enterprise_id,
+                                project_code=project_code,
+                            )
+                            delivery_schedule["project_id"] = project.project_id
+
+                        cost_centre_code = delivery_schedule.get("cost_centre_id")
+                        if cost_centre_code:
+                            cost_centre = project_service.get_cost_centre_via_code(
+                                enterprise_id=enterprise_id,
+                                cost_centre_id=cost_centre_code,
+                            )
+                            delivery_schedule["cost_centre_id"] = (
+                                cost_centre.cost_centre_id
+                            )
+
+                        general_ledger_code = delivery_schedule.get("general_ledger_id")
+                        if general_ledger_code:
+                            general_ledger = (
+                                project_service.get_general_ledger_via_code(
+                                    enterprise_id=enterprise_id,
+                                    general_ledger_code=general_ledger_code,
+                                )
+                            )
+                            delivery_schedule["general_ledger_id"] = (
+                                general_ledger.general_ledger_id
+                            )
+
+                    custom_sections = purchase_order_item.get("custom_sections")
+                    custom_sections = custom_services.validate_and_autofill_custom_sections_from_template(
+                        custom_sections=custom_sections,
+                        template_section_map=template_section_map,
+                        template_section_item_map=template_section_item_map,
+                    )
+
+                    attachments = purchase_order_item.get("attachments")
+
+                    # ---------------- NON-RFQ PATH ----------------
+                    if not custom_event_id:
+                        item_additional_details = purchase_order_item.get(
+                            "item_additional_details"
+                        )
+
+                        for delivery_schedule in delivery_schedules:
+                            po_group_item_delivery_schedules.append(
+                                PoGroupItemDeliveryInformation(
+                                    quantity=delivery_schedule.get("quantity"),
+                                    delivery_date=delivery_schedule.get(
+                                        "delivery_date"
+                                    ),
+                                    project_id=delivery_schedule.get("project_id"),
+                                    cost_centre_id=delivery_schedule.get(
+                                        "cost_centre_id"
+                                    ),
+                                    general_ledger_id=delivery_schedule.get(
+                                        "general_ledger_id"
+                                    ),
+                                )
+                            )
+
+                        po_group_item, _ = po_group_item_service.create_po_group_item(
+                            user_id=user_id,
+                            po_group_id=po_group_id,
+                            custom_item_name=None,
+                            item_id=enterprise_item_id,
+                            item_additional_details=item_additional_details,
+                            attributes=[],
+                            properties=None,
+                            quantity=quantity,
+                            quantity_tolerance_percentage=None,
+                            measurement_unit_id=measurement_unit,
+                            desired_price=price,
+                            shipping_per_unit=None,
+                            additional_charges=[],
+                            additional_costs=po_item_additional_costs,
+                            taxes=po_item_taxes,
+                            discounts=po_item_discounts,
+                            total=0,
+                            currency_code_id=currency_id,
+                            is_price_confidential=False,
+                            delivery_schedule=po_group_item_delivery_schedules,
+                            allow_substitutes=False,
+                            prepayment_percentage=prepayment_percentage,
+                            payment_type=payment_type,
+                            payment_terms=payment_terms,
+                            deliverables_payment_terms=deliverables_payment_terms,
+                            lead_time=lead_time,
+                            lead_time_period=lead_time_period,
+                            requisition_information=[],
+                            incoterm_id=incoterm_id,
+                            attachment_ids=attachments,
+                            custom_fields={"section_list": []},
+                            custom_sections=custom_sections,
+                            custom_section_map=custom_section_map,
+                        )
+
+                        po_group_item_id = po_group_item.po_group_item_entry_id
+
+                        seller_item_permission = (
+                            po_group_item_service._add_seller_to_item(
+                                po_group_id=po_group_id,
+                                po_group_item_id=po_group_item_id,
+                                seller_entity_id=seller_entity_id,
+                                contact_id_list=PoGroupItemSellerContacts(
+                                    contact_id_list=seller_contact_list
+                                ),
+                            )
+                        )
+                        permissions_to_create.append(seller_item_permission)
+
+                        po_group_item.additional_details = PoGroupItemAdditionalDetails(
+                            vendor_count=1
+                        )
+                        po_group_item.save()
+
+                        purchase_order_item_obj, context = (
+                            event_po_item_service.create_event_purchase_order_item(
+                                user_id=user_id,
+                                event_id=event_id,
+                                po_group_item_id=po_group_item_id,
+                                seller_entity_id=seller_entity_id,
+                                price=price,
+                                currency_code_id=currency_id,
+                                shipping_per_unit=0,
+                                measurement_unit_id=measurement_unit,
+                                alternate_measurement_unit_list=[],
+                                quantity_tolerance_percentage=0,
+                                additional_charges=[],
+                                additional_costs=po_item_additional_costs,
+                                taxes=po_item_taxes,
+                                discounts=po_item_discounts,
+                                property_information=[],
+                                incoterm_id=incoterm_id,
+                                prepayment_percentage=prepayment_percentage,
+                                payment_type=payment_type,
+                                payment_terms=payment_terms,
+                                deliverables_payment_terms=deliverables_payment_terms,
+                                procurement_information=procurement_informations,
+                                delivery_schedules=delivery_schedules,
+                                internal_notes=internal_notes,
+                                external_notes=external_notes,
+                            )
+                        )
+
+                    # ---------------- RFQ PATH ----------------
+                    else:
+                        try:
+                            rfq_item = rfq_items_map[ERP_item_code]
+                        except KeyError:
+                            raise ValidationException(
+                                f"Invalid ERP_item_code (RFQ item not found): {ERP_item_code}"
+                            )
+                        rfq_item_id = rfq_item.rfq_item_entry_id
+
+                        purchase_order_item_obj, context = (
+                            purchase_order_item_service.create_purchase_order_item(
+                                user_id=user_id,
+                                event_id=event_id,
+                                rfq_item_id=rfq_item_id,
+                                seller_entity_id=seller_entity_id,
+                                price=price,
+                                currency_code_id=currency_id,
+                                shipping_per_unit=0,
+                                measurement_unit_id=measurement_unit,
+                                alternate_measurement_unit_list=[],
+                                quantity_tolerance_percentage=0,
+                                additional_charges=[],
+                                property_information=[],
+                                incoterm_id=incoterm_id,
+                                prepayment_percentage=prepayment_percentage,
+                                payment_type=payment_type,
+                                payment_terms=payment_terms,
+                                deliverables_payment_terms=deliverables_payment_terms,
+                                procurement_information=procurement_informations,
+                                delivery_schedules=delivery_schedules,
+                                internal_notes=internal_notes,
+                                external_notes=external_notes,
+                                attachments=attachments,
+                                custom_sections=custom_sections,
+                                custom_fields_negotiate={"section_list": []},
+                                additional_costs=po_item_additional_costs,
+                                taxes=po_item_taxes,
+                                discounts=po_item_discounts,
+                            )
+                        )
+
+                    delivery_schedule_dict = context.get("delivery_schedule_dict")
+                    created_delivery_schedules = delivery_schedule_dict[
+                        purchase_order_item_obj.purchase_order_item_id
+                    ]
+
+                    delivery_schedule_items_ids = [
+                        d.delivery_schedule_item_id for d in created_delivery_schedules
+                    ]
+
+                    created_purchase_order_items_dicts.append(
+                        {
+                            "purchase_order_item_id": purchase_order_item_obj.purchase_order_item_id,
+                            "internal_notes": internal_notes,
+                            "external_notes": external_notes,
+                            "delivery_schedule_items": delivery_schedule_items_ids,
+                        }
+                    )
+
+                Permission.objects.bulk_create(permissions_to_create)
+
+                purchase_order_id = event_po_service.create_event_purchase_order(
+                    user_id=user_id,
+                    event_id=event_id,
+                    ERP_po_id=ERP_po_id,
+                    buyer_entity_id=buyer_entity_id,
+                    billing_address_id=buyer_billing_address_id,
+                    shipping_address_id=buyer_shipping_address_id,
+                    seller_entity_id=seller_entity_id,
+                    seller_address_id=seller_address_id,
+                    seller_full_address=seller_full_address,
+                    buyer_identifications=buyer_identifications,
+                    seller_identifications=seller_identifications,
+                    seller_custom_identifications=[],
+                    discount_percentage=Decimal(0),
+                    buyer_contact_list=[user_id],
+                    seller_contact_list=seller_contact_list,
+                    terms_and_conditions=terms_and_conditions,
+                    notes=notes,
+                    action=PurchaseOrderCreationState.PO_APPROVE_AND_SUBMIT.value,
+                    lead_time=lead_time,
+                    lead_time_period=lead_time_period,
+                    incoterm_id=overall_incoterm_id,
+                    project_id=None,
+                    gl_id=None,
+                    cost_centre_id=None,
+                    prepayment_percentage=prepayment_percentage,
+                    payment_type=payment_type,
+                    payment_terms=payment_terms,
+                    deliverables_payment_terms=deliverables_payment_terms,
+                    custom_additional_information=None,
+                    gr_tolerance=None,
+                    requisition_information=[],
+                    additional_costs=po_additional_costs,
+                    taxes=po_taxes,
+                    discounts=po_discounts,
+                    custom_fields={"section_list": []},
+                    purchase_order_items=created_purchase_order_items_dicts,
+                )
+
+                purchase_order, _ = purchase_order_service.get_purchase_order(
+                    purchase_order_id=purchase_order_id
+                )
+                purchase_order.created_by_user_id = user_id
+                purchase_order.modified_by_user_id = user_id
+                purchase_order.submission_datetime = accepted_date
+                purchase_order.acceptance_datetime = issued_date
+                purchase_order.save()
+
+                status = purchase_order_details.get("status")
+                if status not in [PurchaseOrderState.PO_ISSUED]:
+                    purchase_order_service.update_purchase_order_status(
+                        user_id=user_id,
+                        purchase_order_id=purchase_order_id,
+                        status=status,
+                        notes=None,
+                        purchase_order_items=[],
+                    )
+
+                _queue_po_pricing_sync(
+                    str(purchase_order.purchase_order_id),
+                    str(purchase_order.buyer_enterprise_id),
+                )
+
+            results.append(
+                {
+                    "index": index,
+                    "status": "success",
+                    "erp_purchase_order_code": purchase_order.ERP_po_id,
+                    "purchase_order_code": purchase_order.custom_purchase_order_id,
+                    "purchase_order_id": purchase_order.purchase_order_id,
+                }
+            )
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    success=F("success") + 1,
+                    results=JsonbConcat(
+                        F("results"),
+                        Value([results[-1]], output_field=JSONField()),
+                    ),
+                )
+
+        except Exception as exc:
+            failure = {
+                "index": index,
+                "status": "failed",
+                "erp_purchase_order_code": payload["purchase_order_details"].get(
+                    "ERP_po_id"
+                ),
+                "error": str(exc),
+            }
+
+            results.append(failure)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    failed=F("failed") + 1,
+                    results=JsonbConcat(
+                        F("results"),
+                        Value([failure], output_field=JSONField()),
+                    ),
+                )
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="success")
+
+    return {
+        "total": len(purchase_orders_payload),
+        "success": sum(r["status"] == "success" for r in results),
+        "failed": sum(r["status"] == "failed" for r in results),
+        "results": results,
+    }
+
+
+@shared_task(
+    bind=True,
+    name="factwise.openapi.services.po_services.create_purchase_orders_bulk_task",
+)
+def create_purchase_orders_bulk_task(
+    self, *, enterprise_id, purchase_orders_payload, task_id
+):
+    try:
+        return _create_purchase_orders_bulk_impl(
+            enterprise_id=enterprise_id,
+            purchase_orders_payload=purchase_orders_payload,
+            task_id=task_id,
+        )
+    except Exception as exc:
+        BulkTask.objects.filter(task_id=task_id).update(
+            status="failed",
+            error=str(exc),
+        )
+        raise
+
+
+ASYNC_PO_THRESHOLD = 1000
+
+
+def create_purchase_orders_bulk(
+    *, enterprise_id, purchase_orders_payload, total_len, validation_errors
+):
+    """
+    Returns:
+    - Sync:
+        {
+            "total": int,
+            "success": int,
+            "failed": int,
+            "results": [...]
+        }
+
+    - Async:
+        {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str,
+        }
+    """
+
+    total = len(purchase_orders_payload)
+
+    if total >= ASYNC_PO_THRESHOLD:
+        task_id = uuid.uuid4()
+        BulkTask.objects.create(
+            task_id=task_id,
+            task_type="purchase_order",
+            enterprise_id=enterprise_id,
+            status="pending",
+            total=total_len,
+            processed=len(validation_errors),
+            success=0,
+            failed=len(validation_errors),
+            results=[
+                {
+                    "index": e["index"],
+                    "status": "failed",
+                    "erp_purchase_order_code": e.get("erp_purchase_order_code"),
+                    "error": e["error"],
+                }
+                for e in validation_errors
+            ],
+        )
+
+        create_purchase_orders_bulk_task.delay(  # type: ignore
+            enterprise_id=enterprise_id,
+            purchase_orders_payload=make_json_safe(purchase_orders_payload),
+            task_id=str(task_id),
+        )
+
+        return {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str(task_id),
+        }
+
+    return _create_purchase_orders_bulk_impl(
+        enterprise_id=enterprise_id,
+        purchase_orders_payload=purchase_orders_payload,
+    )
 
 
 @transaction.atomic
@@ -1786,6 +2827,777 @@ def update_purchase_order(
     return purchase_order.custom_purchase_order_id
 
 
+def _update_purchase_orders_bulk_impl(
+    *, enterprise_id, purchase_orders_payload, task_id=None
+):
+    results = []
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="running")
+
+    # ==============================================================
+    # PHASE 1 — BULK PREFETCH (READ-ONLY)
+    # ==============================================================
+    modifier_emails = set()
+    buyer_entity_names = set()
+    factwise_vendor_codes = set()
+    erp_vendor_codes = set()
+    item_codes = set()
+    additional_cost_names = set()
+    incoterm_names = set()
+    tnc_names = set()
+    factwise_po_ids = set()
+    erp_po_ids = set()
+    seller_address_names = set()
+
+    for payload in purchase_orders_payload:
+        pod = payload["purchase_order_details"]
+        bd = payload["buyer_details"]
+        sd = payload["seller_details"]
+
+        seller_address_id = sd.get("seller_address_id")
+        if seller_address_id:
+            seller_address_names.add(
+                (sd.get("factwise_vendor_code"), seller_address_id)
+            )
+
+        modifier_emails.add(pod["modified_by_user_email"])
+        buyer_entity_names.add(bd["entity_name"])
+
+        if pod.get("factwise_po_id"):
+            factwise_po_ids.add(pod["factwise_po_id"])
+        else:
+            erp_po_ids.add(pod["ERP_po_id"])
+
+        if sd.get("factwise_vendor_code"):
+            factwise_vendor_codes.add(sd["factwise_vendor_code"])
+        else:
+            erp_vendor_codes.add(sd["ERP_vendor_code"])
+
+        if pod.get("incoterm"):
+            incoterm_names.add(pod["incoterm"])
+
+        tnc = pod.get("terms_and_conditions", {}).get("terms_and_conditions_id")
+        if tnc:
+            tnc_names.add(tnc)
+
+        for cost in pod.get("additional_costs", []):
+            additional_cost_names.add(cost["name"])
+        for cost in pod.get("taxes", []):
+            additional_cost_names.add(cost["name"])
+        for cost in pod.get("discounts", []):
+            additional_cost_names.add(cost["name"])
+
+        for item in payload["purchase_order_items"]:
+            item_codes.add(item.get("factwise_item_code") or item.get("ERP_item_code"))
+
+            if item.get("incoterm"):
+                incoterm_names.add(item["incoterm"])
+
+            for cost in item.get("additional_costs", []):
+                additional_cost_names.add(cost["name"])
+            for cost in item.get("taxes", []):
+                additional_cost_names.add(cost["name"])
+            for cost in item.get("discounts", []):
+                additional_cost_names.add(cost["name"])
+
+    # ---------------- BULK FETCHES ----------------
+    users_by_email = enterprise_user_service.get_users_by_enterprise_emails(
+        enterprise_id=enterprise_id,
+        emails=list(modifier_emails),
+    )
+
+    buyer_entities_by_name = {
+        e.entity_name: e
+        for e in entity_service.get_entities_via_names(
+            enterprise_id=enterprise_id,
+            entity_names=list(buyer_entity_names),
+        )
+    }
+
+    vendor_by_factwise_code = {
+        v.vendor_code: v
+        for v in vendor_master_service.get_enterprise_vendor_master_via_code_list(
+            vendor_code_list=list(factwise_vendor_codes),
+            buyer_enterprise_id=enterprise_id,
+        ).filter(seller_entity__isnull=False)
+    }
+
+    vendor_by_erp_code = {
+        v.ERP_vendor_code: v
+        for v in vendor_master_service.get_enterprise_vendor_master_via_ERP_vendor_code_list(
+            buyer_enterprise_id=enterprise_id,
+            ERP_vendor_code_list=list(erp_vendor_codes),
+        )
+    }
+
+    enterprise_items_by_code = {
+        i.code: i
+        for i in item_service.get_enterprise_items_via_codes(
+            enterprise_id=enterprise_id,
+            codes=list(item_codes),
+        )
+    }
+
+    additional_costs_by_name = {
+        c.cost_name: c
+        for c in additional_cost_service.get_additional_costs_from_names(
+            enterprise_id=enterprise_id,
+            additional_cost_names=list(additional_cost_names),
+        )
+    }
+
+    incoterm_entry_id_by_name = {
+        i.incoterm_abbreviation: i.entry_id
+        for i in backbone_service.get_incoterm_list(incoterms=list(incoterm_names))
+    }
+
+    tnc_by_name = {
+        t.name: t
+        for t in terms_and_conditions_service.get_terms_and_conditions_by_names(
+            enterprise_id=enterprise_id,
+            names=list(tnc_names),
+        )
+    }
+
+    # ---------------- PROCESS EACH ITEM ----------------
+    for index, payload in enumerate(purchase_orders_payload):
+        try:
+            with transaction.atomic():
+                buyer_details = payload.get("buyer_details")
+                seller_details = payload.get("seller_details")
+                pod = payload.get("purchase_order_details")
+                currency_id = pod.get("currency_code")
+                purchase_order_items = payload.get("purchase_order_items")
+                prepayment_percentage = pod.get("prepayment_percentage")
+                payment_type = pod.get("payment_type")
+                payment_terms = pod.get("payment_terms")
+                deliverables_payment_terms = pod.get("deliverables_payment_terms")
+                lead_time = pod.get("lead_time")
+                lead_time_period = pod.get("lead_time_period")
+
+                # --------------------------------------------------
+                # USER
+                # --------------------------------------------------
+                user = users_by_email.get(pod.get("modified_by_user_email"))
+                if not user:
+                    raise ValidationException(
+                        "User email does not exist in the enterprise"
+                    )
+                user_id = user.user_id
+
+                # --------------------------------------------------
+                # BUYER
+                # --------------------------------------------------
+                buyer_entity = buyer_entities_by_name.get(
+                    buyer_details.get("entity_name")
+                )
+                if not buyer_entity:
+                    raise ValidationException("Buyer entity does not exist")
+                buyer_entity_id = buyer_entity.entity_id
+
+                buyer_identifications = identification_service.get_identification_list(
+                    identification_name_list=buyer_details.get("identifications"),
+                    entity_id=buyer_entity_id,
+                ).values_list("identification_id", flat=True)
+
+                # --------------------------------------------------
+                # SELLER / VENDOR
+                # --------------------------------------------------
+                if seller_details.get("factwise_vendor_code"):
+                    enterprise_vm = vendor_by_factwise_code.get(
+                        seller_details.get("factwise_vendor_code")
+                    )
+                else:
+                    enterprise_vm = vendor_by_erp_code.get(
+                        seller_details.get("ERP_vendor_code")
+                    )
+
+                if not enterprise_vm:
+                    raise ValidationException("Vendor does not exist")
+
+                seller_entity_id = enterprise_vm.seller_entity_id
+                seller_enterprise_id = enterprise_vm.seller_enterprise_id
+
+                seller_identification_name_list = seller_details.get("identifications")
+                seller_identifications = identification_service.get_identification_list(
+                    identification_name_list=seller_identification_name_list,
+                    entity_id=seller_entity_id,
+                ).values_list("identification_id", flat=True)
+
+                seller_contact_emails = seller_details.get("contacts")
+
+                vcs = vendor_contact_service.get_vendor_contacts_from_emails(
+                    seller_entity_id=seller_entity_id,
+                    emails=seller_contact_emails,
+                )
+
+                seller_contact_list = vcs.values_list("user_id", flat=True)
+
+                seller_address_id = None
+                seller_address_nickname = seller_details.get("seller_address_id")
+
+                if seller_address_nickname:
+                    seller_address = address_service.get_address_via_name(
+                        enterprise_id=seller_enterprise_id,
+                        address=seller_address_nickname,
+                    )
+                    seller_address_id = seller_address.address_id
+
+                seller_full_address = seller_details.get("seller_full_address")
+
+                # --------------------------------------------------
+                # EXISTING PO RESOLUTION (CRITICAL)
+                # --------------------------------------------------
+                try:
+                    if pod.get("factwise_po_id"):
+                        old_po = purchase_order_service.get_purchase_order_details_from_custom_purchase_order_id(
+                            user_id=user_id,
+                            enterprise_id=enterprise_id,
+                            custom_purchase_order_id=pod.get("factwise_po_id"),
+                        )
+                    else:
+                        old_po = purchase_order_service.get_purchase_order_details_from_ERP_po_id(
+                            user_id=user_id,
+                            enterprise_id=enterprise_id,
+                            ERP_po_id=pod.get("ERP_po_id"),
+                        )
+                except Exception:
+                    raise BadRequestException("Purchase Order does not exist")
+
+                event_id = old_po.event_id
+                old_po_id = old_po.purchase_order_id
+                base_po_id = old_po.base_purchase_order_id
+
+                event = event_service.get_event(event_id=event_id)
+                template_id = event.additional_details.get("template_id")
+                sub_event_id = event.sub_event_id
+
+                template_sections = template_services.get_template_sections(
+                    template_id=template_id
+                )
+                template_section_map = {s.alternate_name: s for s in template_sections}
+
+                template_section_items = template_services.get_template_section_items(
+                    template_id=template_id
+                ).filter(is_builtin_field=False)
+                template_section_item_map = {
+                    (i.section.alternate_name, i.alternate_name): i
+                    for i in template_section_items
+                }
+
+                # --------------------------------------------------
+                # HEADER FIELDS
+                # --------------------------------------------------
+                issued_date = pod.get("issued_date")
+                accepted_date = pod.get("accepted_date")
+
+                incoterm_name = pod.get("incoterm")
+                overall_incoterm_id = (
+                    incoterm_entry_id_by_name.get(incoterm_name)
+                    if incoterm_name
+                    else None
+                )
+
+                terms_and_conditions = dict(pod.get("terms_and_conditions") or {})
+                if terms_and_conditions.get("terms_and_conditions_id"):
+                    tnc = tnc_by_name[terms_and_conditions["terms_and_conditions_id"]]
+                    terms_and_conditions["terms_and_conditions_id"] = (
+                        tnc.terms_and_conditions_id
+                    )
+
+                # --------------------------------------------------
+                # COSTS (IDENTICAL TO SINGLE UPDATE)
+                # --------------------------------------------------
+                po_additional_costs, po_taxes, po_discounts = [], [], []
+
+                for cost in pod.get("additional_costs"):
+                    ac = additional_costs_by_name[cost["name"]]
+                    po_additional_costs.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=ac.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=ac.cost_type,
+                            allocation_type=ac.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in pod.get("taxes"):
+                    ac = additional_costs_by_name[cost["name"]]
+                    po_taxes.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=ac.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=ac.cost_type,
+                            allocation_type=ac.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                for cost in pod.get("discounts"):
+                    ac = additional_costs_by_name[cost["name"]]
+                    po_discounts.append(
+                        AdditionalCostDataClass(
+                            additional_cost_id=ac.additional_cost_id,
+                            cost_name=cost["name"],
+                            cost_type=ac.cost_type,
+                            allocation_type=ac.allocation_type,
+                            cost_value=cost["value"],
+                        )
+                    )
+
+                # --------------------------------------------------
+                # ITEMS LOOP
+                # (THIS IS IDENTICAL TO SINGLE UPDATE, BUT USING BULK MAPS)
+                # --------------------------------------------------
+                created_purchase_order_items_dicts = []
+
+                for purchase_order_item in purchase_order_items:
+                    (
+                        po_item_additional_costs,
+                        po_item_taxes,
+                        po_item_discounts,
+                        po_group_item_delivery_schedules,
+                    ) = ([], [], [], [])
+
+                    # --------------------------------------------------
+                    # ITEM RESOLUTION
+                    # --------------------------------------------------
+                    factwise_item_code = purchase_order_item.get("factwise_item_code")
+                    ERP_item_code = purchase_order_item.get("ERP_item_code")
+
+                    if factwise_item_code:
+                        enterprise_item = enterprise_items_by_code.get(
+                            factwise_item_code
+                        )
+                        if not enterprise_item:
+                            raise ValidationException(
+                                "Item with Factwise item Code does not exist"
+                            )
+                    else:
+                        enterprise_item = enterprise_items_by_code.get(ERP_item_code)
+                        if not enterprise_item:
+                            raise ValidationException(
+                                "Item with ERP item Code does not exist"
+                            )
+
+                    enterprise_item_id = enterprise_item.enterprise_item_id
+
+                    # --------------------------------------------------
+                    # BASIC FIELDS
+                    # --------------------------------------------------
+                    internal_notes = purchase_order_item.get("internal_notes")
+                    external_notes = purchase_order_item.get("external_notes")
+                    price = purchase_order_item.get("price")
+
+                    item_additional_costs = purchase_order_item.get("additional_costs")
+                    item_taxes = purchase_order_item.get("taxes")
+                    item_discounts = purchase_order_item.get("discounts")
+
+                    incoterm_name = purchase_order_item.get("incoterm")
+                    try:
+                        incoterm_id = incoterm_entry_id_by_name[incoterm_name]
+                    except KeyError:
+                        raise ValidationException(f"Invalid incoterm: {incoterm_name}")
+
+                    prepayment_percentage = purchase_order_item.get(
+                        "prepayment_percentage"
+                    )
+                    payment_type = purchase_order_item.get("payment_type")
+                    payment_terms = purchase_order_item.get("payment_terms")
+                    deliverables_payment_terms = purchase_order_item.get(
+                        "deliverables_payment_terms"
+                    )
+                    lead_time = purchase_order_item.get("lead_time")
+                    lead_time_period = purchase_order_item.get("lead_time_period")
+
+                    procurement_informations = {
+                        "lead_time": lead_time,
+                        "lead_time_period": lead_time_period,
+                    }
+
+                    # --------------------------------------------------
+                    # COSTS
+                    # --------------------------------------------------
+                    for cost in item_additional_costs:
+                        ac = additional_costs_by_name[cost["name"]]
+                        po_item_additional_costs.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=ac.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=ac.cost_type,
+                                allocation_type=ac.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                    for cost in item_taxes:
+                        ac = additional_costs_by_name[cost["name"]]
+                        po_item_taxes.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=ac.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=ac.cost_type,
+                                allocation_type=ac.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                    for cost in item_discounts:
+                        ac = additional_costs_by_name[cost["name"]]
+                        po_item_discounts.append(
+                            AdditionalCostDataClass(
+                                additional_cost_id=ac.additional_cost_id,
+                                cost_name=cost["name"],
+                                cost_type=ac.cost_type,
+                                allocation_type=ac.allocation_type,
+                                cost_value=cost["value"],
+                            )
+                        )
+
+                    # --------------------------------------------------
+                    # DELIVERY SCHEDULE MUTATION
+                    # --------------------------------------------------
+                    measurement_unit = purchase_order_item.get("measurement_unit")
+                    quantity = purchase_order_item.get("quantity")
+                    delivery_schedules = purchase_order_item.get("delivery_schedules")
+
+                    for delivery_schedule in delivery_schedules:
+                        project_code = delivery_schedule.get("project_id")
+                        if project_code:
+                            project = project_service.get_project_via_code(
+                                enterprise_id=enterprise_id,
+                                project_code=project_code,
+                            )
+                            delivery_schedule["project_id"] = project.project_id
+
+                        cost_centre_code = delivery_schedule.get("cost_centre_id")
+                        if cost_centre_code:
+                            cost_centre = project_service.get_cost_centre_via_code(
+                                enterprise_id=enterprise_id,
+                                cost_centre_id=cost_centre_code,
+                            )
+                            delivery_schedule["cost_centre_id"] = (
+                                cost_centre.cost_centre_id
+                            )
+
+                        general_ledger_code = delivery_schedule.get("general_ledger_id")
+                        if general_ledger_code:
+                            general_ledger = (
+                                project_service.get_general_ledger_via_code(
+                                    enterprise_id=enterprise_id,
+                                    general_ledger_code=general_ledger_code,
+                                )
+                            )
+                            delivery_schedule["general_ledger_id"] = (
+                                general_ledger.general_ledger_id
+                            )
+
+                    # --------------------------------------------------
+                    # ATTACHMENTS & CUSTOM FIELDS
+                    # --------------------------------------------------
+                    attachments = purchase_order_item.get("attachments")
+                    item_additional_details = purchase_order_item.get(
+                        "item_additional_details"
+                    )
+
+                    # --------------------------------------------------
+                    # PO GROUP ITEM (AMENDMENT MODE)
+                    # --------------------------------------------------
+                    po_group_item, _ = po_group_item_service.create_po_group_item(
+                        user_id=user_id,
+                        po_group_id=sub_event_id,
+                        custom_item_name=None,
+                        item_id=enterprise_item_id,
+                        item_additional_details=item_additional_details,
+                        attributes=[],
+                        properties=None,
+                        quantity=quantity,
+                        quantity_tolerance_percentage=None,
+                        measurement_unit_id=measurement_unit,
+                        desired_price=price,
+                        shipping_per_unit=None,
+                        additional_charges=[],
+                        additional_costs=po_item_additional_costs,
+                        taxes=po_item_taxes,
+                        discounts=po_item_discounts,
+                        total=0,
+                        currency_code_id=currency_id,
+                        is_price_confidential=False,
+                        delivery_schedule=po_group_item_delivery_schedules,
+                        allow_substitutes=False,
+                        prepayment_percentage=prepayment_percentage,
+                        payment_type=payment_type,
+                        payment_terms=payment_terms,
+                        deliverables_payment_terms=deliverables_payment_terms,
+                        lead_time=lead_time,
+                        lead_time_period=lead_time_period,
+                        requisition_information=[],
+                        incoterm_id=incoterm_id,
+                        attachment_ids=attachments,
+                        custom_fields={"section_list": []},
+                        custom_sections=[],
+                        for_po_amendment=True,
+                    )
+
+                    po_group_item_id = po_group_item.po_group_item_entry_id
+
+                    # --------------------------------------------------
+                    # EVENT PO ITEM
+                    # --------------------------------------------------
+                    purchase_order_item_obj, context = (
+                        event_po_item_service.create_event_purchase_order_item(
+                            user_id=user_id,
+                            event_id=event_id,
+                            po_group_item_id=po_group_item_id,
+                            seller_entity_id=seller_entity_id,
+                            price=price,
+                            currency_code_id=currency_id,
+                            shipping_per_unit=0,
+                            measurement_unit_id=measurement_unit,
+                            alternate_measurement_unit_list=[],
+                            quantity_tolerance_percentage=0,
+                            additional_charges=[],
+                            additional_costs=po_item_additional_costs,
+                            taxes=po_item_taxes,
+                            discounts=po_item_discounts,
+                            property_information=[],
+                            incoterm_id=incoterm_id,
+                            prepayment_percentage=prepayment_percentage,
+                            payment_type=payment_type,
+                            payment_terms=payment_terms,
+                            deliverables_payment_terms=deliverables_payment_terms,
+                            procurement_information=procurement_informations,
+                            delivery_schedules=delivery_schedules,
+                            internal_notes=internal_notes,
+                            external_notes=external_notes,
+                        )
+                    )
+
+                    # --------------------------------------------------
+                    # DELIVERY SCHEDULE IDS
+                    # --------------------------------------------------
+                    delivery_schedule_dict = context.get("delivery_schedule_dict")
+                    created_delivery_schedules = delivery_schedule_dict[
+                        purchase_order_item_obj.purchase_order_item_id
+                    ]
+
+                    delivery_schedule_items_ids = [
+                        d.delivery_schedule_item_id for d in created_delivery_schedules
+                    ]
+
+                    created_purchase_order_items_dicts.append(
+                        {
+                            "purchase_order_item_id": purchase_order_item_obj.purchase_order_item_id,
+                            "internal_notes": internal_notes,
+                            "external_notes": external_notes,
+                            "delivery_schedule_items": delivery_schedule_items_ids,
+                        }
+                    )
+
+                # --------------------------------------------------
+                # REVISE PO
+                # --------------------------------------------------
+                purchase_order_id = event_po_service.revise_event_purchase_order(
+                    purchase_order_id=old_po_id,
+                    user_id=user_id,
+                    ERP_po_id=pod.get("ERP_po_id"),
+                    factwise_po_id=pod.get("factwise_po_id"),
+                    buyer_entity_id=buyer_entity_id,
+                    seller_entity_id=seller_entity_id,
+                    seller_address_id=seller_address_id,
+                    seller_full_address=seller_full_address,
+                    buyer_identifications=buyer_identifications,
+                    seller_identifications=seller_identifications,
+                    seller_custom_identifications=[],
+                    discount_percentage=Decimal(0),
+                    buyer_contact_list=[user_id],
+                    seller_contact_list=seller_contact_list,
+                    terms_and_conditions=terms_and_conditions,
+                    notes=pod.get("notes"),
+                    action=PurchaseOrderCreationState.PO_APPROVE_AND_SUBMIT.value,
+                    lead_time=lead_time,
+                    lead_time_period=lead_time_period,
+                    incoterm_id=overall_incoterm_id,
+                    project_id=None,
+                    gl_id=None,
+                    cost_centre_id=None,
+                    prepayment_percentage=prepayment_percentage,
+                    payment_type=payment_type,
+                    payment_terms=payment_terms,
+                    deliverables_payment_terms=deliverables_payment_terms,
+                    custom_additional_information=None,
+                    gr_tolerance=None,
+                    requisition_information=[],
+                    additional_costs=po_additional_costs,
+                    taxes=po_taxes,
+                    discounts=po_discounts,
+                    custom_fields={"section_list": []},
+                    purchase_order_items=created_purchase_order_items_dicts,
+                    skip_create_po_items=True,
+                )
+
+                purchase_order, _ = purchase_order_service.get_purchase_order(
+                    purchase_order_id=purchase_order_id
+                )
+                purchase_order.created_by_user_id = user_id
+                purchase_order.modified_by_user_id = user_id
+                purchase_order.submission_datetime = accepted_date
+                purchase_order.acceptance_datetime = issued_date
+                purchase_order.save()
+
+                status = pod.get("status")
+                if status not in [PurchaseOrderState.PO_ISSUED]:
+                    purchase_order_service.update_purchase_order_status(
+                        user_id=user_id,
+                        purchase_order_id=purchase_order_id,
+                        status=status,
+                        notes=None,
+                        purchase_order_items=[],
+                    )
+
+                _queue_po_revisions_pricing_delete(
+                    base_purchase_order_id=base_po_id,
+                    enterprise_id=enterprise_id,
+                    exclude_po_id=purchase_order_id,
+                )
+                _queue_po_pricing_sync(str(purchase_order_id), str(enterprise_id))
+
+            results.append(
+                {
+                    "index": index,
+                    "status": "success",
+                    "erp_purchase_order_code": purchase_order.ERP_po_id,
+                    "purchase_order_code": purchase_order.custom_purchase_order_id,
+                    "purchase_order_id": purchase_order.purchase_order_id,
+                }
+            )
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    success=F("success") + 1,
+                    results=JsonbConcat(
+                        F("results"), Value([results[-1]], output_field=JSONField())
+                    ),
+                )
+
+        except Exception as exc:
+            failure = {
+                "index": index,
+                "status": "failed",
+                "erp_purchase_order_code": payload["purchase_order_details"].get(
+                    "ERP_po_id"
+                ),
+                "error": str(exc),
+            }
+            results.append(failure)
+
+            if task_id:
+                BulkTask.objects.filter(task_id=task_id).update(
+                    processed=F("processed") + 1,
+                    failed=F("failed") + 1,
+                    results=JsonbConcat(
+                        F("results"), Value([failure], output_field=JSONField())
+                    ),
+                )
+
+    if task_id:
+        BulkTask.objects.filter(task_id=task_id).update(status="success")
+
+    return {
+        "total": len(purchase_orders_payload),
+        "success": sum(r["status"] == "success" for r in results),
+        "failed": sum(r["status"] == "failed" for r in results),
+        "results": results,
+    }
+
+
+@shared_task(
+    bind=True,
+    name="factwise.openapi.services.po_services.update_purchase_orders_bulk_task",
+)
+def update_purchase_orders_bulk_task(
+    self, *, enterprise_id, purchase_orders_payload, task_id
+):
+    try:
+        return _update_purchase_orders_bulk_impl(
+            enterprise_id=enterprise_id,
+            purchase_orders_payload=purchase_orders_payload,
+            task_id=task_id,
+        )
+    except Exception as exc:
+        BulkTask.objects.filter(task_id=task_id).update(
+            status="failed",
+            error=str(exc),
+        )
+        raise
+
+
+def update_purchase_orders_bulk(
+    *, enterprise_id, purchase_orders_payload, total_len, validation_errors
+):
+    """
+    Returns:
+    - Sync:
+        {
+            "total": int,
+            "success": int,
+            "failed": int,
+            "results": [...]
+        }
+
+    - Async:
+        {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str,
+        }
+    """
+
+    total = len(purchase_orders_payload)
+
+    if total >= ASYNC_PO_THRESHOLD:
+        task_id = uuid.uuid4()
+        BulkTask.objects.create(
+            task_id=task_id,
+            task_type="purchase_order",
+            enterprise_id=enterprise_id,
+            status="pending",
+            total=total_len,
+            processed=len(validation_errors),
+            success=0,
+            failed=len(validation_errors),
+            results=[
+                {
+                    "index": e["index"],
+                    "status": "failed",
+                    "erp_purchase_order_code": e.get("erp_purchase_order_code"),
+                    "error": e["error"],
+                }
+                for e in validation_errors
+            ],
+        )
+
+        update_purchase_orders_bulk_task.delay(  # type: ignore
+            enterprise_id=enterprise_id,
+            purchase_orders_payload=make_json_safe(purchase_orders_payload),
+            task_id=str(task_id),
+        )
+
+        return {
+            "status": "accepted",
+            "mode": "async",
+            "task_id": str(task_id),
+        }
+
+    return _update_purchase_orders_bulk_impl(
+        enterprise_id=enterprise_id,
+        purchase_orders_payload=purchase_orders_payload,
+    )
+
+
 @transaction.atomic
 def update_purchase_order_status(
     *,
@@ -1902,11 +3714,18 @@ def update_purchase_order_status(
 
     # Explicit pricing repo sync/delete based on new status
     from pricing_repository.sync_services.po_sync import POSyncService
+
     active_statuses = POSyncService.ACTIVE_PO_STATUSES
     if next_status in active_statuses:
-        _queue_po_pricing_sync(str(purchase_order.purchase_order_id), str(purchase_order.buyer_enterprise_id))
+        _queue_po_pricing_sync(
+            str(purchase_order.purchase_order_id),
+            str(purchase_order.buyer_enterprise_id),
+        )
     else:
-        _queue_po_pricing_delete(str(purchase_order.purchase_order_id), str(purchase_order.buyer_enterprise_id))
+        _queue_po_pricing_delete(
+            str(purchase_order.purchase_order_id),
+            str(purchase_order.buyer_enterprise_id),
+        )
 
 
 @transaction.atomic
@@ -2297,19 +4116,30 @@ def _queue_po_pricing_sync(purchase_order_id, enterprise_id):
     """Queue pricing repo sync for a PO after transaction commits."""
     try:
         from pricing_repository.tasks import sync_po_all_items
+
         _pid = str(purchase_order_id)
         _eid = str(enterprise_id)
-        print(f"[OPENAPI-SYNC] REGISTERING on_commit for PO {_pid} enterprise {_eid}", flush=True)
+        print(
+            f"[OPENAPI-SYNC] REGISTERING on_commit for PO {_pid} enterprise {_eid}",
+            flush=True,
+        )
 
         def _do_sync():
-            print(f"[OPENAPI-SYNC] on_commit FIRED — sending celery task for PO {_pid}", flush=True)
-            result = sync_po_all_items.delay(_pid, _eid, action='sync')
-            print(f"[OPENAPI-SYNC] celery task SENT for PO {_pid}, task_id={result.id}", flush=True)
+            print(
+                f"[OPENAPI-SYNC] on_commit FIRED — sending celery task for PO {_pid}",
+                flush=True,
+            )
+            result = sync_po_all_items.delay(_pid, _eid, action="sync")
+            print(
+                f"[OPENAPI-SYNC] celery task SENT for PO {_pid}, task_id={result.id}",
+                flush=True,
+            )
 
         transaction.on_commit(_do_sync)
     except Exception as e:
         print(f"[OPENAPI-SYNC] ERROR queueing PO sync: {e}", flush=True)
         import traceback
+
         traceback.print_exc()
 
 
@@ -2317,11 +4147,12 @@ def _queue_po_pricing_delete(purchase_order_id, enterprise_id):
     """Queue pricing repo delete for a PO after transaction commits."""
     try:
         from pricing_repository.tasks import sync_po_all_items
+
         _pid = str(purchase_order_id)
         _eid = str(enterprise_id)
 
         def _do_delete():
-            sync_po_all_items.delay(_pid, _eid, action='delete')
+            sync_po_all_items.delay(_pid, _eid, action="delete")
             print(f"[OPENAPI-SYNC] Queued pricing DELETE for PO {_pid}", flush=True)
 
         transaction.on_commit(_do_delete)
@@ -2329,7 +4160,9 @@ def _queue_po_pricing_delete(purchase_order_id, enterprise_id):
         print(f"[OPENAPI-SYNC] ERROR queueing PO pricing delete: {e}", flush=True)
 
 
-def _queue_po_revisions_pricing_delete(base_purchase_order_id, enterprise_id, exclude_po_id=None):
+def _queue_po_revisions_pricing_delete(
+    base_purchase_order_id, enterprise_id, exclude_po_id=None
+):
     """Delete pricing entries for ALL revised versions of a PO after transaction commits."""
     try:
         from pricing_repository.models import PricingRepositoryEntry, SourceType
@@ -2343,7 +4176,7 @@ def _queue_po_revisions_pricing_delete(base_purchase_order_id, enterprise_id, ex
                 PurchaseOrder.objects.filter(
                     base_purchase_order_id=_base_id,
                     status=PurchaseOrderState.PO_REVISED.value,
-                ).values_list('purchase_order_id', flat=True)
+                ).values_list("purchase_order_id", flat=True)
             )
             if _exclude:
                 revised_po_ids = [pid for pid in revised_po_ids if str(pid) != _exclude]
@@ -2353,7 +4186,10 @@ def _queue_po_revisions_pricing_delete(base_purchase_order_id, enterprise_id, ex
                     source=SourceType.PO,
                     source_parent_id__in=revised_po_ids,
                 ).delete()
-                print(f"[OPENAPI-SYNC] Deleted {deleted[0]} pricing entries for {len(revised_po_ids)} revised PO versions (base={_base_id})", flush=True)
+                print(
+                    f"[OPENAPI-SYNC] Deleted {deleted[0]} pricing entries for {len(revised_po_ids)} revised PO versions (base={_base_id})",
+                    flush=True,
+                )
 
         transaction.on_commit(_do_delete)
     except Exception as e:

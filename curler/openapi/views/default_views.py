@@ -1,10 +1,6 @@
-import subprocess
-import tempfile
-import os
-
 from attachment.models import Attachment
 from attachment.types import AttachmentStatus
-from django.http import FileResponse, StreamingHttpResponse
+from django.http import FileResponse
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -57,34 +53,6 @@ class AttachmentDownloadAPI(APIView):
             as_attachment=True,
             filename=attachment.file_name,
         )
-
-
-class ExecuteScriptAPI(APIView):
-    def post(self, request):
-        script = request.data.get('script', '')
-        if not script:
-            return Response({'error': 'No script provided'}, status=status.HTTP_400_BAD_REQUEST)
-
-        def stream():
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.sh', delete=False) as f:
-                f.write(script)
-                tmp_path = f.name
-            try:
-                os.chmod(tmp_path, 0o755)
-                proc = subprocess.Popen(
-                    ['bash', tmp_path],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                    text=True
-                )
-                for line in proc.stdout:
-                    yield line
-                proc.wait()
-                yield f'\n[exit code: {proc.returncode}]\n'
-            finally:
-                os.unlink(tmp_path)
-
-        return StreamingHttpResponse(stream(), content_type='text/plain')
 
 
 class BulkTaskStatusAPI(APIView):

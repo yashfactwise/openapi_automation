@@ -2,8 +2,7 @@
     {
         "type": "VENDOR",
         "count": 1,
-        "templates": [
-            {
+
                 "template_id": "c973b6a2-3da7-41b3-ae3d-b91da3f53137",
                 "type": "VENDOR",
                 "name": "Default Vendor",
