@@ -375,22 +375,42 @@ button {
 }
 
 .dashboard-op-btn {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     width: 100%;
-    padding: 8px 12px;
+    padding: 9px 12px;
     text-align: left;
-    background: transparent;
-    border: none;
+    background: #f8fafc;
+    border: 1px solid #e9ecef;
     border-radius: var(--radius-sm);
     color: var(--text-secondary);
     cursor: pointer;
     font-size: 13px;
-    transition: all 0.1s;
+    transition: all 0.15s;
+    margin-bottom: 6px;
+}
+
+.dashboard-op-btn:last-child {
+    margin-bottom: 0;
+}
+
+.dashboard-op-btn::after {
+    content: '→';
+    font-size: 12px;
+    color: #cbd5e1;
+    transition: all 0.15s;
 }
 
 .dashboard-op-btn:hover {
-    background: rgba(79, 70, 229, 0.05);
+    background: rgba(79, 70, 229, 0.06);
+    border-color: rgba(79, 70, 229, 0.3);
     color: var(--accent-color);
+}
+
+.dashboard-op-btn:hover::after {
+    color: var(--accent-color);
+    transform: translateX(2px);
 }
 
 /* ============================================
