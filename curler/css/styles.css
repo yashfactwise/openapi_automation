@@ -489,6 +489,10 @@ button {
     animation: errorPulse 0.5s ease-in-out;
 }
 
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
 @keyframes errorPulse {
 
     0%,
@@ -514,12 +518,12 @@ button {
    OUTPUT & BUTTONS
    ============================================ */
 .code-block {
-    background: #1e293b;
+    background: #f1f5f9;
     padding: 20px;
     overflow-x: auto;
     font-family: var(--font-mono);
     font-size: 13px;
-    color: #e2e8f0;
+    color: #1e293b;
     line-height: 1.6;
 }
 

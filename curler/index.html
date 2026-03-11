@@ -84,22 +84,7 @@
                         </div>
                     </section>
 
-                    <!-- Action Buttons (Original placeholder, now hidden/unused but kept for JS ref compatibility if needed, otherwise we use footer) -->
-                    <div id="actions-section" class="panel output-panel hidden">
-                        <!-- cURL Display -->
-                        <div class="panel-header">
-                            <h3>Generated cURL</h3>
-                            <div class="panel-actions">
-                                <button id="btn-copy-curl-panel" class="btn-small">Copy</button>
-                                <button id="btn-download-curl-panel" class="btn-small">Download</button>
-                            </div>
-                        </div>
-                        <div id="curl-display" class="code-block">
-                            <!-- cURL injected here -->
-                        </div>
-                    </div>
-
-                    <!-- Response Section -->
+                    <!-- Response Section (shown first, above curl) -->
                     <section id="response-section" class="panel response-panel hidden">
                         <div class="panel-header">
                             <h3>Response</h3>
@@ -108,6 +93,25 @@
                             <!-- Response injected by JS -->
                         </div>
                     </section>
+
+                    <!-- cURL Display (collapsed by default after execute) -->
+                    <div id="actions-section" class="panel output-panel hidden">
+                        <div class="panel-header curl-panel-header" id="curl-panel-toggle" style="cursor:pointer;">
+                            <h3 style="display:flex;align-items:center;gap:8px;">
+                                <svg id="curl-collapse-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:#94a3b8;transition:transform 0.2s;transform:rotate(-90deg);flex-shrink:0;">
+                                    <polyline points="6 9 12 15 18 9"></polyline>
+                                </svg>
+                                Generated cURL
+                            </h3>
+                            <div class="panel-actions">
+                                <button id="btn-copy-curl-panel" class="btn-small">Copy</button>
+                                <button id="btn-download-curl-panel" class="btn-small">Download</button>
+                            </div>
+                        </div>
+                        <div id="curl-display" class="code-block" style="display:none;">
+                            <!-- cURL injected here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 

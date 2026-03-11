@@ -120,6 +120,16 @@ class UIController {
         this.elements.operationForm.addEventListener('input', () => this.checkFormValidity());
         this.elements.operationForm.addEventListener('change', () => this.checkFormValidity());
 
+        // Curl panel toggle (wired once at init)
+        const curlToggle = document.getElementById('curl-panel-toggle');
+        if (curlToggle) {
+            curlToggle.addEventListener('click', (e) => {
+                if (e.target.closest('#btn-copy-curl-panel, #btn-download-curl-panel')) return;
+                const isHidden = this.elements.curlDisplay.style.display === 'none';
+                this._setCurlCollapsed(!isHidden);
+            });
+        }
+
         // Panel Actions
         if (this.elements.btnCopyCurlPanel) this.elements.btnCopyCurlPanel.addEventListener('click', () => this.handleCopyCurl());
         if (this.elements.btnDownloadCurlPanel) this.elements.btnDownloadCurlPanel.addEventListener('click', () => this.handleDownloadCurl());
@@ -457,17 +467,24 @@ class UIController {
                         <select name="payment_type" class="input-field">
                             <option value="">Select...</option>
                             <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
-                            <option value="PER_INVOICE">PER_INVOICE</option>
+                            <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Incoterm *</label>
                         <select name="incoterm" class="input-field" required>
-                            <option value="CFR" selected>CFR</option>
-                            <option value="DAP">DAP</option>
-                            <option value="NA">NA</option>
+                            <option value="EXW">EXW</option>
+                            <option value="FCA">FCA</option>
+                            <option value="FAS">FAS</option>
                             <option value="FOB">FOB</option>
+                            <option value="CFR" selected>CFR</option>
                             <option value="CIF">CIF</option>
+                            <option value="CPT">CPT</option>
+                            <option value="CIP">CIP</option>
+                            <option value="DAP">DAP</option>
+                            <option value="DAT">DAT</option>
+                            <option value="DDP">DDP</option>
+                            <option value="NA">NA</option>
                         </select>
                     </div>
                 </div>
@@ -484,6 +501,7 @@ class UIController {
                             <option value="DAYS" selected>DAYS</option>
                             <option value="WEEKS">WEEKS</option>
                             <option value="MONTHS">MONTHS</option>
+                            <option value="YEARS">YEARS</option>
                         </select>
                     </div>
                 </div>
@@ -499,11 +517,16 @@ class UIController {
                             <option value="DAYS">DAYS</option>
                             <option value="WEEKS">WEEKS</option>
                             <option value="MONTHS" selected>MONTHS</option>
+                            <option value="YEARS">YEARS</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Applied From</label>
-                        <input type="text" name="payment_applied_from" class="input-field" value="INVOICE_DATE">
+                        <select name="payment_applied_from" class="input-field">
+                            <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                            <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                            <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                        </select>
                     </div>
                 </div>
 
@@ -525,6 +548,25 @@ class UIController {
                     </div>
                     <div id="contract-custom-container"></div>
                     <button type="button" class="btn-add-row" onclick="window.uiController._addContractCustomSection()">＋ Add Custom Section</button>
+                </div>
+
+                <!-- ⑧ Terms & Conditions -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📜</span>
+                    <h4>Terms &amp; Conditions</h4>
+                </div>
+                <div class="form-group">
+                    <label>T&C Template</label>
+                    <select id="tnc_name_select" name="tnc_name" class="input-field">
+                        <option value="">None (skip)</option>
+                    </select>
+                </div>
+                <div id="tnc-data-wrapper" style="display:none;margin-bottom:16px;">
+                    <div id="tnc-data-toggle" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;color:#64748b;font-size:12px;font-weight:500;">
+                        <svg id="tnc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;transform:rotate(-90deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        T&C Content
+                    </div>
+                    <div id="tnc-data-content" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;color:#475569;max-height:300px;overflow-y:auto;white-space:pre-wrap;"></div>
                 </div>
 
                 <!-- Contract Items -->
@@ -733,17 +775,24 @@ class UIController {
                         <select name="payment_type" class="input-field">
                             <option value="">Select...</option>
                             <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
-                            <option value="PER_INVOICE">PER_INVOICE</option>
+                            <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Incoterm *</label>
                         <select name="incoterm" class="input-field" required>
-                            <option value="CFR" selected>CFR</option>
-                            <option value="DAP">DAP</option>
-                            <option value="NA">NA</option>
+                            <option value="EXW">EXW</option>
+                            <option value="FCA">FCA</option>
+                            <option value="FAS">FAS</option>
                             <option value="FOB">FOB</option>
+                            <option value="CFR" selected>CFR</option>
                             <option value="CIF">CIF</option>
+                            <option value="CPT">CPT</option>
+                            <option value="CIP">CIP</option>
+                            <option value="DAP">DAP</option>
+                            <option value="DAT">DAT</option>
+                            <option value="DDP">DDP</option>
+                            <option value="NA">NA</option>
                         </select>
                     </div>
                 </div>
@@ -760,6 +809,7 @@ class UIController {
                             <option value="DAYS" selected>DAYS</option>
                             <option value="WEEKS">WEEKS</option>
                             <option value="MONTHS">MONTHS</option>
+                            <option value="YEARS">YEARS</option>
                         </select>
                     </div>
                 </div>
@@ -775,11 +825,16 @@ class UIController {
                             <option value="DAYS">DAYS</option>
                             <option value="WEEKS">WEEKS</option>
                             <option value="MONTHS" selected>MONTHS</option>
+                            <option value="YEARS">YEARS</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label>Applied From</label>
-                        <input type="text" name="payment_applied_from" class="input-field" value="INVOICE_DATE">
+                        <select name="payment_applied_from" class="input-field">
+                            <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                            <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                            <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                        </select>
                     </div>
                 </div>
 
@@ -5754,6 +5809,21 @@ echo "[Done: ${count} vendors created sequentially]"
         // Auto-increment contract IDs
         this._setContractIdDefaults();
 
+        // Load T&C dropdown
+        this._loadTermsAndConditions();
+
+        // T&C data expand/collapse toggle
+        const tncToggle = document.getElementById('tnc-data-toggle');
+        if (tncToggle) {
+            tncToggle.addEventListener('click', () => {
+                const content = document.getElementById('tnc-data-content');
+                const chevron = document.getElementById('tnc-chevron');
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? '' : 'none';
+                if (chevron) chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+            });
+        }
+
         // Attach inline field validation
         this._attachContractInlineValidation();
     }
@@ -6256,18 +6326,6 @@ echo "[Done: ${count} vendors created sequentially]"
                             </div>
                         </div>
 
-                        <p class="cc-sub-title">💲 Pricing &amp; Quantities</p>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Rate</label>
-                                <input type="number" name="item_${itemIndex}_rate" class="input-field" value="10" step="0.01">
-                            </div>
-                            <div class="form-group">
-                                <label>Quantity</label>
-                                <input type="number" name="item_${itemIndex}_quantity" class="input-field" value="1000" step="0.01">
-                            </div>
-                        </div>
-
                         <p class="cc-sub-title">💳 Payment &amp; Shipping</p>
                         <div class="form-row">
                             <div class="form-group">
@@ -6278,7 +6336,7 @@ echo "[Done: ${count} vendors created sequentially]"
                                 <label>Payment Type</label>
                                 <select name="item_${itemIndex}_payment_type" class="input-field">
                                     <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
-                                    <option value="PER_INVOICE">PER_INVOICE</option>
+                                    <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
                                 </select>
                             </div>
                         </div>
@@ -6287,10 +6345,18 @@ echo "[Done: ${count} vendors created sequentially]"
                             <div class="form-group">
                                 <label>Incoterm *</label>
                                 <select name="item_${itemIndex}_incoterm" class="input-field" required>
-                                    <option value="NA" selected>NA</option>
-                                    <option value="CFR">CFR</option>
-                                    <option value="DAP">DAP</option>
+                                    <option value="EXW">EXW</option>
+                                    <option value="FCA">FCA</option>
+                                    <option value="FAS">FAS</option>
                                     <option value="FOB">FOB</option>
+                                    <option value="CFR">CFR</option>
+                                    <option value="CIF">CIF</option>
+                                    <option value="CPT">CPT</option>
+                                    <option value="CIP">CIP</option>
+                                    <option value="DAP">DAP</option>
+                                    <option value="DAT">DAT</option>
+                                    <option value="DDP">DDP</option>
+                                    <option value="NA" selected>NA</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -6303,6 +6369,7 @@ echo "[Done: ${count} vendors created sequentially]"
                                     <option value="DAYS" selected>DAYS</option>
                                     <option value="WEEKS">WEEKS</option>
                                     <option value="MONTHS">MONTHS</option>
+                                    <option value="YEARS">YEARS</option>
                                 </select>
                             </div>
                         </div>
@@ -6315,14 +6382,19 @@ echo "[Done: ${count} vendors created sequentially]"
                             <div class="form-group">
                                 <label>Payment Period</label>
                                 <select name="item_${itemIndex}_payment_period" class="input-field">
-                                    <option value="MONTHS" selected>MONTHS</option>
                                     <option value="DAYS">DAYS</option>
                                     <option value="WEEKS">WEEKS</option>
+                                    <option value="MONTHS" selected>MONTHS</option>
+                                    <option value="YEARS">YEARS</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Applied From</label>
-                                <input type="text" name="item_${itemIndex}_payment_applied_from" class="input-field" value="INVOICE_DATE">
+                                <select name="item_${itemIndex}_payment_applied_from" class="input-field">
+                                    <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                                    <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                                    <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                                </select>
                             </div>
                         </div>
 
@@ -6890,18 +6962,6 @@ echo "[Done: ${count} vendors created sequentially]"
                             </div>
                         </div>
 
-                        <p class="cc-sub-title">💲 Pricing &amp; Quantities</p>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Rate</label>
-                                <input type="number" name="item_${itemIndex}_rate" class="input-field" value="15" step="0.01">
-                            </div>
-                            <div class="form-group">
-                                <label>Quantity</label>
-                                <input type="number" name="item_${itemIndex}_quantity" class="input-field" value="200" step="0.01">
-                            </div>
-                        </div>
-
                         <p class="cc-sub-title">💳 Payment &amp; Shipping</p>
                         <div class="form-row">
                             <div class="form-group">
@@ -6912,7 +6972,7 @@ echo "[Done: ${count} vendors created sequentially]"
                                 <label>Payment Type</label>
                                 <select name="item_${itemIndex}_payment_type" class="input-field">
                                     <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
-                                    <option value="PER_INVOICE">PER_INVOICE</option>
+                                    <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
                                 </select>
                             </div>
                         </div>
@@ -6921,10 +6981,18 @@ echo "[Done: ${count} vendors created sequentially]"
                             <div class="form-group">
                                 <label>Incoterm *</label>
                                 <select name="item_${itemIndex}_incoterm" class="input-field" required>
-                                    <option value="NA" selected>NA</option>
-                                    <option value="CFR">CFR</option>
-                                    <option value="DAP">DAP</option>
+                                    <option value="EXW">EXW</option>
+                                    <option value="FCA">FCA</option>
+                                    <option value="FAS">FAS</option>
                                     <option value="FOB">FOB</option>
+                                    <option value="CFR">CFR</option>
+                                    <option value="CIF">CIF</option>
+                                    <option value="CPT">CPT</option>
+                                    <option value="CIP">CIP</option>
+                                    <option value="DAP">DAP</option>
+                                    <option value="DAT">DAT</option>
+                                    <option value="DDP">DDP</option>
+                                    <option value="NA" selected>NA</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -6937,6 +7005,7 @@ echo "[Done: ${count} vendors created sequentially]"
                                     <option value="DAYS" selected>DAYS</option>
                                     <option value="WEEKS">WEEKS</option>
                                     <option value="MONTHS">MONTHS</option>
+                                    <option value="YEARS">YEARS</option>
                                 </select>
                             </div>
                         </div>
@@ -6949,14 +7018,19 @@ echo "[Done: ${count} vendors created sequentially]"
                             <div class="form-group">
                                 <label>Payment Period</label>
                                 <select name="item_${itemIndex}_payment_period" class="input-field">
-                                    <option value="MONTHS" selected>MONTHS</option>
                                     <option value="DAYS">DAYS</option>
                                     <option value="WEEKS">WEEKS</option>
+                                    <option value="MONTHS" selected>MONTHS</option>
+                                    <option value="YEARS">YEARS</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label>Applied From</label>
-                                <input type="text" name="item_${itemIndex}_payment_applied_from" class="input-field" value="INVOICE_DATE">
+                                <select name="item_${itemIndex}_payment_applied_from" class="input-field">
+                                    <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                                    <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                                    <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                                </select>
                             </div>
                         </div>
 
@@ -9182,7 +9256,7 @@ echo "[Done: ${count} vendors created sequentially]"
             if (field) field.value = payload.payment_period;
         }
         if (payload.payment_applied_from) {
-            const field = document.querySelector('input[name="payment_applied_from"]');
+            const field = document.querySelector('[name="payment_applied_from"]');
             if (field) field.value = payload.payment_applied_from;
         }
 
@@ -9250,6 +9324,12 @@ echo "[Done: ${count} vendors created sequentially]"
         this.checkFormValidity();
     }
 
+    _setCurlCollapsed(collapsed) {
+        this.elements.curlDisplay.style.display = collapsed ? 'none' : '';
+        const icon = document.getElementById('curl-collapse-icon');
+        if (icon) icon.style.transform = collapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+    }
+
     handleGenerate() {
         // Check form validity and highlight incomplete fields
         const validationResult = this.checkFormValidity();
@@ -9282,17 +9362,14 @@ echo "[Done: ${count} vendors created sequentially]"
         const curl = this._generateCurlCommand();
         this.elements.curlDisplay.innerHTML = `<pre><code>${this._escapeHtml(curl)}</code></pre>`;
 
-        // Reset panel header (may have been changed by Generate Script)
-        const panelHeader = this.elements.actionsSection.querySelector('h3');
-        if (panelHeader) panelHeader.textContent = 'Generated cURL';
-
         // Clear response meta
         const responseMeta = document.getElementById('response-meta');
         if (responseMeta) responseMeta.innerHTML = '';
 
-        // Show cURL panel
+        // Show cURL panel expanded
         this.elements.actionsSection.classList.remove('hidden');
-        this.elements.responseSection.classList.add('hidden'); // Hide response
+        this.elements.responseSection.classList.add('hidden');
+        this._setCurlCollapsed(false);
 
         // Scroll to it
         this.elements.actionsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -9467,9 +9544,21 @@ echo "[Done: ${count} vendors created sequentially]"
             const curl = this._generateCurlCommandWithPayload(env, op, payload);
             this.elements.curlDisplay.innerHTML = `<pre><code>${this._escapeHtml(curl)}</code></pre>`;
 
-            // Show both panels
+            // Show both panels — curl collapsed, response on top with waiting state
             this.elements.actionsSection.classList.remove('hidden');
             this.elements.responseSection.classList.remove('hidden');
+            this._setCurlCollapsed(true);
+
+            // Show waiting state in response
+            this.elements.responseDisplay.innerHTML = `
+                <div style="display:flex;align-items:center;gap:10px;padding:20px;color:#64748b;">
+                    <div style="width:16px;height:16px;border:2px solid #e2e8f0;border-top-color:#6366f1;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+                    <span style="font-size:14px;">Waiting for response...</span>
+                </div>
+            `;
+
+            // Scroll to response
+            this.elements.responseSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
             // Execute real API call for Contract + Items + Vendor + Project + PO operations
             const shouldExecuteAPI = this.currentModule === 'contract' ||
@@ -9497,8 +9586,6 @@ echo "[Done: ${count} vendors created sequentially]"
                 }, null, 2)}</code></pre>`;
             }
 
-            // Scroll to outputs
-            this.elements.actionsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (error) {
             this._displayError(error.message);
         }
@@ -9606,10 +9693,17 @@ echo "[Done: ${count} vendors created sequentially]"
                 lead_time_period: form.querySelector('[name="lead_time_period"]')?.value || null,
                 custom_sections: [],
                 attachments: [],
-                terms_and_conditions: {
-                    data: "",
-                    name: "FactWise Default TNC"
-                },
+                terms_and_conditions: (() => {
+                    const tncName = form.querySelector('[name="tnc_name"]')?.value;
+                    if (!tncName) return null;
+                    const tncRecord = (this._tncList || []).find(t =>
+                        t.name === tncName
+                    );
+                    return {
+                        name: tncName,
+                        data: tncRecord?.data || ''
+                    };
+                })(),
                 contract_items: []
             };
 
@@ -9657,8 +9751,6 @@ echo "[Done: ${count} vendors created sequentially]"
                         currency_code_id: card.querySelector(`[name="item_${index}_currency_id"]`)?.value,
                         measurement_unit_id: card.querySelector(`[name="item_${index}_unit_id"]`)?.value,
                         attributes: [],
-                        rate: parseFloat(card.querySelector(`[name="item_${index}_rate"]`)?.value) || 0,
-                        quantity: parseFloat(card.querySelector(`[name="item_${index}_quantity"]`)?.value) || 0,
                         pricing_tiers: [],
                         prepayment_percentage: parseFloat(card.querySelector(`[name="item_${index}_prepayment"]`)?.value) || 0,
                         payment_type: card.querySelector(`[name="item_${index}_payment_type"]`)?.value || "PER_INVOICE_ITEM",
@@ -9798,10 +9890,17 @@ echo "[Done: ${count} vendors created sequentially]"
                 lead_time_period: form.querySelector('[name="lead_time_period"]')?.value || null,
                 custom_sections: [],
                 attachments: [],
-                terms_and_conditions: {
-                    data: "",
-                    name: "FactWise Default TNC"
-                },
+                terms_and_conditions: (() => {
+                    const tncName = form.querySelector('[name="tnc_name"]')?.value;
+                    if (!tncName) return null;
+                    const tncRecord = (this._tncList || []).find(t =>
+                        t.name === tncName
+                    );
+                    return {
+                        name: tncName,
+                        data: tncRecord?.data || ''
+                    };
+                })(),
                 contract_items: []
             };
 
@@ -9849,8 +9948,6 @@ echo "[Done: ${count} vendors created sequentially]"
                         currency_code_id: card.querySelector(`[name="item_${index}_currency_id"]`)?.value,
                         measurement_unit_id: card.querySelector(`[name="item_${index}_unit_id"]`)?.value,
                         attributes: [],
-                        rate: parseFloat(card.querySelector(`[name="item_${index}_rate"]`)?.value) || 0,
-                        quantity: parseFloat(card.querySelector(`[name="item_${index}_quantity"]`)?.value) || 0,
                         pricing_tiers: [],
                         prepayment_percentage: parseFloat(card.querySelector(`[name="item_${index}_prepayment"]`)?.value) || 0,
                         payment_type: card.querySelector(`[name="item_${index}_payment_type"]`)?.value || "PER_INVOICE_ITEM",
@@ -10010,6 +10107,13 @@ echo "[Done: ${count} vendors created sequentially]"
 
             // Display response
             this._displayResponse(response, executionTime);
+
+            // After contract create, regenerate IDs so next execute doesn't duplicate
+            if (this.currentModule === 'contract' && this.currentOperation === 'create' && this.currentMode !== 'bulk') {
+                if (response.status >= 200 && response.status < 300) {
+                    this._setContractIdDefaults();
+                }
+            }
         } catch (error) {
             console.error('API call error:', error);
             this._displayError(error.message);
@@ -10634,6 +10738,58 @@ echo "[Done: ${count} vendors created sequentially]"
             if (select) {
                 select.innerHTML = '<option value="Default Template">Default Template</option>';
             }
+        }
+    }
+
+    async _loadTermsAndConditions() {
+        try {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+            if (!token) {
+                console.warn('No token for T&C API');
+                return;
+            }
+
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const url = `${baseUrl}organization/terms_and_conditions/admin/?type=PURCHASE_ORDER`;
+
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch T&C:', response.status);
+                return;
+            }
+
+            const data = await response.json();
+            const allTnc = Array.isArray(data) ? data : (data.results || []);
+            const tncList = allTnc.filter(t => t.status === 'ACTIVE');
+            this._tncList = tncList;
+
+            const select = document.getElementById('tnc_name_select');
+            if (select && tncList.length > 0) {
+                select.innerHTML = '<option value="">None (skip)</option>' +
+                    tncList.map(tnc => `<option value="${tnc.name}">${tnc.name}</option>`).join('');
+
+                // When user selects a TNC, show its data
+                select.addEventListener('change', () => {
+                    const wrapper = document.getElementById('tnc-data-wrapper');
+                    const content = document.getElementById('tnc-data-content');
+                    const selected = tncList.find(t => t.name === select.value);
+                    if (selected && select.value) {
+                        content.textContent = selected.data || '';
+                        wrapper.style.display = '';
+                    } else {
+                        wrapper.style.display = 'none';
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Error loading T&C:', error);
         }
     }
 
