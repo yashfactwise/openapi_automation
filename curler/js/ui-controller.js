@@ -298,17 +298,24 @@ class UIController {
                             <div class="cc-toggles-grid">
                                 <label class="cc-toggle-row">
                                     <span class="cc-toggle-switch">
-                                        <input type="checkbox" id="toggle-contract-costs">
+                                        <input type="checkbox" id="toggle-additional-costs">
                                         <span class="cc-toggle-slider"></span>
                                     </span>
-                                    <span class="cc-toggle-text">Contract-Level Costs</span>
+                                    <span class="cc-toggle-text">Additional Costs</span>
                                 </label>
                                 <label class="cc-toggle-row">
                                     <span class="cc-toggle-switch">
-                                        <input type="checkbox" id="toggle-tier-costs">
+                                        <input type="checkbox" id="toggle-taxes">
                                         <span class="cc-toggle-slider"></span>
                                     </span>
-                                    <span class="cc-toggle-text">Tier-Level Costs</span>
+                                    <span class="cc-toggle-text">Taxes</span>
+                                </label>
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="toggle-discounts">
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Discounts</span>
                                 </label>
                                 <label class="cc-toggle-row">
                                     <span class="cc-toggle-switch">
@@ -530,15 +537,7 @@ class UIController {
                     </div>
                 </div>
 
-                <!-- ⑥ Contract-Level Additional Costs (conditional) -->
-                <div id="contract-costs-section" class="cc-conditional-section">
-                    <div class="form-section-title">
-                        <span class="fst-icon">💰</span>
-                        <h4>Contract-Level Costs</h4>
-                    </div>
-                    <div id="contract-costs-container"></div>
-                    <button type="button" class="btn-add-row" onclick="window.uiController._addContractCost()">＋ Add Cost / Tax / Discount</button>
-                </div>
+
 
                 <!-- ⑦ Contract-Level Custom Fields (conditional) -->
                 <div id="contract-custom-section" class="cc-conditional-section">
@@ -607,17 +606,24 @@ class UIController {
                             <div class="cc-toggles-grid">
                                 <label class="cc-toggle-row">
                                     <span class="cc-toggle-switch">
-                                        <input type="checkbox" id="toggle-contract-costs-update">
+                                        <input type="checkbox" id="toggle-additional-costs-update">
                                         <span class="cc-toggle-slider"></span>
                                     </span>
-                                    <span class="cc-toggle-text">Contract-Level Costs</span>
+                                    <span class="cc-toggle-text">Additional Costs</span>
                                 </label>
                                 <label class="cc-toggle-row">
                                     <span class="cc-toggle-switch">
-                                        <input type="checkbox" id="toggle-tier-costs-update">
+                                        <input type="checkbox" id="toggle-taxes-update">
                                         <span class="cc-toggle-slider"></span>
                                     </span>
-                                    <span class="cc-toggle-text">Tier-Level Costs</span>
+                                    <span class="cc-toggle-text">Taxes</span>
+                                </label>
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="toggle-discounts-update">
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Discounts</span>
                                 </label>
                                 <label class="cc-toggle-row">
                                     <span class="cc-toggle-switch">
@@ -838,15 +844,7 @@ class UIController {
                     </div>
                 </div>
 
-                <!-- ⑥ Contract-Level Additional Costs (conditional) -->
-                <div id="contract-costs-section-update" class="cc-conditional-section">
-                    <div class="form-section-title">
-                        <span class="fst-icon">💰</span>
-                        <h4>Contract-Level Costs</h4>
-                    </div>
-                    <div id="contract-costs-container-update"></div>
-                    <button type="button" class="btn-add-row" onclick="window.uiController._addContractCostUpdate()">＋ Add Cost / Tax / Discount</button>
-                </div>
+
 
                 <!-- ⑦ Contract-Level Custom Fields (conditional) -->
                 <div id="contract-custom-section-update" class="cc-conditional-section">
@@ -2326,6 +2324,9 @@ class UIController {
             this._setupContractCreateListeners();
         } else if (module.id === 'contract' && operation.id === 'update') {
             this._setupContractUpdateListeners();
+            setTimeout(() => this._setupContractLookup(this.elements.operationForm, 'ongoing'), 50);
+        } else if (module.id === 'contract' && operation.id === 'state') {
+            setTimeout(() => this._setupContractLookup(this.elements.operationForm, 'ongoing'), 50);
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
             // Expose this instance globally so inline onclick handlers can call methods on it
             window.uiController = this;
@@ -5750,20 +5751,11 @@ echo "[Done: ${count} vendors created sequentially]"
         }
 
         // Toggle listeners
-        const toggleContractCosts = document.getElementById('toggle-contract-costs');
-        const toggleTierCosts = document.getElementById('toggle-tier-costs');
+        const toggleAdditionalCosts = document.getElementById('toggle-additional-costs');
+        const toggleTaxes = document.getElementById('toggle-taxes');
+        const toggleDiscounts = document.getElementById('toggle-discounts');
         const toggleContractCustom = document.getElementById('toggle-contract-custom');
         const toggleItemCustom = document.getElementById('toggle-item-custom');
-
-        if (toggleContractCosts) {
-            toggleContractCosts.addEventListener('change', (e) => {
-                const section = document.getElementById('contract-costs-section');
-                section.classList.toggle('visible', e.target.checked);
-                if (e.target.checked && document.getElementById('contract-costs-container').children.length === 0) {
-                    this._addContractCost();
-                }
-            });
-        }
 
         if (toggleContractCustom) {
             toggleContractCustom.addEventListener('change', (e) => {
@@ -5775,14 +5767,10 @@ echo "[Done: ${count} vendors created sequentially]"
             });
         }
 
-        if (toggleTierCosts || toggleItemCustom) {
-            // Re-render items when these toggles change
-            [toggleTierCosts, toggleItemCustom].forEach(toggle => {
-                if (toggle) {
-                    toggle.addEventListener('change', () => this._renderContractItems());
-                }
-            });
-        }
+        if (toggleAdditionalCosts) toggleAdditionalCosts.addEventListener('change', () => this._updateTierCostButtons());
+        if (toggleTaxes) toggleTaxes.addEventListener('change', () => this._updateTierCostButtons());
+        if (toggleDiscounts) toggleDiscounts.addEventListener('change', () => this._updateTierCostButtons());
+        if (toggleItemCustom) toggleItemCustom.addEventListener('change', () => this._updateItemCustomVisibility());
 
         // Event delegation for Add Tier buttons
         const itemsContainer = document.getElementById('contract-items-container');
@@ -6065,6 +6053,50 @@ echo "[Done: ${count} vendors created sequentially]"
         } catch { return []; }
     }
 
+    // ── Contract search dropdown ──────────────────────────────────────────────
+
+    _setupContractLookup(form, tab = 'ongoing') {
+        if (!form) return;
+
+        const fetchContracts = async (q) => {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            if (!token) return [];
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            try {
+                const res = await fetch(`${baseUrl}dashboard/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dashboard_view: 'contract_buyer',
+                        items_per_page: 8, page_number: 1,
+                        query_data: {}, search_text: q,
+                        sort_fields: [], filters: null, tab
+                    })
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                const records = data?.data || data?.results || (Array.isArray(data) ? data : []);
+                return records.map(c => ({
+                    contract: c,
+                    html: `<strong>${c.custom_contract_id || c.factwise_contract_id || ''}</strong>${c.ERP_contract_id ? ` / ${c.ERP_contract_id}` : ''} <span style="color:#64748b;">— ${c.contract_name || ''}</span>`
+                }));
+            } catch { return []; }
+        };
+
+        const onSelect = (r) => {
+            const c = r.contract;
+            const fwEl = form.querySelector('[name="factwise_contract_id"]');
+            const erpEl = form.querySelector('[name="ERP_contract_id"]');
+            if (fwEl) fwEl.value = c.custom_contract_id || c.factwise_contract_id || '';
+            if (erpEl) erpEl.value = c.ERP_contract_id || '';
+        };
+
+        const fwEl = form.querySelector('[name="factwise_contract_id"]');
+        const erpEl = form.querySelector('[name="ERP_contract_id"]');
+        if (fwEl) this._attachSearchDropdown(fwEl, fetchContracts, onSelect);
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchContracts, onSelect);
+    }
+
     // ── Vendor search dropdown ────────────────────────────────────────────────
 
     _setupVendorLookup(form) {
@@ -6201,7 +6233,9 @@ echo "[Done: ${count} vendors created sequentially]"
         itemCard.dataset.tiersCount = newTierCount;
 
         // Get settings
-        const showTierCosts = document.getElementById('toggle-tier-costs')?.checked || false;
+        const showAdditionalCosts = document.getElementById('toggle-additional-costs')?.checked || false;
+        const showTaxes = document.getElementById('toggle-taxes')?.checked || false;
+        const showDiscounts = document.getElementById('toggle-discounts')?.checked || false;
 
         // Read max of the last tier to use as next tier's min
         const tiersContainer = document.getElementById(`tiers-container-${itemIndex}`);
@@ -6215,7 +6249,7 @@ echo "[Done: ${count} vendors created sequentially]"
 
         // Render all tiers (pass lastTierMax for new tier's min prefill)
         if (tiersContainer) {
-            tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showTierCosts, lastTierMax);
+            tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showAdditionalCosts, showTaxes, showDiscounts, lastTierMax);
             this._attachTierMaxListeners(tiersContainer, itemIndex, false);
         }
     }
@@ -6231,12 +6265,14 @@ echo "[Done: ${count} vendors created sequentially]"
         itemCard.dataset.tiersCount = newTierCount;
 
         // Get settings
-        const showTierCosts = document.getElementById('toggle-tier-costs')?.checked || false;
+        const showAdditionalCosts = document.getElementById('toggle-additional-costs')?.checked || false;
+        const showTaxes = document.getElementById('toggle-taxes')?.checked || false;
+        const showDiscounts = document.getElementById('toggle-discounts')?.checked || false;
 
         // Re-render all tiers except the removed one
         const tiersContainer = document.getElementById(`tiers-container-${itemIndex}`);
         if (tiersContainer) {
-            tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showTierCosts);
+            tiersContainer.innerHTML = this._renderPricingTiers(itemIndex, newTierCount, showAdditionalCosts, showTaxes, showDiscounts);
             this._attachTierMaxListeners(tiersContainer, itemIndex, false);
         }
     }
@@ -6270,7 +6306,9 @@ echo "[Done: ${count} vendors created sequentially]"
 
         const itemIndex = container.children.length;
         const tiersCount = 1; // Start with 1 tier per item
-        const showTierCosts = document.getElementById('toggle-tier-costs')?.checked || false;
+        const showAdditionalCosts = document.getElementById('toggle-additional-costs')?.checked || false;
+        const showTaxes = document.getElementById('toggle-taxes')?.checked || false;
+        const showDiscounts = document.getElementById('toggle-discounts')?.checked || false;
         const showItemCustom = document.getElementById('toggle-item-custom')?.checked || false;
 
         const itemHtml = `
@@ -6405,18 +6443,18 @@ echo "[Done: ${count} vendors created sequentially]"
                             </button>
                         </div>
                         <div id="tiers-container-${itemIndex}">
-                            ${this._renderPricingTiers(itemIndex, tiersCount, showTierCosts)}
+                            ${this._renderPricingTiers(itemIndex, tiersCount, showAdditionalCosts, showTaxes, showDiscounts)}
                         </div>
 
                         ${this._renderItemCostsSection(itemIndex)}
 
-                        ${showItemCustom ? `
+                        <div class="cc-item-custom-section-wrapper" style="display:${showItemCustom ? '' : 'none'}">
                             <p class="cc-sub-title">🔧 Item Custom Sections</p>
                             <div id="item-${itemIndex}-custom">
                                 ${this._renderItemCustomSectionRow(itemIndex, 0)}
                             </div>
                             <button type="button" class="btn-add-row" onclick="window.uiController._addItemCustomSection(${itemIndex})">+ Add Custom Section</button>
-                        ` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -6455,12 +6493,12 @@ echo "[Done: ${count} vendors created sequentially]"
     }
 
 
-    _renderPricingTiers(itemIndex, count, showCosts, lastAddedMax) {
+    _renderPricingTiers(itemIndex, count, showAdditionalCosts, showTaxes, showDiscounts, lastAddedMax) {
         let html = '';
         for (let i = 0; i < count; i++) {
             const isFirstTier = i === 0;
-            // For newly appended tier (count > 1 and i is last), prefill min from lastAddedMax
             const minVal = isFirstTier ? 1 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
+            const showAnyCosts = showAdditionalCosts || showTaxes || showDiscounts;
             html += `
                 <div class="cc-tier-card" data-tier-index="${i}">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -6485,10 +6523,14 @@ echo "[Done: ${count} vendors created sequentially]"
                             <input type="number" name="item_${itemIndex}_tier_${i}_rate" class="input-field" value="10" step="0.01">
                         </div>
                     </div>
-                    ${showCosts ? `
-                        <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs / Taxes</p>
+                    ${showAnyCosts ? `
+                        <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs</p>
                         <div id="item-${itemIndex}-tier-${i}-costs"></div>
-                        <button type="button" class="btn-add-row" style="font-size:11px;padding:4px 10px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i})">+ Add Cost / Tax</button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                            ${showAdditionalCosts ? `<button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i},'cost')">+ Additional Cost</button>` : ''}
+                            ${showTaxes ? `<button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i},'tax')">+ Tax</button>` : ''}
+                            ${showDiscounts ? `<button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i},'discount')">+ Discount</button>` : ''}
+                        </div>
                     ` : ''}
                 </div>
             `;
@@ -6496,30 +6538,21 @@ echo "[Done: ${count} vendors created sequentially]"
         return html;
     }
 
-    _buildCostOptions(level) {
+    _buildCostOptions(level, costType) {
         const config = this.templateManager?.getCurrentConfig?.() || {};
         const levelConfig = config[level + 'Level'] || {};
-        const costFields = levelConfig.costFields || [];
-        const taxFields = levelConfig.taxFields || [];
-        const discountFields = levelConfig.discountFields || [];
 
-        const toOption = (f, type) => {
-            const label = type === 'cost' ? 'Cost' : type === 'tax' ? 'Tax' : 'Discount';
-            const valueType = f.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
-            return `<option value="${f.alternate_name}" data-type="${type}" data-value-type="${valueType}">[${label}] ${f.name}</option>`;
-        };
+        let fields = [];
+        if (costType === 'cost') fields = levelConfig.costFields || [];
+        else if (costType === 'tax') fields = levelConfig.taxFields || [];
+        else if (costType === 'discount') fields = levelConfig.discountFields || [];
 
-        const options = [
-            ...costFields.map(f => toOption(f, 'cost')),
-            ...taxFields.map(f => toOption(f, 'tax')),
-            ...discountFields.map(f => toOption(f, 'discount'))
-        ];
+        if (fields.length === 0) return null;
 
-        if (options.length === 0) {
-            // Fallback: no template loaded, allow manual entry
-            return null;
-        }
-        return options.join('');
+        return fields.map(f => {
+            const vt = f.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
+            return `<option value="${f.alternate_name}" data-type="${costType}" data-value-type="${vt}">${f.name}</option>`;
+        }).join('');
     }
 
     _addContractCost() {
@@ -6718,24 +6751,27 @@ echo "[Done: ${count} vendors created sequentially]"
         container.insertAdjacentHTML('beforeend', this._renderItemCustomSectionRow(itemIndex, index));
     }
 
-    _addTierCostRow(itemIndex, tierIndex) {
+    _addTierCostRow(itemIndex, tierIndex, costType) {
         const container = document.getElementById(`item-${itemIndex}-tier-${tierIndex}-costs`);
         if (!container) return;
         const index = container.children.length;
-        const optionsHTML = this._buildCostOptions('item');
+        const optionsHTML = this._buildCostOptions('item', costType);
+        const label = costType === 'tax' ? 'Tax' : costType === 'discount' ? 'Discount' : 'Additional Cost';
 
         let html;
         if (optionsHTML) {
             html = `
             <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
                 <div class="form-group" style="flex:2;margin:0;">
+                    <label style="font-size:11px;color:#64748b;">${label}</label>
                     <select name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_name" class="input-field cc-cost-select" onchange="window.uiController._onCostSelectChange(this)">
                         <option value="">-- Select --</option>
                         ${optionsHTML}
                     </select>
-                    <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" value="">
+                    <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" value="${costType}">
                 </div>
                 <div class="form-group" style="flex:1;margin:0;">
+                    <label style="font-size:11px;color:#64748b;" class="cc-cost-value-label">Value</label>
                     <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
                 </div>
                 <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
@@ -6743,16 +6779,13 @@ echo "[Done: ${count} vendors created sequentially]"
         } else {
             html = `
             <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
-                <div class="form-group" style="flex:1;margin:0;">
-                    <select name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" class="input-field">
-                        <option value="cost">Cost</option>
-                        <option value="tax">Tax</option>
-                    </select>
-                </div>
                 <div class="form-group" style="flex:2;margin:0;">
-                    <input type="text" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_name" class="input-field" placeholder="e.g., Shipping">
+                    <label style="font-size:11px;color:#64748b;">${label}</label>
+                    <input type="text" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_name" class="input-field" placeholder="e.g., ${label}">
+                    <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" value="${costType}">
                 </div>
                 <div class="form-group" style="flex:1;margin:0;">
+                    <label style="font-size:11px;color:#64748b;">Value</label>
                     <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_value" class="input-field" step="0.01">
                 </div>
                 <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
@@ -6776,20 +6809,11 @@ echo "[Done: ${count} vendors created sequentially]"
         }
 
         // Toggle listeners
-        const toggleContractCosts = document.getElementById('toggle-contract-costs-update');
-        const toggleTierCosts = document.getElementById('toggle-tier-costs-update');
+        const toggleAdditionalCostsU = document.getElementById('toggle-additional-costs-update');
+        const toggleTaxesU = document.getElementById('toggle-taxes-update');
+        const toggleDiscountsU = document.getElementById('toggle-discounts-update');
         const toggleContractCustom = document.getElementById('toggle-contract-custom-update');
         const toggleItemCustom = document.getElementById('toggle-item-custom-update');
-
-        if (toggleContractCosts) {
-            toggleContractCosts.addEventListener('change', (e) => {
-                const section = document.getElementById('contract-costs-section-update');
-                section.classList.toggle('visible', e.target.checked);
-                if (e.target.checked && document.getElementById('contract-costs-container-update').children.length === 0) {
-                    this._addContractCostUpdate();
-                }
-            });
-        }
 
         if (toggleContractCustom) {
             toggleContractCustom.addEventListener('change', (e) => {
@@ -6801,14 +6825,10 @@ echo "[Done: ${count} vendors created sequentially]"
             });
         }
 
-        if (toggleTierCosts || toggleItemCustom) {
-            // Re-render items when these toggles change
-            [toggleTierCosts, toggleItemCustom].forEach(toggle => {
-                if (toggle) {
-                    toggle.addEventListener('change', () => this._renderContractItemsUpdate());
-                }
-            });
-        }
+        if (toggleAdditionalCostsU) toggleAdditionalCostsU.addEventListener('change', () => this._updateTierCostButtons(true));
+        if (toggleTaxesU) toggleTaxesU.addEventListener('change', () => this._updateTierCostButtons(true));
+        if (toggleDiscountsU) toggleDiscountsU.addEventListener('change', () => this._updateTierCostButtons(true));
+        if (toggleItemCustom) toggleItemCustom.addEventListener('change', () => this._updateItemCustomVisibility(true));
 
         // Event delegation for Add Tier buttons
         const itemsContainerUpdate = document.getElementById('contract-items-container-update');
@@ -6844,7 +6864,9 @@ echo "[Done: ${count} vendors created sequentially]"
         itemCard.dataset.tiersCount = newTierCount;
 
         // Get settings
-        const showTierCosts = document.getElementById('toggle-tier-costs-update')?.checked || false;
+        const showAdditionalCosts = document.getElementById('toggle-additional-costs-update')?.checked || false;
+        const showTaxes = document.getElementById('toggle-taxes-update')?.checked || false;
+        const showDiscounts = document.getElementById('toggle-discounts-update')?.checked || false;
 
         // Read max of the last tier to use as next tier's min
         const tiersContainer = document.getElementById(`tiers-container-update-${itemIndex}`);
@@ -6857,7 +6879,7 @@ echo "[Done: ${count} vendors created sequentially]"
         }
 
         if (tiersContainer) {
-            tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showTierCosts, lastTierMax);
+            tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showAdditionalCosts, showTaxes, showDiscounts, lastTierMax);
             this._attachTierMaxListeners(tiersContainer, itemIndex, true);
         }
     }
@@ -6873,12 +6895,14 @@ echo "[Done: ${count} vendors created sequentially]"
         itemCard.dataset.tiersCount = newTierCount;
 
         // Get settings
-        const showTierCosts = document.getElementById('toggle-tier-costs-update')?.checked || false;
+        const showAdditionalCosts = document.getElementById('toggle-additional-costs-update')?.checked || false;
+        const showTaxes = document.getElementById('toggle-taxes-update')?.checked || false;
+        const showDiscounts = document.getElementById('toggle-discounts-update')?.checked || false;
 
         // Re-render all tiers except the removed one
         const tiersContainer = document.getElementById(`tiers-container-update-${itemIndex}`);
         if (tiersContainer) {
-            tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showTierCosts);
+            tiersContainer.innerHTML = this._renderPricingTiersUpdate(itemIndex, newTierCount, showAdditionalCosts, showTaxes, showDiscounts);
             this._attachTierMaxListeners(tiersContainer, itemIndex, true);
         }
     }
@@ -6906,7 +6930,9 @@ echo "[Done: ${count} vendors created sequentially]"
 
         const itemIndex = container.children.length;
         const tiersCount = 1; // Start with 1 tier per item
-        const showTierCosts = document.getElementById('toggle-tier-costs-update')?.checked || false;
+        const showAdditionalCosts = document.getElementById('toggle-additional-costs-update')?.checked || false;
+        const showTaxes = document.getElementById('toggle-taxes-update')?.checked || false;
+        const showDiscounts = document.getElementById('toggle-discounts-update')?.checked || false;
         const showItemCustom = document.getElementById('toggle-item-custom-update')?.checked || false;
 
         const itemHtml = `
@@ -7041,18 +7067,18 @@ echo "[Done: ${count} vendors created sequentially]"
                             </button>
                         </div>
                         <div id="tiers-container-update-${itemIndex}">
-                            ${this._renderPricingTiersUpdate(itemIndex, tiersCount, showTierCosts)}
+                            ${this._renderPricingTiersUpdate(itemIndex, tiersCount, showAdditionalCosts, showTaxes, showDiscounts)}
                         </div>
 
                         ${this._renderItemCostsSection(itemIndex)}
 
-                        ${showItemCustom ? `
+                        <div class="cc-item-custom-section-wrapper" style="display:${showItemCustom ? '' : 'none'}">
                             <p class="cc-sub-title">🔧 Item Custom Sections</p>
                             <div id="item-${itemIndex}-custom">
                                 ${this._renderItemCustomSectionRow(itemIndex, 0)}
                             </div>
                             <button type="button" class="btn-add-row" onclick="window.uiController._addItemCustomSection(${itemIndex})">+ Add Custom Section</button>
-                        ` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -7090,12 +7116,13 @@ echo "[Done: ${count} vendors created sequentially]"
         }, 100);
     }
 
-    _renderPricingTiersUpdate(itemIndex, count, showCosts, lastAddedMax) {
+    _renderPricingTiersUpdate(itemIndex, count, showAdditionalCosts, showTaxes, showDiscounts, lastAddedMax) {
         let html = '';
         for (let i = 0; i < count; i++) {
             const isFirstTier = i === 0;
             const minVal = isFirstTier ? 1 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
             const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
+            const showAnyCosts = showAdditionalCosts || showTaxes || showDiscounts;
             html += `
                 <div class="cc-tier-card" data-tier-index="${i}">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -7120,10 +7147,14 @@ echo "[Done: ${count} vendors created sequentially]"
                             <input type="number" name="item_${itemIndex}_tier_${i}_rate" class="input-field" value="5" step="0.01">
                         </div>
                     </div>
-                    ${showCosts ? `
-                        <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs / Taxes</p>
+                    ${showAnyCosts ? `
+                        <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs</p>
                         <div id="item-${itemIndex}-tier-${i}-costs"></div>
-                        <button type="button" class="btn-add-row" style="font-size:11px;padding:4px 10px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i})">+ Add Cost / Tax</button>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                            ${showAdditionalCosts ? `<button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i},'cost')">+ Additional Cost</button>` : ''}
+                            ${showTaxes ? `<button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i},'tax')">+ Tax</button>` : ''}
+                            ${showDiscounts ? `<button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addTierCostRow(${itemIndex},${i},'discount')">+ Discount</button>` : ''}
+                        </div>
                     ` : ''}
                 </div>
             `;
@@ -9659,7 +9690,7 @@ echo "[Done: ${count} vendors created sequentially]"
                 contract_end_date: form.querySelector('[name="contract_end_date"]')?.value || null,
                 entity_name: form.querySelector('[name="entity_name"]')?.value || null,
                 status: form.querySelector('[name="status"]')?.value || null,
-                template_name: form.querySelector('[name="template_name"]')?.value || "Default Template",
+                template_name: (() => { const s = form.querySelector('[name="template_name"]'); return s?.options[s.selectedIndex]?.dataset?.name || s?.value || "Default Template"; })(),
                 buyer_identifications: (form.querySelector('[name="buyer_identifications"]')?.value || '').split(',').map(s => s.trim()).filter(s => s),
                 buyer_address: form.querySelector('[name="buyer_address"]')?.value || null,
                 buyer_contact: form.querySelector('[name="buyer_contact"]')?.value || null,
@@ -9706,24 +9737,6 @@ echo "[Done: ${count} vendors created sequentially]"
                 })(),
                 contract_items: []
             };
-
-            // Collect contract-level costs if enabled
-            const contractCostsContainer = form.querySelector('#contract-costs-container');
-            if (contractCostsContainer) {
-                const costRows = contractCostsContainer.querySelectorAll('.cc-cost-row');
-                costRows.forEach(row => {
-                    const type = row.querySelector('[name$="_type"]')?.value;
-                    const name = row.querySelector('[name$="_name"]')?.value;
-                    const value = parseFloat(row.querySelector('[name$="_value"]')?.value);
-
-                    if (name && !isNaN(value)) {
-                        const costItem = { name, value };
-                        if (type === 'cost') payload.additional_costs.push(costItem);
-                        else if (type === 'tax') payload.taxes.push(costItem);
-                        else if (type === 'discount') payload.discounts.push(costItem);
-                    }
-                });
-            }
 
             // Collect contract-level custom sections if enabled
             const contractCustomContainer = form.querySelector('#contract-custom-container');
@@ -9903,24 +9916,6 @@ echo "[Done: ${count} vendors created sequentially]"
                 })(),
                 contract_items: []
             };
-
-            // Collect contract-level costs if enabled
-            const contractCostsContainer = form.querySelector('#contract-costs-container-update');
-            if (contractCostsContainer) {
-                const costRows = contractCostsContainer.querySelectorAll('.cc-cost-row');
-                costRows.forEach(row => {
-                    const type = row.querySelector('[name$="_type"]')?.value;
-                    const name = row.querySelector('[name$="_name"]')?.value;
-                    const value = parseFloat(row.querySelector('[name$="_value"]')?.value);
-
-                    if (name && !isNaN(value)) {
-                        const costItem = { name, value };
-                        if (type === 'cost') payload.additional_costs.push(costItem);
-                        else if (type === 'tax') payload.taxes.push(costItem);
-                        else if (type === 'discount') payload.discounts.push(costItem);
-                    }
-                });
-            }
 
             // Collect contract-level custom sections if enabled
             const contractCustomContainer = form.querySelector('#contract-custom-container-update');
@@ -10720,7 +10715,7 @@ echo "[Done: ${count} vendors created sequentially]"
             if (select && templates && templates.length > 0) {
                 select.innerHTML = templates.map(t => {
                     const name = t.name || t.template_name || 'Unnamed Template';
-                    return `<option value="${name}">${name}</option>`;
+                    return `<option value="${t.template_id}" data-name="${name}">${name}</option>`;
                 }).join('');
                 select.selectedIndex = 0;
                 console.log('✓ Populated dropdown with', templates.length, 'templates');
@@ -10889,8 +10884,10 @@ echo "[Done: ${count} vendors created sequentially]"
         console.log('✓ Found template:', template.name);
         console.log('✓ Template has', template.section_list?.length || 0, 'sections');
 
-        // Parse template configuration
+        // Parse template configuration and store it
         const config = this.templateManager.parseTemplateConfig(template);
+        this.templateManager.templateConfig = config;
+        this.templateManager.currentTemplate = template;
         console.log('✓ Parsed template config:', config);
 
         // Update form visibility based on template
@@ -11198,128 +11195,102 @@ echo "[Done: ${count} vendors created sequentially]"
     _updateFormVisibilityFromTemplate(config) {
         console.log('Updating form visibility from template config...');
 
-        // Contract-level costs
-        const contractCostsToggle = document.getElementById('toggle-contract-costs');
-        if (contractCostsToggle) {
-            const hasContractCosts = config.contractLevel.additionalCosts ||
-                config.contractLevel.taxes ||
-                config.contractLevel.discounts;
-
-            // Enable/disable toggle based on template
-            contractCostsToggle.disabled = !hasContractCosts;
-
-            // Add visual feedback and tooltip
-            const toggleRow = contractCostsToggle.closest('.cc-toggle-row');
-            if (toggleRow) {
-                if (!hasContractCosts) {
-                    toggleRow.style.opacity = '0.5';
-                    toggleRow.style.cursor = 'not-allowed';
-                    toggleRow.title = 'Not available in selected template';
-                } else {
-                    toggleRow.style.opacity = '1';
-                    toggleRow.style.cursor = 'pointer';
-                    toggleRow.title = '';
-                }
+        // Helper to apply enabled/disabled state to a toggle
+        const applyToggleState = (toggleId, enabled, rerender) => {
+            const toggle = document.getElementById(toggleId);
+            if (!toggle) return;
+            toggle.disabled = !enabled;
+            const row = toggle.closest('.cc-toggle-row');
+            if (row) {
+                row.style.opacity = enabled ? '1' : '0.5';
+                row.style.cursor = enabled ? 'pointer' : 'not-allowed';
+                row.title = enabled ? '' : 'Not available in selected template';
             }
-
-            if (!hasContractCosts) {
-                contractCostsToggle.checked = false;
-                const section = document.getElementById('contract-costs-section');
-                if (section) section.classList.remove('visible');
+            if (!enabled) {
+                toggle.checked = false;
+                if (rerender) this._updateTierCostButtons();
             }
+        };
 
-            console.log('  Contract-level costs:', hasContractCosts ? 'ENABLED' : 'DISABLED');
-        }
+        applyToggleState('toggle-additional-costs', config.itemLevel.costFields?.length > 0, true);
+        applyToggleState('toggle-taxes', config.itemLevel.taxFields?.length > 0, true);
+        applyToggleState('toggle-discounts', config.itemLevel.discountFields?.length > 0, true);
 
-        // Item-level costs (affects tier costs too)
-        const tierCostsToggle = document.getElementById('toggle-tier-costs');
-        if (tierCostsToggle) {
-            const hasItemCosts = config.itemLevel.additionalCosts ||
-                config.itemLevel.taxes ||
-                config.itemLevel.discounts;
-
-            tierCostsToggle.disabled = !hasItemCosts;
-
-            // Add visual feedback and tooltip
-            const toggleRow = tierCostsToggle.closest('.cc-toggle-row');
-            if (toggleRow) {
-                if (!hasItemCosts) {
-                    toggleRow.style.opacity = '0.5';
-                    toggleRow.style.cursor = 'not-allowed';
-                    toggleRow.title = 'Not available in selected template';
-                } else {
-                    toggleRow.style.opacity = '1';
-                    toggleRow.style.cursor = 'pointer';
-                    toggleRow.title = '';
-                }
-            }
-
-            if (!hasItemCosts) {
-                tierCostsToggle.checked = false;
-                // Re-render items to hide tier costs
-                this._renderContractItems();
-            }
-
-            console.log('  Tier-level costs:', hasItemCosts ? 'ENABLED' : 'DISABLED');
-        }
-
-        // Contract custom sections
+        // Contract custom — also hide section when disabled
         const contractCustomToggle = document.getElementById('toggle-contract-custom');
         if (contractCustomToggle) {
-            const hasContractCustom = config.contractLevel.customSections.length > 0;
-            contractCustomToggle.disabled = !hasContractCustom;
-
-            // Add visual feedback and tooltip
-            const toggleRow = contractCustomToggle.closest('.cc-toggle-row');
-            if (toggleRow) {
-                if (!hasContractCustom) {
-                    toggleRow.style.opacity = '0.5';
-                    toggleRow.style.cursor = 'not-allowed';
-                    toggleRow.title = 'Not available in selected template';
-                } else {
-                    toggleRow.style.opacity = '1';
-                    toggleRow.style.cursor = 'pointer';
-                    toggleRow.title = '';
-                }
-            }
-
-            if (!hasContractCustom) {
-                contractCustomToggle.checked = false;
+            const has = config.contractLevel.customSections.length > 0;
+            applyToggleState('toggle-contract-custom', has, false);
+            if (!has) {
                 const section = document.getElementById('contract-custom-section');
                 if (section) section.classList.remove('visible');
             }
-
-            console.log('  Contract custom fields:', hasContractCustom ? 'ENABLED' : 'DISABLED');
         }
 
-        // Item custom sections
-        const itemCustomToggle = document.getElementById('toggle-item-custom');
-        if (itemCustomToggle) {
-            const hasItemCustom = config.itemLevel.customSections.length > 0;
-            itemCustomToggle.disabled = !hasItemCustom;
-
-            // Add visual feedback and tooltip
-            const toggleRow = itemCustomToggle.closest('.cc-toggle-row');
-            if (toggleRow) {
-                if (!hasItemCustom) {
-                    toggleRow.style.opacity = '0.5';
-                    toggleRow.style.cursor = 'not-allowed';
-                    toggleRow.title = 'Not available in selected template';
-                } else {
-                    toggleRow.style.opacity = '1';
-                    toggleRow.style.cursor = 'pointer';
-                    toggleRow.title = '';
-                }
-            }
-
-            if (!hasItemCustom) {
-                itemCustomToggle.checked = false;
-                this._renderContractItems();
-            }
-
-            console.log('  Item custom fields:', hasItemCustom ? 'ENABLED' : 'DISABLED');
-        }
+        applyToggleState('toggle-item-custom', config.itemLevel.customSections.length > 0, false);
+        if (!config.itemLevel.customSections.length) this._updateItemCustomVisibility();
 
         console.log('✓ Form visibility updated based on template');
+    }
+
+    _updateTierCostButtons(isUpdate = false) {
+        const suffix = isUpdate ? '-update' : '';
+        const showCost = document.getElementById(`toggle-additional-costs${suffix}`)?.checked || false;
+        const showTax = document.getElementById(`toggle-taxes${suffix}`)?.checked || false;
+        const showDiscount = document.getElementById(`toggle-discounts${suffix}`)?.checked || false;
+        const showAny = showCost || showTax || showDiscount;
+
+        const container = document.getElementById(isUpdate ? 'contract-items-container-update' : 'contract-items-container');
+        if (!container) return;
+
+        container.querySelectorAll('.cc-tier-card').forEach(tierCard => {
+            const itemIndex = tierCard.closest('.cc-item-card')?.dataset.itemIndex;
+            const tierIndex = tierCard.dataset.tierIndex;
+
+            // Show/hide the whole costs section
+            let costsSection = tierCard.querySelector('.tier-costs-section');
+            if (showAny && !costsSection) {
+                // Create the costs section if it doesn't exist yet
+                costsSection = document.createElement('div');
+                costsSection.className = 'tier-costs-section';
+                costsSection.innerHTML = `
+                    <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs</p>
+                    <div id="item-${itemIndex}-tier-${tierIndex}-costs"></div>
+                    <div class="tier-cost-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;"></div>`;
+                tierCard.appendChild(costsSection);
+            }
+            if (costsSection) costsSection.style.display = showAny ? '' : 'none';
+
+            const btnContainer = tierCard.querySelector('.tier-cost-btns');
+            if (!btnContainer) return;
+
+            // Update buttons
+            const mkBtn = (type, label) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'btn-add-row';
+                b.style.cssText = 'font-size:11px;padding:3px 8px;';
+                b.textContent = `+ ${label}`;
+                b.onclick = () => window.uiController._addTierCostRow(parseInt(itemIndex), parseInt(tierIndex), type);
+                b.dataset.costType = type;
+                return b;
+            };
+
+            // Remove existing buttons and re-add only enabled ones
+            btnContainer.innerHTML = '';
+            if (showCost) btnContainer.appendChild(mkBtn('cost', 'Additional Cost'));
+            if (showTax) btnContainer.appendChild(mkBtn('tax', 'Tax'));
+            if (showDiscount) btnContainer.appendChild(mkBtn('discount', 'Discount'));
+        });
+    }
+
+    _updateItemCustomVisibility(isUpdate = false) {
+        const suffix = isUpdate ? '-update' : '';
+        const show = document.getElementById(`toggle-item-custom${suffix}`)?.checked || false;
+        const container = document.getElementById(isUpdate ? 'contract-items-container-update' : 'contract-items-container');
+        if (!container) return;
+        container.querySelectorAll('.cc-item-custom-section-wrapper').forEach(el => {
+            el.style.display = show ? '' : 'none';
+        });
     }
 }
