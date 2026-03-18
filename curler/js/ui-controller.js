@@ -2324,9 +2324,9 @@ class UIController {
             this._setupContractCreateListeners();
         } else if (module.id === 'contract' && operation.id === 'update') {
             this._setupContractUpdateListeners();
-            setTimeout(() => this._setupContractLookup(this.elements.operationForm, 'ongoing'), 50);
+            setTimeout(() => this._setupContractLookup(this.elements.operationForm, ['all']), 50);
         } else if (module.id === 'contract' && operation.id === 'state') {
-            setTimeout(() => this._setupContractLookup(this.elements.operationForm, 'ongoing'), 50);
+            setTimeout(() => this._setupContractLookup(this.elements.operationForm, ['ongoing']), 50);
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
             // Expose this instance globally so inline onclick handlers can call methods on it
             window.uiController = this;
@@ -5988,14 +5988,22 @@ echo "[Done: ${count} vendors created sequentially]"
             dropdownEl.style.left = `${inputEl.offsetLeft}px`;
         };
 
-        inputEl.addEventListener('input', () => {
+        const doSearch = (q) => {
             clearTimeout(debounceTimer);
-            const q = inputEl.value.trim();
-            if (q.length < 2) { close(); return; }
             debounceTimer = setTimeout(async () => {
                 const results = await fetchResults(q);
                 show(results);
-            }, 400);
+            }, q.length === 0 ? 0 : 400);
+        };
+
+        inputEl.addEventListener('input', () => {
+            const q = inputEl.value.trim();
+            if (q.length === 0) { doSearch(''); return; }
+            doSearch(q);
+        });
+
+        inputEl.addEventListener('focus', () => {
+            if (!dropdownEl) doSearch(inputEl.value.trim());
         });
 
         inputEl.addEventListener('blur', () => setTimeout(close, 150));
@@ -6053,12 +6061,50 @@ echo "[Done: ${count} vendors created sequentially]"
         } catch { return []; }
     }
 
+    async _lookupContractFromDashboard(customContractId) {
+        const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+        if (!token) return null;
+        const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+        const search = async () => {
+            try {
+                const res = await fetch(`${baseUrl}dashboard/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dashboard_view: 'contract_buyer',
+                        items_per_page: 5, page_number: 1,
+                        query_data: {}, search_text: customContractId,
+                        sort_fields: [], filters: null, tab: 'all'
+                    })
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                const records = data?.data || data?.results || [];
+                const match = records.find(c => c.custom_contract_id === customContractId) || records[0];
+                if (match?.contract_id) return match;
+                return null;
+            } catch { return null; }
+        };
+
+        for (let attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) await new Promise(r => setTimeout(r, 2000));
+            const match = await search();
+            if (match) return { contractId: match.contract_id, templateId: match.template_id };
+        }
+        return null;
+    }
+
     // ── Contract search dropdown ──────────────────────────────────────────────
 
-    _setupContractLookup(form, tab = 'ongoing') {
+    _setupContractLookup(form, tabs = ['ongoing']) {
         if (!form) return;
 
-        const fetchContracts = async (q) => {
+        const mapRecords = (records) => records.map(c => ({
+            contract: c,
+            html: `<strong>${c.custom_contract_id || c.factwise_contract_id || ''}</strong>${c.ERP_contract_id ? ` / ${c.ERP_contract_id}` : ''} <span style="color:#64748b;">— ${c.contract_name || ''}</span>`
+        }));
+
+        const fetchForTab = async (q, tab) => {
             const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
             if (!token) return [];
             const baseUrl = this.environmentManager.getFactwiseBaseUrl();
@@ -6075,12 +6121,22 @@ echo "[Done: ${count} vendors created sequentially]"
                 });
                 if (!res.ok) return [];
                 const data = await res.json();
-                const records = data?.data || data?.results || (Array.isArray(data) ? data : []);
-                return records.map(c => ({
-                    contract: c,
-                    html: `<strong>${c.custom_contract_id || c.factwise_contract_id || ''}</strong>${c.ERP_contract_id ? ` / ${c.ERP_contract_id}` : ''} <span style="color:#64748b;">— ${c.contract_name || ''}</span>`
-                }));
+                return data?.data || data?.results || (Array.isArray(data) ? data : []);
             } catch { return []; }
+        };
+
+        const fetchContracts = async (q) => {
+            const allResults = await Promise.all(tabs.map(tab => fetchForTab(q, tab)));
+            const merged = allResults.flat();
+            // Deduplicate by custom_contract_id
+            const seen = new Set();
+            const unique = merged.filter(c => {
+                const key = c.custom_contract_id || c.contract_id || JSON.stringify(c);
+                if (seen.has(key)) return false;
+                seen.add(key);
+                return true;
+            });
+            return mapRecords(unique.slice(0, 10));
         };
 
         const onSelect = (r) => {
@@ -6497,7 +6553,8 @@ echo "[Done: ${count} vendors created sequentially]"
         let html = '';
         for (let i = 0; i < count; i++) {
             const isFirstTier = i === 0;
-            const minVal = isFirstTier ? 1 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
+            const defaultMin = i * 100 + (i > 0 ? 1 : 0);   // 0, 101, 201, 301...
+            const defaultMax = (i + 1) * 100;                  // 100, 200, 300, 400...
             const showAnyCosts = showAdditionalCosts || showTaxes || showDiscounts;
             html += `
                 <div class="cc-tier-card" data-tier-index="${i}">
@@ -6511,12 +6568,12 @@ echo "[Done: ${count} vendors created sequentially]"
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Min Quantity${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(default: 1)</small>' : ' <small style="color:#64748b;font-size:10px">(suggested: prev max)</small>'}</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" value="${minVal}" step="0.01">
+                            <label>Min Quantity${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(default: 0)</small>' : ' <small style="color:#64748b;font-size:10px">(prev max + 1)</small>'}</label>
+                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" value="${defaultMin}" step="0.01">
                         </div>
                         <div class="form-group">
                             <label>Max Quantity</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" value="${i === 0 ? 100 : ''}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
+                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" value="${defaultMax}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
                         </div>
                         <div class="form-group">
                             <label>Rate</label>
@@ -7120,7 +7177,8 @@ echo "[Done: ${count} vendors created sequentially]"
         let html = '';
         for (let i = 0; i < count; i++) {
             const isFirstTier = i === 0;
-            const minVal = isFirstTier ? 1 : (i === count - 1 && lastAddedMax !== undefined ? lastAddedMax : '');
+            const defaultMin = i * 100 + (i > 0 ? 1 : 0);
+            const defaultMax = (i + 1) * 100;
             const minReadonly = isFirstTier ? 'readonly style="background:#f1f5f9;cursor:not-allowed;"' : 'readonly style="background:#f1f5f9;cursor:not-allowed;" title="Auto-set from previous tier max"';
             const showAnyCosts = showAdditionalCosts || showTaxes || showDiscounts;
             html += `
@@ -7135,12 +7193,12 @@ echo "[Done: ${count} vendors created sequentially]"
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(always 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(= prev max)</small>'}</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" required value="${minVal}" step="0.01" ${minReadonly}>
+                            <label>Min Quantity *${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(default: 0)</small>' : ' <small style="color:#6366f1;font-size:10px">(prev max + 1)</small>'}</label>
+                            <input type="number" name="item_${itemIndex}_tier_${i}_min" class="input-field tier-min" required value="${defaultMin}" step="0.01" ${minReadonly}>
                         </div>
                         <div class="form-group">
                             <label>Max Quantity *</label>
-                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" required value="${i === 0 ? 100 : ''}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
+                            <input type="number" name="item_${itemIndex}_tier_${i}_max" class="input-field tier-max" required value="${defaultMax}" step="0.01" data-item="${itemIndex}" data-tier="${i}">
                         </div>
                         <div class="form-group">
                             <label>Rate</label>
@@ -10174,6 +10232,33 @@ echo "[Done: ${count} vendors created sequentially]"
         }
 
         this.elements.responseDisplay.innerHTML = `${translationHtml}<pre><code class="language-json">${jsonStr}</code></pre>`;
+
+        // "View Contract" button — only for successful contract create
+        if (this.currentModule === 'contract' && this.currentOperation === 'create'
+            && response.status >= 200 && response.status < 300) {
+            const customContractId = bodyToDisplay?.custom_contract_id;
+            if (customContractId) {
+                const btnWrapper = document.createElement('div');
+                btnWrapper.style.cssText = 'margin-top:12px;text-align:center;';
+                btnWrapper.innerHTML = `<span style="color:#64748b;font-size:12px;">Looking up contract...</span>`;
+                this.elements.responseDisplay.appendChild(btnWrapper);
+
+                this._lookupContractFromDashboard(customContractId).then(result => {
+                    const tplId = result?.templateId || document.getElementById('template_name_select')?.value;
+                    if (result?.contractId && tplId) {
+                        const contractUrl = `https://factwise-newdbtest.netlify.app/buyer/CLM/template/${tplId}/contract/${result.contractId}`;
+                        btnWrapper.innerHTML = `
+                            <a href="${contractUrl}" target="_blank" rel="noopener noreferrer"
+                               style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                                View Contract on Factwise
+                            </a>`;
+                    } else {
+                        btnWrapper.innerHTML = `<span style="color:#94a3b8;font-size:12px;">Contract created but could not resolve link</span>`;
+                    }
+                });
+            }
+        }
     }
 
     // Walk a DRF validation error object and collect { path, msg } pairs
@@ -10696,33 +10781,45 @@ echo "[Done: ${count} vendors created sequentially]"
 
             // API returns an array with one object containing templates
             const responseData = Array.isArray(data) ? data[0] : data;
-            const allTemplates = responseData.templates || [];
-            // Only show non-draft templates (ongoing, published, active, etc.)
-            const templates = allTemplates.filter(t => {
-                const status = (t.status || '').toUpperCase();
-                return status !== 'DRAFT' && status !== '';
-            });
-            console.log('✓ Templates array (non-draft):', templates, 'of', allTemplates.length);
+            const allTemplates = (responseData.templates || []).filter(t => (t.status || '') !== '');
+            console.log('✓ Templates array:', allTemplates.length);
 
-            // Store templates in templateManager for later use
-            if (this.templateManager && templates.length > 0) {
-                this.templateManager.templates = templates;
-                console.log('✓ Stored', templates.length, 'templates in TemplateManager');
+            // Store only usable templates in templateManager
+            const usableTemplates = allTemplates.filter(t => {
+                const s = (t.status || '').toUpperCase();
+                return s !== 'DRAFT' && s !== 'REVISED';
+            });
+            if (this.templateManager && usableTemplates.length > 0) {
+                this.templateManager.templates = usableTemplates;
+                console.log('✓ Stored', usableTemplates.length, 'usable templates in TemplateManager');
             }
 
-            // Populate dropdown
+            // Populate dropdown — show all, disable draft/revised
             const select = document.getElementById('template_name_select');
-            if (select && templates && templates.length > 0) {
-                select.innerHTML = templates.map(t => {
+            if (select && allTemplates.length > 0) {
+                select.innerHTML = allTemplates.map(t => {
                     const name = t.name || t.template_name || 'Unnamed Template';
-                    return `<option value="${t.template_id}" data-name="${name}">${name}</option>`;
+                    const s = (t.status || '').toUpperCase();
+                    const isDraft = s === 'DRAFT';
+                    const isRevised = s === 'REVISED';
+                    const disabled = isDraft || isRevised;
+                    const hint = isDraft ? 'Publish this template to use it'
+                                : isRevised ? 'Template has been revised — publish to use it'
+                                : '';
+                    const suffix = disabled ? ` (${s.toLowerCase()})` : '';
+                    return `<option value="${t.template_id}" data-name="${name}" ${disabled ? 'disabled' : ''} title="${hint}">${name}${suffix}</option>`;
                 }).join('');
-                select.selectedIndex = 0;
-                console.log('✓ Populated dropdown with', templates.length, 'templates');
 
-                // Load the first template by default
-                const firstTemplateId = templates[0].template_id;
-                await this._handleTemplateChange(firstTemplateId);
+                // Select first usable template
+                const firstUsable = allTemplates.find(t => {
+                    const s = (t.status || '').toUpperCase();
+                    return s !== 'DRAFT' && s !== 'REVISED';
+                });
+                if (firstUsable) {
+                    select.value = firstUsable.template_id;
+                    await this._handleTemplateChange(firstUsable.template_id);
+                }
+                console.log('✓ Populated dropdown with', allTemplates.length, 'templates');
             } else if (select) {
                 select.innerHTML = '<option value="Default Template">Default Template</option>';
             }
