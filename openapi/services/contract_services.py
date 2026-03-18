@@ -1124,8 +1124,8 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                 for contract_item in payload.get("contract_items"):
                     contract_item_attributes = []
 
-                    ERP_item_code = contract_item["ERP_item_code"]
-                    factwise_item_code = contract_item["factwise_item_code"]
+                    ERP_item_code = contract_item.get("ERP_item_code")
+                    factwise_item_code = contract_item.get("factwise_item_code")
 
                     if factwise_item_code:
                         try:
@@ -1157,10 +1157,10 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
 
                     enterprise_item_id = enterprise_item.enterprise_item_id
 
-                    currency_code = currency_map[contract_item["currency_code_id"]]
-                    measurement_unit_id = contract_item["measurement_unit_id"]
+                    currency_code = currency_map[contract_item.get("currency_code_id")]
+                    measurement_unit_id = contract_item.get("measurement_unit_id")
 
-                    for attribute in contract_item["attributes"]:
+                    for attribute in contract_item.get("attributes"):
                         name = attribute["attribute_name"]
                         if name not in attributes_map:
                             raise ValidationException(f"Attribute not found: {name}")
@@ -1177,16 +1177,16 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                             )
                         )
 
-                    incoterm_id = incoterm_map[contract_item["incoterm"]].entry_id
+                    incoterm_id = incoterm_map[contract_item.get("incoterm")].entry_id
 
                     procurement_information = (
                         contract_item_service._construct_procurement_information(
-                            lead_time=contract_item["lead_time"],
-                            lead_time_period=contract_item["lead_time_period"],
+                            lead_time=contract_item.get("lead_time"),
+                            lead_time_period=contract_item.get("lead_time_period"),
                         )
                     )
 
-                    pricing_tiers = contract_item["pricing_tiers"]
+                    pricing_tiers = contract_item.get("pricing_tiers")
                     item_quantity = 0
 
                     for tier in pricing_tiers:
@@ -1415,7 +1415,7 @@ def create_contracts_bulk(
 
         create_contracts_bulk_task.delay(  # type: ignore
             enterprise_id=enterprise_id,
-            projects_payload=make_json_safe(contracts_payload),
+            contracts_payload=make_json_safe(contracts_payload),
             task_id=str(task_id),
         )
 
@@ -2184,7 +2184,7 @@ def update_contracts_bulk(
 
         update_contracts_bulk_task.delay(  # type: ignore
             enterprise_id=enterprise_id,
-            projects_payload=make_json_safe(contracts_payload),
+            contracts_payload=make_json_safe(contracts_payload),
             task_id=str(task_id),
         )
 
@@ -2497,8 +2497,8 @@ def _process_contract_items(
             contract_item_taxes,
             contract_item_discounts,
         ) = ([], [], [], [])
-        ERP_item_code = contract_item["ERP_item_code"]
-        factwise_item_code = contract_item["factwise_item_code"]
+        ERP_item_code = contract_item.get("ERP_item_code")
+        factwise_item_code = contract_item.get("factwise_item_code")
 
         if factwise_item_code:
             try:
@@ -2525,11 +2525,11 @@ def _process_contract_items(
                 )
 
         enterprise_item_id = enterprise_item.enterprise_item_id
-        currency_code_id = contract_item["currency_code_id"]
+        currency_code_id = contract_item.get("currency_code_id")
         currency_code = currency_code_map[currency_code_id]
 
-        measurement_unit_id = contract_item["measurement_unit_id"]
-        attributes = contract_item["attributes"]
+        measurement_unit_id = contract_item.get("measurement_unit_id")
+        attributes = contract_item.get("attributes")
         for attribute in attributes:
             name = attribute["attribute_name"]
             if name not in attributes_map:
@@ -2547,15 +2547,15 @@ def _process_contract_items(
                 )
             )
         # quantity = contract_item["quantity"]
-        prepayment_percentage = contract_item["prepayment_percentage"]
-        payment_type = contract_item["payment_type"]
-        payment_terms = contract_item["payment_terms"]
-        incoterm = contract_item["incoterm"]
+        prepayment_percentage = contract_item.get("prepayment_percentage")
+        payment_type = contract_item.get("payment_type")
+        payment_terms = contract_item.get("payment_terms")
+        incoterm = contract_item.get("incoterm")
         incoterm_id = incoterm_map[incoterm].entry_id
-        deliverables_payment_terms = contract_item["deliverables_payment_terms"]
+        deliverables_payment_terms = contract_item.get("deliverables_payment_terms")
 
-        lead_time = contract_item["lead_time"]
-        lead_time_period = contract_item["lead_time_period"]
+        lead_time = contract_item.get("lead_time")
+        lead_time_period = contract_item.get("lead_time_period")
         procurement_information = (
             contract_item_service._construct_procurement_information(
                 lead_time=lead_time, lead_time_period=lead_time_period
@@ -2596,15 +2596,15 @@ def _process_contract_items(
         #         for additional_cost in contract_item_discounts
         #     ],
         # )
-        pricing_tiers = contract_item["pricing_tiers"]
+        pricing_tiers = contract_item.get("pricing_tiers")
         item_quantity = 0
         for pricing_tier in pricing_tiers:
-            tier_rate = pricing_tier["rate"]
-            min_quantity = pricing_tier["min_quantity"]
-            max_quantity = pricing_tier["max_quantity"]
-            additional_costs = pricing_tier["additional_costs"]
-            taxes = pricing_tier["taxes"]
-            discounts = pricing_tier["discounts"]
+            tier_rate = pricing_tier.get("rate")
+            min_quantity = pricing_tier.get("min_quantity")
+            max_quantity = pricing_tier.get("max_quantity")
+            additional_costs = pricing_tier.get("additional_costs")
+            taxes = pricing_tier.get("taxes")
+            discounts = pricing_tier.get("discounts")
             format_costs_result = _format_costs(
                 additional_costs=additional_costs,
                 taxes=taxes,
@@ -2641,9 +2641,9 @@ def _process_contract_items(
             desired_price=rate,
             total_price=0,
         )
-        attachments = contract_item["attachments"]
+        attachments = contract_item.get("attachments")
 
-        custom_sections = contract_item["custom_sections"]
+        custom_sections = contract_item.get("custom_sections")
         custom_sections = (
             custom_services.validate_and_autofill_custom_sections_from_template(
                 custom_sections=custom_sections,

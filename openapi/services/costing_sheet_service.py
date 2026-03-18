@@ -1,4 +1,3 @@
-import gc
 from collections import defaultdict
 
 from additional_costs.models import AdditionalCostLinkage
@@ -147,7 +146,9 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for att in Attachment.objects.filter(
                 resource_id=sheet.costing_sheet_id,
                 attachment_type=AttachmentModuleType.COSTING_SHEET.value,
-            ).only("attachment_id")
+            )
+            .only("attachment_id")
+            .iterator(chunk_size=100)
         ]
 
         # ---------------- ITEMS (BATCHED) ----------------
@@ -156,12 +157,10 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             sheet.costing_sheet_items.values_list("costing_sheet_item_id", flat=True)
         )
 
-        item_sections = list(
-            CustomSection.objects.filter(
-                costing_sheet=sheet,
-                section_type="ITEM",
-                deleted_datetime__isnull=True,
-            )
+        item_sections = CustomSection.objects.filter(
+            costing_sheet=sheet,
+            section_type="ITEM",
+            deleted_datetime__isnull=True,
         )
 
         costing_sheet_items_data = []
@@ -188,7 +187,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                     )
                 )
 
-            items = list(
+            items = (
                 sheet.costing_sheet_items.filter(costing_sheet_item_id__in=batch_ids)
                 .select_related(
                     "enterprise_item",
@@ -284,9 +283,18 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                 )
 
             # -------- ENTERPRISE ITEM CUSTOM FIELDS --------
-            enterprise_item_ids = [
-                item.enterprise_item_id for item in items if item.enterprise_item_id
-            ]
+            items_for_ids = list(
+                sheet.costing_sheet_items.filter(
+                    costing_sheet_item_id__in=batch_ids
+                ).only("enterprise_item_id")
+            )
+            enterprise_item_ids = list(
+                {
+                    item.enterprise_item_id
+                    for item in items_for_ids
+                    if item.enterprise_item_id
+                }
+            )
 
             enterprise_item_field_map = defaultdict(list)
 
@@ -299,11 +307,12 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                 )
 
             # -------- BUILD ITEMS --------
-            for item in items:
+            batch_items_data = []
+            for item in items.iterator(chunk_size=BATCH_SIZE):
 
                 enterprise_item = item.enterprise_item
 
-                costing_sheet_items_data.append(
+                batch_items_data.append(
                     {
                         "item_information": {
                             "factwise_costing_sheet_item_id": item.costing_sheet_item_id,
@@ -399,6 +408,9 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                     }
                 )
 
+            costing_sheet_items_data.extend(batch_items_data)
+            del batch_items_data
+
             # -------- CLEAR BATCH MEMORY --------
             attr_map.clear()
             add_map.clear()
@@ -417,8 +429,6 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             del enterprise_item_field_map
             del items
             del batch_ids
-
-            gc.collect()
 
         # ---------------- FINAL SHEET ----------------
 
@@ -464,8 +474,6 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                 "costing_sheet_items": costing_sheet_items_data,
             }
         )
-
-        gc.collect()
 
     return response
 

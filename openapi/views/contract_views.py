@@ -1,5 +1,3 @@
-from decimal import Decimal
-
 from backbone.states import IncotermAbbreviationType
 from contract.states import ContractState
 from custom.serializers import CustomSectionsOpenAPIInputSerializer
@@ -110,10 +108,9 @@ class ContractItemSerializer(serializers.Serializer):
         decimal_places=10,
         allow_null=True,
         required=False,
-        min_value=Decimal("0.0000000001"),
+        min_value=0,
         error_messages={
             "invalid": "Invalid lead time value.",
-            "min_value": "Lead time must be greater than 0.",
         },
     )
     lead_time_period = serializers.ChoiceField(
@@ -362,10 +359,9 @@ class ContractCreateBaseInputSerializer(serializers.Serializer):
         decimal_places=10,
         allow_null=True,
         required=False,
-        min_value=Decimal("0.0000000001"),
+        min_value=0,
         error_messages={
             "invalid": "Invalid lead time value.",
-            "min_value": "Lead time must be greater than 0.",
         },
     )
     lead_time_period = serializers.ChoiceField(
@@ -682,10 +678,9 @@ class ContractUpdateBaseInputSerializer(serializers.Serializer):
         decimal_places=10,
         allow_null=True,
         required=False,
-        min_value=Decimal("0.0000000001"),
+        min_value=0,
         error_messages={
             "invalid": "Invalid lead time value.",
-            "min_value": "Lead time must be greater than 0.",
         },
     )
     lead_time_period = serializers.ChoiceField(

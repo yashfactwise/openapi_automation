@@ -467,11 +467,11 @@ class PricingTierInputSerializer(serializers.Serializer):
     min_quantity = serializers.DecimalField(
         max_digits=30,
         decimal_places=10,
-        min_value=Decimal("0.0000000001"),
+        min_value=0,
         error_messages={
             "required": "Minimum quantity is required.",
             "invalid": "Invalid minimum quantity.",
-            "min_value": "Minimum quantity must be greater than 0.",
+            "min_value": "Minimum quantity must not be less than 0.",
             "max_digits": "Minimum quantity exceeds the maximum allowed digits.",
             "max_decimal_places": "Minimum quantity exceeds the maximum allowed decimal places.",
         },
