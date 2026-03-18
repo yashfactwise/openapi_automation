@@ -585,6 +585,17 @@ class UIController {
         // Contract Update Form
         else if (module.id === 'contract' && operation.id === 'update') {
             bodyInputsHtml = `
+                <!-- Load Contract -->
+                <div style="margin-bottom: 20px; padding: 16px; background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;">
+                    <p style="margin: 0 0 10px 0; font-size: 13px; font-weight: 600; color: #0369a1;">🔍 Load Existing Contract</p>
+                    <p style="margin: 0 0 10px 0; font-size: 12px; color: #64748b;">Search by contract ID or name — selecting a contract will pre-fill all fields below.</p>
+                    <div style="position: relative;">
+                        <input type="text" id="load-contract-search" class="input-field" placeholder="Search contract ID or name..." autocomplete="off" style="padding-right: 40px;">
+                        <span id="load-contract-spinner" style="display:none; position:absolute; right:10px; top:50%; transform:translateY(-50%); font-size:14px;">⏳</span>
+                    </div>
+                    <div id="load-contract-status" style="margin-top: 8px; font-size: 12px; color: #64748b;"></div>
+                </div>
+
                 <!-- Import Button -->
                 <div style="margin-bottom: 20px;">
                     <button type="button" id="btn-show-import-modal" class="btn-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
@@ -2324,7 +2335,6 @@ class UIController {
             this._setupContractCreateListeners();
         } else if (module.id === 'contract' && operation.id === 'update') {
             this._setupContractUpdateListeners();
-            setTimeout(() => this._setupContractLookup(this.elements.operationForm, ['all']), 50);
         } else if (module.id === 'contract' && operation.id === 'state') {
             setTimeout(() => this._setupContractLookup(this.elements.operationForm, ['ongoing']), 50);
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
@@ -6908,6 +6918,177 @@ echo "[Done: ${count} vendors created sequentially]"
 
         // Set default dates after form is ready
         if (typeof setDefaultDates === 'function') setTimeout(setDefaultDates, 50);
+
+        // Load contract search
+        setTimeout(() => this._setupLoadContractSearch(), 50);
+    }
+
+    _setupLoadContractSearch() {
+        const input = document.getElementById('load-contract-search');
+        if (!input) return;
+
+        const fetchContracts = async (q) => {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            if (!token) return [];
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            try {
+                const res = await fetch(`${baseUrl}dashboard/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dashboard_view: 'contract_buyer', tab: 'all',
+                        items_per_page: 10, page_number: 1,
+                        query_data: {}, search_text: q,
+                        sort_fields: [], filters: null
+                    })
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                const records = data?.data || [];
+                return records.map(c => ({
+                    contract: c,
+                    html: `<strong>${c.custom_contract_id || ''}</strong>${c.ERP_contract_id ? ` / ${c.ERP_contract_id}` : ''} <span style="color:#64748b;">— ${c.contract_name || ''}</span>`
+                }));
+            } catch { return []; }
+        };
+
+        const onSelect = (r) => {
+            this._loadContractIntoUpdateForm(r.contract);
+        };
+
+        this._attachSearchDropdown(input, fetchContracts, onSelect);
+    }
+
+    async _loadContractIntoUpdateForm(contract) {
+        const form = this.elements.operationForm;
+        const status = document.getElementById('load-contract-status');
+        const spinner = document.getElementById('load-contract-spinner');
+        if (spinner) spinner.style.display = 'inline';
+        if (status) status.textContent = 'Loading contract details...';
+
+        // --- Fill header fields ---
+        const set = (name, val) => {
+            const el = form.querySelector(`[name="${name}"]`);
+            if (el && val !== undefined && val !== null) el.value = val;
+        };
+        const setSelect = (name, val) => {
+            const el = form.querySelector(`[name="${name}"]`);
+            if (el && val) {
+                const opt = [...el.options].find(o => o.value === val);
+                if (opt) el.value = val;
+            }
+        };
+
+        set('factwise_contract_id', contract.custom_contract_id || '');
+        set('ERP_contract_id', contract.ERP_contract_id || '');
+        set('contract_name', contract.contract_name || '');
+        set('contract_start_date', contract.contract_start_date || '');
+        set('contract_end_date', contract.contract_end_date || '');
+        set('entity_name', contract.buyer_entity_details?.buyer_entity_name || '');
+        setSelect('status', contract.status);
+
+        // Buyer
+        const buyerIds = (contract.buyer_identifications_details || []).map(b => b.identification_name).join(', ');
+        set('buyer_identifications', buyerIds);
+        set('buyer_address', contract.buyer_address_information?.full_address || '');
+        set('buyer_contact', contract.buyer_contact_information?.buyer_contact_email || '');
+
+        // Vendor
+        set('factwise_vendor_code', contract.vendor_contacts?.[0]?.enterprise_vendor_master?.vendor_code || '');
+        set('vendor_contact', contract.vendor_contact_information?.vendor_contact_email || '');
+        set('vendor_identification_name', contract.vendor_identifications?.[0]?.identification_name || '');
+        set('vendor_identification_value', contract.vendor_identifications?.[0]?.identification_value || '');
+        set('vendor_address_id', contract.vendor_address_information?.address_id || '');
+        set('vendor_full_address', contract.vendor_address_information?.full_address || '');
+
+        // Payment & Terms
+        set('project', contract.project_information?.project_code || '');
+        set('prepayment_percentage', contract.prepayment_percentage ?? '');
+        setSelect('payment_type', contract.payment_type);
+        set('payment_term', contract.payment_terms?.term ?? '');
+        setSelect('payment_period', contract.payment_terms?.period);
+        setSelect('payment_applied_from', contract.payment_terms?.applied_from);
+        set('lead_time', contract.lead_time ?? '');
+        setSelect('lead_time_period', contract.lead_time_period);
+
+        // Store contract_id (UUID) for items lookup
+        const contractUUID = contract.contract_id;
+
+        // --- Fetch items ---
+        try {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const res = await fetch(`${baseUrl}dashboard/`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    dashboard_view: 'contract_items', tab: 'all',
+                    items_per_page: 50, page_number: 1,
+                    query_data: { contract_id: contractUUID },
+                    sort_fields: [], search_text: '', filters: null
+                })
+            });
+            const data = await res.json();
+            const items = data?.data || [];
+
+            // Re-render items container with fetched items
+            const container = document.getElementById('contract-items-container-update');
+            if (container && items.length > 0) {
+                container.innerHTML = '';
+                for (let i = 0; i < items.length; i++) {
+                    this._addContractItemUpdate();
+                }
+                // Fill each item's fields
+                items.forEach((item, i) => {
+                    const setItem = (name, val) => {
+                        const el = form.querySelector(`[name="item_${i}_${name}"]`);
+                        if (el && val !== undefined && val !== null) el.value = val;
+                    };
+                    const setItemSelect = (name, val) => {
+                        const el = form.querySelector(`[name="item_${i}_${name}"]`);
+                        if (el && val) {
+                            const opt = [...el.options].find(o => o.value === val);
+                            if (opt) el.value = val;
+                        }
+                    };
+
+                    setItem('factwise_code', item.enterprise_item_details?.code || '');
+                    setItem('erp_code', item.enterprise_item_details?.ERP_item_code || '');
+                    setItem('currency_id', item.currency || '');
+                    setItem('unit_id', item.measurement_unit || '');
+                    setItem('prepayment', item.prepayment_percentage ?? '');
+                    setItemSelect('payment_type', item.payment_type);
+                    setItem('lead_time', item.procurement_information?.lead_time ?? '');
+                    setItemSelect('lead_time_period', item.procurement_information?.lead_time_period);
+                    setItem('payment_term', item.payment_terms?.term ?? '');
+                    setItemSelect('payment_period', item.payment_terms?.period);
+                    setItemSelect('payment_applied_from', item.payment_terms?.applied_from);
+
+                    // Fill pricing tiers
+                    const tiers = item.pricing_tiers || [];
+                    if (tiers.length > 0) {
+                        const itemCard = container.querySelector(`.cc-item-card[data-item-index="${i}"]`);
+                        if (itemCard) {
+                            // Add extra tiers if needed (first one already exists)
+                            for (let t = 1; t < tiers.length; t++) {
+                                this._addPricingTierUpdate(i);
+                            }
+                            tiers.forEach((tier, t) => {
+                                setItem(`tier_${t}_min`, tier.min_quantity ?? '');
+                                setItem(`tier_${t}_max`, tier.max_quantity ?? '');
+                                setItem(`tier_${t}_rate`, tier.rate ?? '');
+                            });
+                        }
+                    }
+                });
+            }
+
+            if (status) status.innerHTML = `<span style="color:#16a34a;">✓ Loaded: <strong>${contract.contract_name}</strong> (${items.length} item${items.length !== 1 ? 's' : ''})</span>`;
+        } catch (e) {
+            if (status) status.innerHTML = `<span style="color:#dc2626;">Failed to load contract items: ${e.message}</span>`;
+        } finally {
+            if (spinner) spinner.style.display = 'none';
+        }
     }
 
     _addPricingTierUpdate(itemIndex) {
@@ -9294,13 +9475,22 @@ echo "[Done: ${count} vendors created sequentially]"
             const field = document.querySelector('input[name="vendor_contact"]');
             if (field) field.value = payload.vendor_contact;
         }
-        if (payload.vendor_identification_name) {
-            const field = document.querySelector('input[name="vendor_identification_name"]');
-            if (field) field.value = payload.vendor_identification_name;
-        }
-        if (payload.vendor_identification_value) {
-            const field = document.querySelector('input[name="vendor_identification_value"]');
-            if (field) field.value = payload.vendor_identification_value;
+        // vendor_identifications can come as array (from create payload) or flat fields
+        if (payload.vendor_identifications?.length > 0) {
+            const vi = payload.vendor_identifications[0];
+            const nameField = document.querySelector('input[name="vendor_identification_name"]');
+            const valField = document.querySelector('input[name="vendor_identification_value"]');
+            if (nameField) nameField.value = vi.identification_name || '';
+            if (valField) valField.value = vi.identification_value || '';
+        } else {
+            if (payload.vendor_identification_name) {
+                const field = document.querySelector('input[name="vendor_identification_name"]');
+                if (field) field.value = payload.vendor_identification_name;
+            }
+            if (payload.vendor_identification_value) {
+                const field = document.querySelector('input[name="vendor_identification_value"]');
+                if (field) field.value = payload.vendor_identification_value;
+            }
         }
         if (payload.vendor_address_id) {
             const field = document.querySelector('input[name="vendor_address_id"]');
@@ -9336,21 +9526,67 @@ echo "[Done: ${count} vendors created sequentially]"
             const field = document.querySelector('select[name="lead_time_period"]');
             if (field) field.value = payload.lead_time_period;
         }
-        if (payload.payment_term !== undefined) {
+        // payment_terms can be nested (create payload) or flat
+        const pt = payload.payment_terms || payload;
+        if (pt.term !== undefined || payload.payment_term !== undefined) {
             const field = document.querySelector('input[name="payment_term"]');
-            if (field) field.value = payload.payment_term;
+            if (field) field.value = pt.term ?? payload.payment_term ?? '';
         }
-        if (payload.payment_period) {
+        if (pt.period || payload.payment_period) {
             const field = document.querySelector('select[name="payment_period"]');
-            if (field) field.value = payload.payment_period;
+            if (field) field.value = pt.period || payload.payment_period;
         }
-        if (payload.payment_applied_from) {
+        if (pt.applied_from || payload.payment_applied_from) {
             const field = document.querySelector('[name="payment_applied_from"]');
-            if (field) field.value = payload.payment_applied_from;
+            if (field) field.value = pt.applied_from || payload.payment_applied_from;
         }
 
-        // TODO: Handle items, tiers, costs, and custom fields if present in payload
-        // This would require more complex logic to dynamically add items/tiers
+        // Contract items
+        const items = payload.contract_items;
+        if (Array.isArray(items) && items.length > 0) {
+            const container = document.getElementById('contract-items-container-update');
+            if (container) {
+                container.innerHTML = '';
+                for (let i = 0; i < items.length; i++) {
+                    this._addContractItemUpdate();
+                }
+                items.forEach((item, i) => {
+                    const setItem = (name, val) => {
+                        const el = document.querySelector(`[name="item_${i}_${name}"]`);
+                        if (el && val !== undefined && val !== null) el.value = val;
+                    };
+                    const setItemSelect = (name, val) => {
+                        const el = document.querySelector(`[name="item_${i}_${name}"]`);
+                        if (el && val) { const opt = [...el.options].find(o => o.value === val); if (opt) el.value = val; }
+                    };
+
+                    setItem('factwise_code', item.factwise_item_code || '');
+                    setItem('erp_code', item.ERP_item_code || '');
+                    setItem('currency_id', item.currency_code_id || '');
+                    setItem('unit_id', item.measurement_unit_id || '');
+                    setItem('prepayment', item.prepayment_percentage ?? '');
+                    setItemSelect('payment_type', item.payment_type);
+                    setItem('lead_time', item.lead_time ?? '');
+                    setItemSelect('lead_time_period', item.lead_time_period);
+                    setItem('payment_term', item.payment_terms?.term ?? '');
+                    setItemSelect('payment_period', item.payment_terms?.period);
+                    setItemSelect('payment_applied_from', item.payment_terms?.applied_from);
+                    setItemSelect('incoterm', item.incoterm);
+
+                    const tiers = item.pricing_tiers || [];
+                    if (tiers.length > 1) {
+                        for (let t = 1; t < tiers.length; t++) {
+                            this._addPricingTierUpdate(i);
+                        }
+                    }
+                    tiers.forEach((tier, t) => {
+                        setItem(`tier_${t}_min`, tier.min_quantity ?? '');
+                        setItem(`tier_${t}_max`, tier.max_quantity ?? '');
+                        setItem(`tier_${t}_rate`, tier.rate ?? '');
+                    });
+                });
+            }
+        }
     }
 
     // ============================================================
@@ -9920,7 +10156,7 @@ echo "[Done: ${count} vendors created sequentially]"
         } else if (operation.id === 'update') {
             // Build payload matching the expected API format for update
             const payload = {
-                created_by_user_email: form.querySelector('[name="buyer_contact"]')?.value || this.currentAccount?.user_email,
+                modified_by_user_email: form.querySelector('[name="buyer_contact"]')?.value || this.currentAccount?.user_email,
                 contract_name: form.querySelector('[name="contract_name"]')?.value,
                 ERP_contract_id: form.querySelector('[name="ERP_contract_id"]')?.value || null,
                 factwise_contract_id: form.querySelector('[name="factwise_contract_id"]')?.value || null,
