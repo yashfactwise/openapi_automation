@@ -6715,13 +6715,12 @@ echo "[Done: ${count} vendors created sequentially]"
                 valueInput.parentElement.appendChild(warn);
                 const checkPct = () => {
                     const v = parseFloat(valueInput.value);
-                    if (isNaN(v) || v === '') { warn.style.display = 'none'; return; }
+                    if (isNaN(v)) { warn.style.display = 'none'; return; }
                     if (v === 0) { warn.textContent = '⚠ Value is 0%'; warn.style.display = 'block'; }
                     else if (v > 100) { warn.textContent = `⚠ Value exceeds 100% (${v}%)`; warn.style.display = 'block'; }
                     else { warn.style.display = 'none'; }
                 };
                 valueInput.addEventListener('input', checkPct);
-                checkPct();
             }
         } else {
             if (valueLabel) valueLabel.textContent = 'Value';
