@@ -4185,9 +4185,14 @@ class UIController {
      */
     _buildContractsBulkCreatePayload() {
         const form = this.elements.operationForm;
-        const buyerContact = form.querySelector('[name="bc_buyer_contact"]')?.value || this.currentAccount?.user_email;
-        const entityName = form.querySelector('[name="bc_entity_name"]')?.value || 'FactWise';
-        const templateName = form.querySelector('[name="bc_template_name"]')?.value || 'Default Template';
+        const sharedBuyerContact = form.querySelector('[name="bc_buyer_contact"]')?.value || this.currentAccount?.user_email || '';
+        const sharedEntityName = form.querySelector('[name="bc_entity_name"]')?.value || 'FactWise';
+        const sharedBuyerIdentifications = (form.querySelector('[name="bc_buyer_identifications"]')?.value || '').split(',').map(s => s.trim()).filter(s => s);
+        const sharedBuyerAddress = form.querySelector('[name="bc_buyer_address"]')?.value || null;
+        const sharedTemplateName = (() => {
+            const s = form.querySelector('[name="bc_template_name"]');
+            return s?.options[s.selectedIndex]?.dataset?.name || s?.value || 'Default Template';
+        })();
 
         const container = document.getElementById('bulk-contracts-container');
         if (!container) throw new Error('Contract bulk container not found');
@@ -4197,80 +4202,103 @@ class UIController {
 
         cards.forEach((card) => {
             const idx = card.dataset.contractIndex;
+            const g = (name) => card.querySelector(`[name="bc_${idx}_${name}"]`)?.value || null;
+
             const contract = {
-                created_by_user_email: buyerContact,
-                contract_name: form.querySelector(`[name="bc_${idx}_contract_name"]`)?.value || '',
-                ERP_contract_id: form.querySelector(`[name="bc_${idx}_ERP_contract_id"]`)?.value || '',
-                contract_start_date: form.querySelector(`[name="bc_${idx}_start_date"]`)?.value || '',
-                contract_end_date: form.querySelector(`[name="bc_${idx}_end_date"]`)?.value || '',
-                entity_name: entityName,
-                status: form.querySelector(`[name="bc_${idx}_status"]`)?.value || 'DRAFT',
-                template_name: templateName,
-                buyer_contact: buyerContact,
-                ERP_vendor_code: form.querySelector(`[name="bc_${idx}_ERP_vendor_code"]`)?.value || '',
-                vendor_contact: form.querySelector(`[name="bc_${idx}_vendor_contact"]`)?.value || '',
-                incoterm: form.querySelector(`[name="bc_${idx}_incoterm"]`)?.value || 'NA',
+                created_by_user_email: sharedBuyerContact,
+                contract_name: g('contract_name'),
+                factwise_contract_id: g('factwise_contract_id'),
+                ERP_contract_id: g('ERP_contract_id'),
+                contract_start_date: g('start_date'),
+                contract_end_date: g('end_date'),
+                entity_name: sharedEntityName,
+                status: g('status') || 'DRAFT',
+                template_name: sharedTemplateName,
+                buyer_contact: sharedBuyerContact,
+                buyer_identifications: sharedBuyerIdentifications,
+                buyer_address: sharedBuyerAddress,
+                factwise_vendor_code: g('factwise_vendor_code'),
+                ERP_vendor_code: g('ERP_vendor_code'),
+                vendor_contact: g('vendor_contact'),
+                vendor_identifications: [
+                    {
+                        identification_name: g('vendor_id_name'),
+                        identification_value: g('vendor_id_value')
+                    }
+                ],
+                vendor_address: {
+                    address_id: g('vendor_address_id'),
+                    full_address: null
+                },
+                project: g('project'),
+                prepayment_percentage: parseFloat(g('prepayment_percentage')) || 0,
+                payment_type: g('payment_type') || 'PER_INVOICE_ITEM',
+                payment_terms: {
+                    term: parseInt(g('payment_term')) || 1,
+                    period: g('payment_period') || 'MONTHS',
+                    applied_from: g('payment_applied_from') || 'INVOICE_DATE'
+                },
+                deliverables_payment_terms: [],
+                incoterm: g('incoterm') || 'NA',
+                lead_time: g('lead_time'),
+                lead_time_period: g('lead_time_period'),
                 additional_costs: [],
                 taxes: [],
                 discounts: [],
                 custom_sections: [],
-                contract_items: [],
+                attachments: [],
                 terms_and_conditions: { data: '', name: 'FactWise Default TNC' },
+                contract_items: []
             };
-
-            // Collect contract costs
-            const costsContainer = card.querySelector(`#bc-${idx}-costs-container`);
-            if (costsContainer) {
-                let costIdx = 0;
-                while (true) {
-                    const nameEl = form.querySelector(`[name="bc_${idx}_cost_${costIdx}_name"]`);
-                    if (!nameEl) break;
-                    const type = form.querySelector(`[name="bc_${idx}_cost_${costIdx}_type"]`)?.value || 'cost';
-                    const name = nameEl.value;
-                    const value = parseFloat(form.querySelector(`[name="bc_${idx}_cost_${costIdx}_value"]`)?.value) || 0;
-                    if (name) {
-                        const entry = { name, value };
-                        if (type === 'tax') contract.taxes.push(entry);
-                        else if (type === 'discount') contract.discounts.push(entry);
-                        else contract.additional_costs.push(entry);
-                    }
-                    costIdx++;
-                }
-            }
 
             // Collect contract items
             const itemsContainer = card.querySelector(`#bc-${idx}-items-container`);
             if (itemsContainer) {
                 const itemCards = itemsContainer.querySelectorAll('.cc-tier-card');
                 itemCards.forEach((itemCard, itemIdx) => {
+                    const gi = (name) => itemCard.querySelector(`[name="bc_${idx}_item_${itemIdx}_${name}"]`)?.value || null;
+
                     const item = {
-                        factwise_item_code: form.querySelector(`[name="bc_${idx}_item_${itemIdx}_factwise_code"]`)?.value || '',
-                        rate: parseFloat(form.querySelector(`[name="bc_${idx}_item_${itemIdx}_rate"]`)?.value) || 0,
-                        quantity: parseFloat(form.querySelector(`[name="bc_${idx}_item_${itemIdx}_quantity"]`)?.value) || 0,
-                        currency_code_id: form.querySelector(`[name="bc_${idx}_item_${itemIdx}_currency_id"]`)?.value || '',
-                        measurement_unit_id: form.querySelector(`[name="bc_${idx}_item_${itemIdx}_unit_id"]`)?.value || '',
+                        factwise_item_code: gi('factwise_code'),
+                        ERP_item_code: gi('erp_code'),
+                        quantity: parseFloat(gi('quantity')) || 0,
+                        currency_code_id: gi('currency_id'),
+                        measurement_unit_id: gi('unit_id'),
+                        attributes: [],
                         pricing_tiers: [],
                         additional_costs: [],
                         taxes: [],
                         discounts: [],
-                        prepayment_percentage: 100,
-                        payment_type: 'PER_INVOICE_ITEM',
-                        incoterm: 'NA',
-                        payment_terms: { term: 1, period: 'MONTHS', applied_from: 'INVOICE_DATE' },
+                        prepayment_percentage: parseFloat(gi('prepayment')) || 0,
+                        payment_type: gi('payment_type') || 'PER_INVOICE_ITEM',
+                        payment_terms: {
+                            term: parseInt(gi('payment_term')) || 1,
+                            period: gi('payment_period') || 'MONTHS',
+                            applied_from: gi('payment_applied_from') || 'INVOICE_DATE'
+                        },
+                        deliverables_payment_terms: [],
+                        incoterm: gi('incoterm') || 'NA',
+                        lead_time: gi('lead_time'),
+                        lead_time_period: gi('lead_time_period'),
+                        attachments: [],
+                        custom_sections: []
                     };
 
                     // Collect tiers
-                    const tiersContainer = card.querySelector(`#bc-${idx}-item-${itemIdx}-tiers`);
+                    const tiersContainer = itemCard.querySelector(`#bc-${idx}-item-${itemIdx}-tiers`);
                     if (tiersContainer) {
-                        const tierRows = tiersContainer.children;
-                        for (let t = 0; t < tierRows.length; t++) {
+                        const tierRows = tiersContainer.querySelectorAll('.form-row');
+                        tierRows.forEach((tierRow, t) => {
                             const tier = {
-                                min_quantity: parseFloat(form.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_min"]`)?.value) || 0,
-                                max_quantity: parseFloat(form.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_max"]`)?.value) || 0,
-                                rate: parseFloat(form.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_rate"]`)?.value) || 0,
+                                min_quantity: parseFloat(tierRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_min"]`)?.value) || 0,
+                                max_quantity: parseFloat(tierRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_max"]`)?.value) || 0,
+                                rate: parseFloat(tierRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_rate"]`)?.value) || 0,
+                                additional_costs: [],
+                                taxes: [],
+                                discounts: []
                             };
                             item.pricing_tiers.push(tier);
-                        }
+                        });
                     }
 
                     contract.contract_items.push(item);
@@ -8168,6 +8196,16 @@ echo "[Done: ${count} vendors created sequentially]"
                         <input type="text" name="bc_entity_name" class="input-field" required value="FactWise">
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buyer Identifications</label>
+                        <input type="text" name="bc_buyer_identifications" class="input-field" value="GST" placeholder="GST, PAN, etc.">
+                    </div>
+                    <div class="form-group">
+                        <label>Buyer Address</label>
+                        <input type="text" name="bc_buyer_address" class="input-field" placeholder="Main address">
+                    </div>
+                </div>
 
                 <div class="form-row">
                     <div class="form-group">
@@ -8282,6 +8320,9 @@ echo "[Done: ${count} vendors created sequentially]"
         if (!container) return;
         const n = container.children.length;
         const idx = n;
+        const today = new Date().toISOString().split('T')[0];
+        const nextYear = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
+        const email = this.currentAccount?.user_email || 'globalfieldsETE@gmail.com';
 
         const card = document.createElement('div');
         card.className = 'cc-item-card bulk-contract-card';
@@ -8293,11 +8334,16 @@ echo "[Done: ${count} vendors created sequentially]"
                 ${n > 0 ? `<button type="button" onclick="this.closest('.cc-item-card').remove()" style="margin-left:auto;background:#ef4444;color:white;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12px;">✕ Remove</button>` : ''}
             </div>
             <div class="cc-item-card-body">
+
                 <p class="cc-sub-title">📌 Basic Information</p>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Contract Name *</label>
                         <input type="text" name="bc_${idx}_contract_name" class="input-field" value="Test Contract ${n + 1}">
+                    </div>
+                    <div class="form-group">
+                        <label>Factwise Contract ID</label>
+                        <input type="text" name="bc_${idx}_factwise_contract_id" class="input-field" value="FW-CON-${String(n + 1).padStart(3, '0')}">
                     </div>
                     <div class="form-group">
                         <label>ERP Contract ID</label>
@@ -8311,50 +8357,125 @@ echo "[Done: ${count} vendors created sequentially]"
                         </select>
                     </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group">
                         <label>Start Date *</label>
-                        <input type="date" name="bc_${idx}_start_date" class="input-field" value="${new Date().toISOString().split('T')[0]}">
+                        <input type="date" name="bc_${idx}_start_date" class="input-field" value="${today}">
                     </div>
                     <div class="form-group">
                         <label>End Date *</label>
-                        <input type="date" name="bc_${idx}_end_date" class="input-field" value="${new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0]}">
+                        <input type="date" name="bc_${idx}_end_date" class="input-field" value="${nextYear}">
                     </div>
                     <div class="form-group">
-                        <label>Incoterm</label>
-                        <select name="bc_${idx}_incoterm" class="input-field">
-                            <option value="NA" selected>NA</option>
-                            <option value="CFR">CFR</option>
-                            <option value="DAP">DAP</option>
-                            <option value="FOB">FOB</option>
-                        </select>
+                        <label>Project</label>
+                        <input type="text" name="bc_${idx}_project" class="input-field" placeholder="Project name">
                     </div>
                 </div>
 
                 <p class="cc-sub-title">🏢 Vendor Details</p>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>ERP Vendor Code</label>
-                        <input type="text" name="bc_${idx}_ERP_vendor_code" class="input-field" value="">
+                        <label>Factwise Vendor Code</label>
+                        <input type="text" name="bc_${idx}_factwise_vendor_code" class="input-field" placeholder="e.g., FacVENDOR001">
                     </div>
                     <div class="form-group">
-                        <label>Vendor Contact Email *</label>
-                        <input type="email" name="bc_${idx}_vendor_contact" class="input-field" value="">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="bc_${idx}_ERP_vendor_code" class="input-field" placeholder="e.g., ERPV001">
+                    </div>
+                    <div class="form-group">
+                        <label>Vendor Contact Email</label>
+                        <input type="email" name="bc_${idx}_vendor_contact" class="input-field" placeholder="vendor@example.com">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vendor ID Name</label>
+                        <input type="text" name="bc_${idx}_vendor_id_name" class="input-field" placeholder="GST">
+                    </div>
+                    <div class="form-group">
+                        <label>Vendor ID Value</label>
+                        <input type="text" name="bc_${idx}_vendor_id_value" class="input-field" placeholder="27AABCU9603R1ZX">
+                    </div>
+                    <div class="form-group">
+                        <label>Vendor Address ID</label>
+                        <input type="text" name="bc_${idx}_vendor_address_id" class="input-field" placeholder="Address UUID">
+                    </div>
+                </div>
+
+                <p class="cc-sub-title">💳 Payment & Delivery</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prepayment %</label>
+                        <input type="number" name="bc_${idx}_prepayment_percentage" class="input-field" value="0" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Type</label>
+                        <select name="bc_${idx}_payment_type" class="input-field">
+                            <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
+                            <option value="PER_DELIVERY">PER_DELIVERY</option>
+                            <option value="ADVANCE">ADVANCE</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Incoterm</label>
+                        <select name="bc_${idx}_incoterm" class="input-field">
+                            <option value="NA" selected>NA</option>
+                            <option value="CFR">CFR</option>
+                            <option value="CIF">CIF</option>
+                            <option value="CPT">CPT</option>
+                            <option value="DAP">DAP</option>
+                            <option value="DDP">DDP</option>
+                            <option value="EXW">EXW</option>
+                            <option value="FAS">FAS</option>
+                            <option value="FCA">FCA</option>
+                            <option value="FOB">FOB</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Payment Term</label>
+                        <input type="number" name="bc_${idx}_payment_term" class="input-field" value="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Period</label>
+                        <select name="bc_${idx}_payment_period" class="input-field">
+                            <option value="MONTHS" selected>MONTHS</option>
+                            <option value="DAYS">DAYS</option>
+                            <option value="WEEKS">WEEKS</option>
+                            <option value="YEARS">YEARS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Applied From</label>
+                        <select name="bc_${idx}_payment_applied_from" class="input-field">
+                            <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                            <option value="DELIVERY_DATE">DELIVERY_DATE</option>
+                            <option value="ORDER_DATE">ORDER_DATE</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Lead Time</label>
+                        <input type="number" name="bc_${idx}_lead_time" class="input-field" placeholder="e.g., 7">
+                    </div>
+                    <div class="form-group">
+                        <label>Lead Time Period</label>
+                        <select name="bc_${idx}_lead_time_period" class="input-field">
+                            <option value="DAYS" selected>DAYS</option>
+                            <option value="WEEKS">WEEKS</option>
+                            <option value="MONTHS">MONTHS</option>
+                        </select>
                     </div>
                 </div>
 
                 <p class="cc-sub-title">📦 Contract Items</p>
                 <div id="bc-${idx}-items-container"></div>
                 <button type="button" class="btn-add-row" style="font-size:12px;" onclick="window.uiController._addBulkContractItemCard(${idx})">+ Add Item</button>
-
-                <p class="cc-sub-title" style="margin-top:12px;">💰 Contract Costs</p>
-                <div id="bc-${idx}-costs-container"></div>
-                <button type="button" class="btn-add-row" style="font-size:12px;" onclick="window.uiController._addBulkContractCostRow(${idx})">+ Add Cost / Tax</button>
             </div>
         `;
         container.appendChild(card);
-        // Add first item
         this._addBulkContractItemCard(idx);
     }
 
@@ -8376,8 +8497,8 @@ echo "[Done: ${count} vendors created sequentially]"
                     <input type="text" name="bc_${contractIdx}_item_${itemIdx}_factwise_code" class="input-field" value="BKT-${String(itemIdx + 1).padStart(3, '0')}" style="font-size:12px;">
                 </div>
                 <div class="form-group">
-                    <label style="font-size:12px;">Rate</label>
-                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_rate" class="input-field" value="10" step="0.01" style="font-size:12px;">
+                    <label style="font-size:12px;">ERP Item Code</label>
+                    <input type="text" name="bc_${contractIdx}_item_${itemIdx}_erp_code" class="input-field" placeholder="ERP item code" style="font-size:12px;">
                 </div>
                 <div class="form-group">
                     <label style="font-size:12px;">Quantity</label>
@@ -8393,9 +8514,71 @@ echo "[Done: ${count} vendors created sequentially]"
                     <label style="font-size:12px;">Unit ID</label>
                     <input type="text" name="bc_${contractIdx}_item_${itemIdx}_unit_id" class="input-field" value="f16d124e-db59-48fe-a2b8-19f625745cbf" style="font-size:12px;">
                 </div>
+                <div class="form-group">
+                    <label style="font-size:12px;">Prepayment %</label>
+                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_prepayment" class="input-field" value="0" step="0.01" style="font-size:12px;">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label style="font-size:12px;">Payment Type</label>
+                    <select name="bc_${contractIdx}_item_${itemIdx}_payment_type" class="input-field" style="font-size:12px;">
+                        <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
+                        <option value="PER_DELIVERY">PER_DELIVERY</option>
+                        <option value="ADVANCE">ADVANCE</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-size:12px;">Incoterm</label>
+                    <select name="bc_${contractIdx}_item_${itemIdx}_incoterm" class="input-field" style="font-size:12px;">
+                        <option value="NA" selected>NA</option>
+                        <option value="CFR">CFR</option>
+                        <option value="CIF">CIF</option>
+                        <option value="DAP">DAP</option>
+                        <option value="DDP">DDP</option>
+                        <option value="EXW">EXW</option>
+                        <option value="FOB">FOB</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label style="font-size:12px;">Payment Term</label>
+                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_payment_term" class="input-field" value="1" style="font-size:12px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size:12px;">Payment Period</label>
+                    <select name="bc_${contractIdx}_item_${itemIdx}_payment_period" class="input-field" style="font-size:12px;">
+                        <option value="MONTHS" selected>MONTHS</option>
+                        <option value="DAYS">DAYS</option>
+                        <option value="WEEKS">WEEKS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label style="font-size:12px;">Applied From</label>
+                    <select name="bc_${contractIdx}_item_${itemIdx}_payment_applied_from" class="input-field" style="font-size:12px;">
+                        <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                        <option value="DELIVERY_DATE">DELIVERY_DATE</option>
+                        <option value="ORDER_DATE">ORDER_DATE</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label style="font-size:12px;">Lead Time</label>
+                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_lead_time" class="input-field" placeholder="e.g., 7" style="font-size:12px;">
+                </div>
+                <div class="form-group">
+                    <label style="font-size:12px;">Lead Time Period</label>
+                    <select name="bc_${contractIdx}_item_${itemIdx}_lead_time_period" class="input-field" style="font-size:12px;">
+                        <option value="DAYS" selected>DAYS</option>
+                        <option value="WEEKS">WEEKS</option>
+                        <option value="MONTHS">MONTHS</option>
+                    </select>
+                </div>
             </div>
             <div style="margin-top:6px;">
-                <p style="font-size:11px;font-weight:600;color:#64748b;margin:4px 0;">Tiers</p>
+                <p style="font-size:11px;font-weight:600;color:#64748b;margin:4px 0;">Pricing Tiers</p>
                 <div id="bc-${contractIdx}-item-${itemIdx}-tiers"></div>
                 <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addBulkContractTier(${contractIdx}, ${itemIdx})">+ Add Tier</button>
             </div>
@@ -8408,6 +8591,8 @@ echo "[Done: ${count} vendors created sequentially]"
         const container = document.getElementById(`bc-${contractIdx}-item-${itemIdx}-tiers`);
         if (!container) return;
         const tierIdx = container.children.length;
+        const defaultMin = tierIdx * 100 + (tierIdx > 0 ? 1 : 0);
+        const defaultMax = (tierIdx + 1) * 100;
 
         const div = document.createElement('div');
         div.className = 'form-row';
@@ -8415,11 +8600,11 @@ echo "[Done: ${count} vendors created sequentially]"
         div.innerHTML = `
             <div class="form-group" style="margin:0;">
                 <label style="font-size:11px;">Min</label>
-                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_min" class="input-field" value="${tierIdx === 0 ? 0 : ''}" step="0.01" style="font-size:12px;">
+                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_min" class="input-field" value="${defaultMin}" step="0.01" style="font-size:12px;">
             </div>
             <div class="form-group" style="margin:0;">
                 <label style="font-size:11px;">Max</label>
-                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_max" class="input-field" value="${tierIdx === 0 ? 100 : ''}" step="0.01" style="font-size:12px;">
+                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_max" class="input-field" value="${defaultMax}" step="0.01" style="font-size:12px;">
             </div>
             <div class="form-group" style="margin:0;">
                 <label style="font-size:11px;">Rate</label>
@@ -8431,10 +8616,10 @@ echo "[Done: ${count} vendors created sequentially]"
     }
 
     _addBulkContractCostRow(contractIdx) {
+        // kept for backwards compat but no longer called from card HTML
         const container = document.getElementById(`bc-${contractIdx}-costs-container`);
         if (!container) return;
         const idx = container.children.length;
-
         const html = `
             <div class="form-row" style="margin-bottom:6px;">
                 <div class="form-group" style="flex:1;margin:0;">
