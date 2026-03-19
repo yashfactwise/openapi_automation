@@ -189,42 +189,60 @@ class TemplateManager {
                     }
                 }
 
-                // Non-builtin fields: separate costs/taxes/discounts from true custom fields
-                if (!item.is_builtin_field && isVisible) {
-                    const fieldDef = {
-                        name: item.name,
-                        alternate_name: item.alternate_name,
-                        field_type: item.constraints?.field_type,
-                        section_name: section.name,
-                        section_alternate_name: section.alternate_name
-                    };
-
+                // Visible fields with cost/tax/discount info (builtin AND non-builtin)
+                if (isVisible) {
                     const addInfo = item.additional_information;
-                    const target = isItemLevel ? config.itemLevel : isContractLevel ? config.contractLevel : null;
-                    if (!target) return;
+                    const hasCostInfo = addInfo?.additional_cost_information;
+                    const hasTaxInfo = addInfo?.taxes_information;
+                    const hasDiscountInfo = addInfo?.discount_information;
 
-                    if (addInfo?.additional_cost_information) {
-                        fieldDef.cost_type = addInfo.additional_cost_information.cost_type;
-                        fieldDef.allocation_type = addInfo.additional_cost_information.allocation_type;
-                        fieldDef.cost_source = addInfo.additional_cost_information.cost_source;
-                        target.costFields.push(fieldDef);
-                        target.additionalCosts = true;
-                        if (isItemLevel) config.tierLevel.additionalCosts = true;
-                    } else if (addInfo?.taxes_information) {
-                        fieldDef.cost_type = addInfo.taxes_information.cost_type;
-                        fieldDef.allocation_type = addInfo.taxes_information.allocation_type;
-                        target.taxFields.push(fieldDef);
-                        target.taxes = true;
-                        if (isItemLevel) config.tierLevel.taxes = true;
-                    } else if (addInfo?.discount_information) {
-                        fieldDef.cost_type = addInfo.discount_information.cost_type;
-                        fieldDef.allocation_type = addInfo.discount_information.allocation_type;
-                        target.discountFields.push(fieldDef);
-                        target.discounts = true;
-                        if (isItemLevel) config.tierLevel.discounts = true;
-                    } else {
-                        fieldDef.field_type = item.constraints?.field_type;
-                        target.customSections.push(fieldDef);
+                    if (hasCostInfo || hasTaxInfo || hasDiscountInfo) {
+                        const fieldDef = {
+                            name: item.name,
+                            alternate_name: item.alternate_name,
+                            field_type: item.constraints?.field_type,
+                            section_name: section.name,
+                            section_alternate_name: section.alternate_name,
+                            is_builtin: item.is_builtin_field,
+                            is_mandatory: item.is_mandatory || false
+                        };
+
+                        const target = isItemLevel ? config.itemLevel : isContractLevel ? config.contractLevel : null;
+                        if (target) {
+                            if (hasCostInfo) {
+                                fieldDef.cost_type = hasCostInfo.cost_type;
+                                fieldDef.allocation_type = hasCostInfo.allocation_type;
+                                fieldDef.cost_source = hasCostInfo.cost_source;
+                                target.costFields.push(fieldDef);
+                                target.additionalCosts = true;
+                                if (isItemLevel) config.tierLevel.additionalCosts = true;
+                            } else if (hasTaxInfo) {
+                                fieldDef.cost_type = hasTaxInfo.cost_type;
+                                fieldDef.allocation_type = hasTaxInfo.allocation_type;
+                                target.taxFields.push(fieldDef);
+                                target.taxes = true;
+                                if (isItemLevel) config.tierLevel.taxes = true;
+                            } else if (hasDiscountInfo) {
+                                fieldDef.cost_type = hasDiscountInfo.cost_type;
+                                fieldDef.allocation_type = hasDiscountInfo.allocation_type;
+                                target.discountFields.push(fieldDef);
+                                target.discounts = true;
+                                if (isItemLevel) config.tierLevel.discounts = true;
+                            }
+                        }
+                    }
+                    // Non-builtin fields without cost/tax/discount info = custom fields
+                    else if (!item.is_builtin_field) {
+                        const fieldDef = {
+                            name: item.name,
+                            alternate_name: item.alternate_name,
+                            field_type: item.constraints?.field_type,
+                            section_name: section.name,
+                            section_alternate_name: section.alternate_name,
+                            is_mandatory: item.is_mandatory || false
+                        };
+                        const target = isItemLevel ? config.itemLevel : isContractLevel ? config.contractLevel : null;
+                        if (target) target.customSections.push(fieldDef);
                     }
                 }
             });

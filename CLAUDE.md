@@ -75,19 +75,22 @@ Valid tab values: `drafts`, `ongoing`, `finished`, `submitted`, `renewed`, `expi
 
 ## Contract Create form — current state
 
-### Toggles (5 total)
-All toggles are disabled with tooltip if the selected template has no fields for that type.
+### Toggles (4 total)
+Toggles are disabled with tooltip if the selected template has no fields for that type.
+If template has **mandatory** fields for a type, the toggle is forced ON and cannot be turned off.
 Disabled toggle = `opacity: 0.5`, `cursor: not-allowed`, `title: "Not available in selected template"`.
+Locked toggle = `opacity: 1`, `cursor: default`, `title: "Required by template — cannot be turned off"`.
 
-1. **Additional Costs** (`toggle-additional-costs`) — enabled if `config.itemLevel.costFields.length > 0`
-2. **Taxes** (`toggle-taxes`) — enabled if `config.itemLevel.taxFields.length > 0`
-3. **Discounts** (`toggle-discounts`) — enabled if `config.itemLevel.discountFields.length > 0`
-4. **Contract Custom Fields** (`toggle-contract-custom`) — enabled if `config.contractLevel.customSections.length > 0`
-5. **Item Custom Fields** (`toggle-item-custom`) — enabled if `config.itemLevel.customSections.length > 0`
+1. **Additional Costs** (`toggle-additional-costs`) — enabled if `config.itemLevel.costFields.length > 0`, locked ON if any have `is_mandatory`
+2. **Taxes** (`toggle-taxes`) — enabled if `config.itemLevel.taxFields.length > 0`, locked ON if any have `is_mandatory`
+3. **Contract Custom Fields** (`toggle-contract-custom`) — enabled if `config.contractLevel.customSections.length > 0`
+4. **Item Custom Fields** (`toggle-item-custom`) — enabled if `config.itemLevel.customSections.length > 0`
+
+**Discounts** have no toggle — auto show/hide based on `config.itemLevel.discountFields.length > 0`.
 
 Update form uses same IDs with `-update` suffix: `toggle-additional-costs-update`, etc.
 
-Toggle state is applied by `_updateFormVisibilityFromTemplate(config)` via helper `applyToggleState(toggleId, enabled, rerender)`:
+Toggle state is applied by `_updateFormVisibilityFromTemplate(config)` via helper `applyToggleState(toggleId, enabled, rerender, forcedOn)`:
 - If disabled, unchecks the toggle and calls `_updateTierCostButtons()` if `rerender=true`
 - Contract custom toggle also hides the `#contract-custom-section` if disabled
 
