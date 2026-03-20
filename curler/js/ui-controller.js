@@ -6728,72 +6728,110 @@ echo "[Done: ${count} vendors created sequentially]"
         }
     }
 
+    _buildCustomFieldOptions(level, sectionAltName) {
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const allFields = level === 'contract' ? config.contractLevel?.customSections || [] : config.itemLevel?.customSections || [];
+        const fields = allFields.filter(f => f.section_alternate_name === sectionAltName);
+        if (!fields.length) return null;
+        // store field_type and constraints as data attrs so we can render correct input on change
+        return fields.map(f => {
+            const constraintsJson = JSON.stringify(f.constraints || {}).replace(/"/g, '&quot;');
+            return `<option value="${f.alternate_name}" data-type="${f.field_type || 'SHORTTEXT'}" data-constraints="${constraintsJson}">${f.name}</option>`;
+        }).join('');
+    }
+
+    _customFieldValueInput(fieldType, name, constraints) {
+        const c = constraints || {};
+        switch (fieldType) {
+            case 'FLOAT': case 'PERCENTAGE':
+                return `<input type="number" name="${name}" class="input-field cc-custom-val" step="0.01" style="font-size:12px;" placeholder="0">`;
+            case 'DATE':
+                return `<input type="date" name="${name}" class="input-field cc-custom-val" style="font-size:12px;">`;
+            case 'BOOLEAN':
+                return `<select name="${name}" class="input-field cc-custom-val" style="font-size:12px;"><option value="">--</option><option value="true">True</option><option value="false">False</option></select>`;
+            case 'CHOICE': {
+                const choices = c.choices || [];
+                const isMulti = c.choice_type === 'MULTI_SELECT';
+                if (isMulti) {
+                    const opts = choices.map(ch => `<option value="${ch}">${ch}</option>`).join('');
+                    return `<select name="${name}" class="input-field cc-custom-val" multiple style="font-size:12px;min-height:60px;">${opts}</select>`;
+                } else {
+                    const opts = choices.map(ch => `<option value="${ch}">${ch}</option>`).join('');
+                    return `<select name="${name}" class="input-field cc-custom-val" style="font-size:12px;"><option value="">-- Select --</option>${opts}</select>`;
+                }
+            }
+            default:
+                return `<input type="text" name="${name}" class="input-field cc-custom-val" style="font-size:12px;" placeholder="Value">`;
+        }
+    }
+
+    _onCustomFieldSelectChange(selectEl) {
+        const row = selectEl.closest('.cc-custom-field-row');
+        const valContainer = row.querySelector('.cc-custom-val-container');
+        if (!valContainer) return;
+        const opt = selectEl.selectedOptions[0];
+        const fieldType = opt?.dataset?.type || 'SHORTTEXT';
+        const constraints = opt?.dataset?.constraints ? JSON.parse(opt.dataset.constraints) : {};
+        const valName = selectEl.name.replace('_name', '_value');
+        valContainer.innerHTML = this._customFieldValueInput(fieldType, valName, constraints);
+    }
+
+    _addCustomFieldRow(containerEl, level, sectionAltName, sectionIdx) {
+        const fieldIndex = containerEl.children.length;
+        const optionsHtml = this._buildCustomFieldOptions(level, sectionAltName);
+        const valName = `cc_custom_${sectionIdx}_field_${fieldIndex}_value`;
+        let fieldSelectHtml, defaultValHtml;
+
+        if (optionsHtml) {
+            // get first field's type and constraints for default value input
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = `<select>${optionsHtml}</select>`;
+            const firstOpt = tempDiv.querySelector('option');
+            const firstType = firstOpt?.dataset?.type || 'SHORTTEXT';
+            const firstConstraints = firstOpt?.dataset?.constraints ? JSON.parse(firstOpt.dataset.constraints) : {};
+            fieldSelectHtml = `<select name="cc_custom_${sectionIdx}_field_${fieldIndex}_name" class="input-field" style="font-size:12px;" onchange="window.uiController._onCustomFieldSelectChange(this)">
+                <option value="">-- Select Field --</option>
+                ${optionsHtml}
+            </select>`;
+            defaultValHtml = this._customFieldValueInput(firstType, valName, firstConstraints);
+        } else {
+            fieldSelectHtml = `<input type="text" name="cc_custom_${sectionIdx}_field_${fieldIndex}_name" class="input-field" style="font-size:12px;" placeholder="Field name">`;
+            defaultValHtml = `<input type="text" name="${valName}" class="input-field cc-custom-val" style="font-size:12px;" placeholder="Value">`;
+        }
+
+        const html = `
+            <div class="cc-custom-field-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
+                <div class="form-group" style="flex:2;margin:0;">${fieldSelectHtml}</div>
+                <div class="form-group cc-custom-val-container" style="flex:1;margin:0;">${defaultValHtml}</div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        containerEl.insertAdjacentHTML('beforeend', html);
+    }
+
     _addContractCustomSection() {
         const container = document.getElementById('contract-custom-container');
         const index = container.children.length;
         const config = this.templateManager?.getCurrentConfig?.() || {};
         const customSections = config.contractLevel?.customSections || [];
-
-        // Build options: unique section alternate_names from template
         const seen = new Set();
         const uniqueSections = customSections.filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; });
         const sectionOptions = uniqueSections.map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`).join('');
+        const firstSectionAlt = uniqueSections[0]?.section_alternate_name || '';
 
-        let html;
-        if (sectionOptions) {
-            const firstSection = uniqueSections[0]?.section_alternate_name;
-            const fieldsHtml = this._renderCustomFieldInputs(customSections, firstSection, `contract_custom_${index}`);
-            html = `
+        const sectionSelectHtml = sectionOptions
+            ? `<select name="cc_custom_${index}_section_name" class="input-field cc-custom-section-select" data-level="contract" data-index="${index}">${sectionOptions}</select>`
+            : `<input type="text" name="cc_custom_${index}_section_name" class="input-field" placeholder="Section name">`;
+
+        const html = `
             <div class="cc-custom-section" style="margin-bottom:12px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;">
-                <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
-                    <div class="form-group" style="flex:1;margin:0;">
-                        <label>Custom Section</label>
-                        <select name="contract_custom_${index}_section_name" class="input-field" onchange="window.uiController._onCustomSectionChange(this, 'contract', ${index})">
-                            ${sectionOptions}
-                        </select>
-                    </div>
-                    <button type="button" onclick="this.closest('.cc-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                    <div class="form-group" style="flex:1;margin:0;">${sectionSelectHtml}</div>
+                    <button type="button" onclick="this.closest('.cc-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;">✕</button>
                 </div>
-                <div class="cc-custom-fields-container">${fieldsHtml}</div>
+                <div class="cc-custom-fields-container"></div>
+                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addCustomFieldRow(this.previousElementSibling, 'contract', '${firstSectionAlt}', ${index})">+ Add Field</button>
             </div>`;
-        } else {
-            html = `
-            <div class="cc-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
-                <div class="form-group" style="flex:1;margin:0;">
-                    <label>Section Name</label>
-                    <input type="text" name="contract_custom_${index}_section_name" class="input-field" placeholder="e.g., Contract Details">
-                </div>
-                <button type="button" onclick="this.closest('.cc-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
-            </div>`;
-        }
         container.insertAdjacentHTML('beforeend', html);
-    }
-
-    _renderCustomFieldInputs(allFields, sectionAlternateName, prefix) {
-        const fields = allFields.filter(f => f.section_alternate_name === sectionAlternateName);
-        if (!fields.length) return '';
-        return fields.map((f, i) => {
-            const mandatoryTag = f.is_mandatory ? ' <small style="color:#dc2626;">★ required</small>' : '';
-            const inputType = f.field_type === 'FLOAT' || f.field_type === 'PERCENTAGE' ? 'number' : f.field_type === 'DATE' ? 'date' : f.field_type === 'BOOLEAN' ? 'checkbox' : 'text';
-            const step = inputType === 'number' ? ' step="0.01"' : '';
-            return `
-            <div class="cc-custom-field-row" style="display:flex;gap:8px;align-items:center;margin-bottom:4px;padding:4px 0;">
-                <label style="flex:1;font-size:12px;color:#334155;">${f.name}${mandatoryTag}</label>
-                <input type="hidden" name="${prefix}_field_${i}_name" value="${f.alternate_name}">
-                <input type="${inputType}" name="${prefix}_field_${i}_value" class="input-field" style="flex:1;" placeholder="${f.name}"${step}>
-            </div>`;
-        }).join('');
-    }
-
-    _onCustomSectionChange(selectEl, level, index) {
-        const sectionAltName = selectEl.value;
-        const config = this.templateManager?.getCurrentConfig?.() || {};
-        const allFields = level === 'contract' ? config.contractLevel?.customSections || [] : config.itemLevel?.customSections || [];
-        const prefix = level === 'contract' ? `contract_custom_${index}` : `item_${selectEl.dataset.itemIndex}_custom_section_${index}`;
-        const container = selectEl.closest('.cc-custom-section')?.querySelector('.cc-custom-fields-container');
-        if (container) {
-            container.innerHTML = this._renderCustomFieldInputs(allFields, sectionAltName, prefix);
-        }
     }
 
     _renderItemCostsSection(itemIndex) {
@@ -6860,30 +6898,30 @@ echo "[Done: ${count} vendors created sequentially]"
         const seen = new Set();
         const uniqueSections = customSections.filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; });
         const sectionOptions = uniqueSections.map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`).join('');
+        const firstSectionAlt = uniqueSections[0]?.section_alternate_name || '';
+        const sectionKey = `item_${itemIndex}_csec_${rowIndex}`;
 
-        if (sectionOptions) {
-            const firstSection = uniqueSections[0]?.section_alternate_name;
-            const fieldsHtml = this._renderCustomFieldInputs(customSections, firstSection, `item_${itemIndex}_custom_section_${rowIndex}`);
-            return `
-            <div class="cc-item-custom-section" style="margin-bottom:12px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;">
-                <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
-                    <div class="form-group" style="flex:1;margin:0;">
-                        <select name="item_${itemIndex}_custom_section_${rowIndex}_section_name" class="input-field" data-item-index="${itemIndex}" onchange="window.uiController._onCustomSectionChange(this, 'item', ${rowIndex})">
-                            ${sectionOptions}
-                        </select>
-                    </div>
-                    <button type="button" onclick="this.closest('.cc-item-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
-                </div>
-                <div class="cc-custom-fields-container">${fieldsHtml}</div>
-            </div>`;
-        }
+        const sectionSelectHtml = sectionOptions
+            ? `<select name="${sectionKey}_section_name" class="input-field">${sectionOptions}</select>`
+            : `<input type="text" name="${sectionKey}_section_name" class="input-field" placeholder="e.g., Essential Terms">`;
+
         return `
-            <div class="cc-item-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
-                <div class="form-group" style="flex:1;margin:0;">
-                    <input type="text" name="item_${itemIndex}_custom_section_${rowIndex}_section_name" class="input-field" placeholder="e.g., Essential Terms">
+            <div class="cc-item-custom-section" style="margin-bottom:12px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;">
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                    <div class="form-group" style="flex:1;margin:0;">${sectionSelectHtml}</div>
+                    <button type="button" onclick="this.closest('.cc-item-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;">✕</button>
                 </div>
-                <button type="button" onclick="this.closest('.cc-item-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+                <div class="cc-custom-fields-container"></div>
+                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addCustomFieldRow(this.previousElementSibling, 'item', '${firstSectionAlt}', '${sectionKey}')">+ Add Field</button>
             </div>`;
+    }
+
+    _readCustomFieldValue(valEl) {
+        if (!valEl) return '';
+        if (valEl.tagName === 'SELECT' && valEl.multiple) {
+            return Array.from(valEl.selectedOptions).map(o => o.value).filter(v => v);
+        }
+        return valEl.value || '';
     }
 
     _addItemCustomSection(itemIndex) {
@@ -7597,38 +7635,24 @@ echo "[Done: ${count} vendors created sequentially]"
         const index = container.children.length;
         const config = this.templateManager?.getCurrentConfig?.() || {};
         const customSections = config.contractLevel?.customSections || [];
-
         const seen = new Set();
         const uniqueSections = customSections.filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; });
         const sectionOptions = uniqueSections.map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`).join('');
+        const firstSectionAlt = uniqueSections[0]?.section_alternate_name || '';
 
-        let html;
-        if (sectionOptions) {
-            const firstSection = uniqueSections[0]?.section_alternate_name;
-            const fieldsHtml = this._renderCustomFieldInputs(customSections, firstSection, `contract_custom_${index}`);
-            html = `
+        const sectionSelectHtml = sectionOptions
+            ? `<select name="cc_custom_${index}_section_name" class="input-field cc-custom-section-select" data-level="contract" data-index="${index}">${sectionOptions}</select>`
+            : `<input type="text" name="cc_custom_${index}_section_name" class="input-field" placeholder="Section name">`;
+
+        const html = `
             <div class="cc-custom-section" style="margin-bottom:12px;padding:8px;border:1px solid #e5e7eb;border-radius:6px;">
-                <div style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
-                    <div class="form-group" style="flex:1;margin:0;">
-                        <label>Custom Section</label>
-                        <select name="contract_custom_${index}_section_name" class="input-field" onchange="window.uiController._onCustomSectionChange(this, 'contract', ${index})">
-                            ${sectionOptions}
-                        </select>
-                    </div>
-                    <button type="button" onclick="this.closest('.cc-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+                <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+                    <div class="form-group" style="flex:1;margin:0;">${sectionSelectHtml}</div>
+                    <button type="button" onclick="this.closest('.cc-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;">✕</button>
                 </div>
-                <div class="cc-custom-fields-container">${fieldsHtml}</div>
+                <div class="cc-custom-fields-container"></div>
+                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addCustomFieldRow(this.previousElementSibling, 'contract', '${firstSectionAlt}', ${index})">+ Add Field</button>
             </div>`;
-        } else {
-            html = `
-            <div class="cc-custom-section" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;">
-                <div class="form-group" style="flex:1;margin:0;">
-                    <label>Section Name</label>
-                    <input type="text" name="contract_custom_${index}_section_name" class="input-field" placeholder="e.g., Contract Details">
-                </div>
-                <button type="button" onclick="this.closest('.cc-custom-section').remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
-            </div>`;
-        }
         container.insertAdjacentHTML('beforeend', html);
     }
 
@@ -10332,8 +10356,9 @@ echo "[Done: ${count} vendors created sequentially]"
                         const customFields = [];
                         section.querySelectorAll('.cc-custom-field-row').forEach(fieldRow => {
                             const fname = fieldRow.querySelector('[name$="_field_name"]')?.value;
-                            const fval = fieldRow.querySelector('[name$="_field_value"]')?.value;
-                            if (fname) customFields.push({ name: fname, value: fval || '' });
+                            const fvalEl = fieldRow.querySelector('[name$="_field_value"]');
+                            const fval = this._readCustomFieldValue(fvalEl);
+                            if (fname) customFields.push({ name: fname, value: fval });
                         });
                         payload.custom_sections.push({
                             name: sectionName,
@@ -10434,8 +10459,9 @@ echo "[Done: ${count} vendors created sequentially]"
                                 const customFields = [];
                                 section.querySelectorAll('.cc-custom-field-row').forEach(fieldRow => {
                                     const fname = fieldRow.querySelector('[name$="_field_name"]')?.value;
-                                    const fval = fieldRow.querySelector('[name$="_field_value"]')?.value;
-                                    if (fname) customFields.push({ name: fname, value: fval || '' });
+                                    const fvalEl = fieldRow.querySelector('[name$="_field_value"]');
+                                    const fval = this._readCustomFieldValue(fvalEl);
+                                    if (fname) customFields.push({ name: fname, value: fval });
                                 });
                                 item.custom_sections.push({
                                     name: sectionName,
@@ -10520,8 +10546,9 @@ echo "[Done: ${count} vendors created sequentially]"
                         const customFields = [];
                         section.querySelectorAll('.cc-custom-field-row').forEach(fieldRow => {
                             const fname = fieldRow.querySelector('[name$="_field_name"]')?.value;
-                            const fval = fieldRow.querySelector('[name$="_field_value"]')?.value;
-                            if (fname) customFields.push({ name: fname, value: fval || '' });
+                            const fvalEl = fieldRow.querySelector('[name$="_field_value"]');
+                            const fval = this._readCustomFieldValue(fvalEl);
+                            if (fname) customFields.push({ name: fname, value: fval });
                         });
                         payload.custom_sections.push({
                             name: sectionName,
@@ -10622,8 +10649,9 @@ echo "[Done: ${count} vendors created sequentially]"
                                 const customFields = [];
                                 section.querySelectorAll('.cc-custom-field-row').forEach(fieldRow => {
                                     const fname = fieldRow.querySelector('[name$="_field_name"]')?.value;
-                                    const fval = fieldRow.querySelector('[name$="_field_value"]')?.value;
-                                    if (fname) customFields.push({ name: fname, value: fval || '' });
+                                    const fvalEl = fieldRow.querySelector('[name$="_field_value"]');
+                                    const fval = this._readCustomFieldValue(fvalEl);
+                                    if (fname) customFields.push({ name: fname, value: fval });
                                 });
                                 item.custom_sections.push({
                                     name: sectionName,

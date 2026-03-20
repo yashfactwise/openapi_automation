@@ -237,6 +237,7 @@ class TemplateManager {
                             name: item.name,
                             alternate_name: item.alternate_name,
                             field_type: item.constraints?.field_type,
+                            constraints: item.constraints || {},
                             section_name: section.name,
                             section_alternate_name: section.alternate_name,
                             is_mandatory: item.is_mandatory || false
