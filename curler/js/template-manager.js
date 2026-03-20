@@ -204,7 +204,7 @@ class TemplateManager {
                             section_name: section.name,
                             section_alternate_name: section.alternate_name,
                             is_builtin: item.is_builtin_field,
-                            is_mandatory: item.is_mandatory || false
+                            is_mandatory: item.is_required || item.is_mandatory || false
                         };
 
                         const target = isItemLevel ? config.itemLevel : isContractLevel ? config.contractLevel : null;
@@ -240,7 +240,7 @@ class TemplateManager {
                             constraints: item.constraints || {},
                             section_name: section.name,
                             section_alternate_name: section.alternate_name,
-                            is_mandatory: item.is_mandatory || false
+                            is_mandatory: item.is_required || item.is_mandatory || false
                         };
                         const target = isItemLevel ? config.itemLevel : isContractLevel ? config.contractLevel : null;
                         if (target) target.customSections.push(fieldDef);

@@ -6637,6 +6637,25 @@ echo "[Done: ${count} vendors created sequentially]"
         }).join('');
     }
 
+    // Returns the single field if only 1 option exists for this cost type, else null
+    _getSingleCostField(level, costType) {
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const levelConfig = config[level + 'Level'] || {};
+        let fields = [];
+        if (costType === 'cost') fields = levelConfig.costFields || [];
+        else if (costType === 'tax') fields = levelConfig.taxFields || [];
+        else if (costType === 'discount') fields = levelConfig.discountFields || [];
+        return fields.length === 1 ? fields[0] : null;
+    }
+
+    // Returns the single custom field if only 1 option in that section, else null
+    _getSingleCustomField(level, sectionAltName) {
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const allFields = level === 'contract' ? config.contractLevel?.customSections || [] : config.itemLevel?.customSections || [];
+        const fields = allFields.filter(f => f.section_alternate_name === sectionAltName);
+        return fields.length === 1 ? fields[0] : null;
+    }
+
     _addContractCost() {
         const container = document.getElementById('contract-costs-container');
         const index = container.children.length;
@@ -6779,10 +6798,17 @@ echo "[Done: ${count} vendors created sequentially]"
     _addCustomFieldRow(containerEl, level, sectionAltName, sectionIdx) {
         const fieldIndex = containerEl.children.length;
         const optionsHtml = this._buildCustomFieldOptions(level, sectionAltName);
+        const singleField = this._getSingleCustomField(level, sectionAltName);
         const valName = `cc_custom_${sectionIdx}_field_${fieldIndex}_value`;
         let fieldSelectHtml, defaultValHtml;
 
-        if (optionsHtml) {
+        if (singleField) {
+            // Only 1 field in section — show as static label, no dropdown
+            const constraints = singleField.constraints || {};
+            fieldSelectHtml = `<span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;">${singleField.name}</span>
+                <input type="hidden" name="cc_custom_${sectionIdx}_field_${fieldIndex}_name" value="${singleField.alternate_name}">`;
+            defaultValHtml = this._customFieldValueInput(singleField.field_type || 'SHORTTEXT', valName, constraints);
+        } else if (optionsHtml) {
             // get first field's type and constraints for default value input
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = `<select>${optionsHtml}</select>`;
@@ -6916,6 +6942,34 @@ echo "[Done: ${count} vendors created sequentially]"
             </div>`;
     }
 
+    // Pre-fills mandatory field rows inside a .cc-custom-section card
+    _preFillMandatoryCustomFields(sectionEl, level) {
+        if (!sectionEl) return;
+        const sectionAltName = sectionEl.querySelector('[name$="_section_name"]')?.value;
+        if (!sectionAltName) return;
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const allFields = level === 'contract' ? config.contractLevel?.customSections || [] : config.itemLevel?.customSections || [];
+        const mandatoryFields = allFields.filter(f => f.section_alternate_name === sectionAltName && f.is_mandatory);
+        const container = sectionEl.querySelector('.cc-custom-fields-container');
+        if (!container || mandatoryFields.length === 0) return;
+        const sectionIdx = sectionEl.closest('[id$="-container"]')?.children.length - 1 || 0;
+        mandatoryFields.forEach((field, fi) => {
+            const valName = `cc_custom_${sectionIdx}_field_${fi}_value`;
+            const constraints = field.constraints || {};
+            const valHtml = this._customFieldValueInput(field.field_type || 'SHORTTEXT', valName, constraints);
+            const html = `
+                <div class="cc-custom-field-row" data-mandatory="true" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;background:#f0fdf4;border-radius:4px;padding:4px;">
+                    <div class="form-group" style="flex:2;margin:0;">
+                        <label style="font-size:11px;color:#16a34a;">★ ${field.name} <small>(required)</small></label>
+                        <span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;">${field.name}</span>
+                        <input type="hidden" name="cc_custom_${sectionIdx}_field_${fi}_name" value="${field.alternate_name}">
+                    </div>
+                    <div class="form-group cc-custom-val-container" style="flex:1;margin:0;">${valHtml}</div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
     _readCustomFieldValue(valEl) {
         if (!valEl) return '';
         if (valEl.tagName === 'SELECT' && valEl.multiple) {
@@ -6975,10 +7029,28 @@ echo "[Done: ${count} vendors created sequentially]"
         const mandatoryCount = container.closest('.cc-tier-card')?.querySelectorAll('.cc-tier-cost-row[data-mandatory]')?.length || 0;
         const index = container.children.length + mandatoryCount;
         const optionsHTML = this._buildCostOptions('item', costType);
+        const singleField = this._getSingleCostField('item', costType);
         const label = costType === 'tax' ? 'Tax' : costType === 'discount' ? 'Discount' : 'Additional Cost';
 
         let html;
-        if (optionsHTML) {
+        if (singleField) {
+            // Only 1 option — show as static label, no dropdown
+            const vt = singleField.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
+            html = `
+            <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
+                <div class="form-group" style="flex:2;margin:0;">
+                    <label style="font-size:11px;color:#64748b;">${label}</label>
+                    <span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;">${singleField.name}</span>
+                    <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_name" value="${singleField.alternate_name}">
+                    <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" value="${costType}">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label style="font-size:11px;color:#64748b;" class="cc-cost-value-label">${vt === 'pct' ? 'Value (%)' : 'Value'}</label>
+                    <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
+                </div>
+                <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
+            </div>`;
+        } else if (optionsHTML) {
             html = `
             <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
                 <div class="form-group" style="flex:2;margin:0;">
@@ -11571,7 +11643,7 @@ echo "[Done: ${count} vendors created sequentially]"
 
         console.log('✓ Found template:', template.name);
 
-        // Fetch template detail (with is_mandatory) if not cached
+        // Fetch template detail (with is_required / is_mandatory per field) if not cached
         if (!this._templateDetailCache) this._templateDetailCache = {};
         if (!this._templateDetailCache[templateId]) {
             try {
@@ -11596,7 +11668,7 @@ echo "[Done: ${count} vendors created sequentially]"
             }
         }
 
-        // Merge detail section_list if available (has is_mandatory per field)
+        // Merge detail section_list if available (has is_required per field)
         const detail = this._templateDetailCache[templateId];
         if (detail?.section_list) {
             template.section_list = detail.section_list;
@@ -11965,19 +12037,34 @@ echo "[Done: ${count} vendors created sequentially]"
 
         // Contract custom — also hide section when disabled
         const contractCustomHas = config.contractLevel.customSections.length > 0;
-        applyToggleState('toggle-contract-custom', contractCustomHas, false);
-        applyToggleState('toggle-contract-custom-update', contractCustomHas, false);
+        const hasMandatoryContractCustom = (config.contractLevel.customSections || []).some(f => f.is_mandatory);
+        applyToggleState('toggle-contract-custom', contractCustomHas, false, hasMandatoryContractCustom);
+        applyToggleState('toggle-contract-custom-update', contractCustomHas, false, hasMandatoryContractCustom);
         if (!contractCustomHas) {
             const section = document.getElementById('contract-custom-section');
             if (section) section.classList.remove('visible');
             const sectionU = document.getElementById('contract-custom-section-update');
             if (sectionU) sectionU.classList.remove('visible');
+        } else if (hasMandatoryContractCustom) {
+            // Auto-open and pre-populate mandatory contract custom sections
+            const section = document.getElementById('contract-custom-section');
+            if (section) section.classList.add('visible');
+            const container = document.getElementById('contract-custom-container');
+            if (container && container.children.length === 0) {
+                this._addContractCustomSection();
+                this._preFillMandatoryCustomFields(container.lastElementChild, 'contract');
+            }
         }
 
         const itemCustomHas = config.itemLevel.customSections.length > 0;
-        applyToggleState('toggle-item-custom', itemCustomHas, false);
-        applyToggleState('toggle-item-custom-update', itemCustomHas, false);
+        const hasMandatoryItemCustom = (config.itemLevel.customSections || []).some(f => f.is_mandatory);
+        applyToggleState('toggle-item-custom', itemCustomHas, false, hasMandatoryItemCustom);
+        applyToggleState('toggle-item-custom-update', itemCustomHas, false, hasMandatoryItemCustom);
         if (!itemCustomHas) {
+            this._updateItemCustomVisibility();
+            this._updateItemCustomVisibility(true);
+        } else if (hasMandatoryItemCustom) {
+            // Show item custom sections (toggle is locked on — make visible)
             this._updateItemCustomVisibility();
             this._updateItemCustomVisibility(true);
         }
