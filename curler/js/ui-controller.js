@@ -6633,7 +6633,10 @@ echo "[Done: ${count} vendors created sequentially]"
 
         return fields.map(f => {
             const vt = f.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
-            return `<option value="${f.alternate_name}" data-type="${costType}" data-value-type="${vt}">${f.name}</option>`;
+            const typeLabel = f.cost_type === 'PERCENTAGE' ? '%' : 'Flat';
+            const allocLabel = f.allocation_type === 'OVERALL' ? 'Overall' : f.allocation_type === 'PER_ITEM' ? 'Per Item' : (f.allocation_type || '');
+            const badge = allocLabel ? `[${typeLabel} · ${allocLabel}]` : `[${typeLabel}]`;
+            return `<option value="${f.alternate_name}" data-type="${costType}" data-value-type="${vt}">${f.name}  ${badge}</option>`;
         }).join('');
     }
 
@@ -6704,6 +6707,32 @@ echo "[Done: ${count} vendors created sequentially]"
         container.insertAdjacentHTML('beforeend', html);
     }
 
+    /**
+     * Build a small type badge string for cost fields.
+     * e.g. "% · Per Item" or "Flat · Overall"
+     */
+    _costTypeBadgeText(valueType, allocationType) {
+        const vt = valueType === 'pct' ? '%' : 'Flat';
+        const at = allocationType === 'OVERALL' ? 'Overall' : allocationType === 'PER_ITEM' ? 'Per Item' : '';
+        return at ? `${vt} · ${at}` : vt;
+    }
+
+    /**
+     * Build a small type badge string for custom fields.
+     * e.g. "Short Text", "Decimal", "Date", etc.
+     */
+    _fieldTypeBadgeText(fieldType) {
+        const map = { 'SHORTTEXT': 'Short Text', 'LONGTEXT': 'Long Text', 'FLOAT': 'Decimal', 'PERCENTAGE': 'Percentage', 'DATE': 'Date', 'BOOLEAN': 'Yes/No', 'CHOICE': 'Choice', 'INTEGER': 'Number' };
+        return map[fieldType] || fieldType || 'Text';
+    }
+
+    /**
+     * Renders a type badge span element.
+     */
+    _typeBadgeHtml(text) {
+        return `<span class="cc-type-badge" style="display:inline-block;font-size:10px;font-weight:500;color:#6366f1;background:#eef2ff;border:1px solid #c7d2fe;border-radius:3px;padding:1px 5px;margin-left:4px;vertical-align:middle;">${text}</span>`;
+    }
+
     _onCostSelectChange(selectEl) {
         const row = selectEl.closest('.cc-cost-row') || selectEl.closest('.cc-tier-cost-row');
         if (!row) return;
@@ -6721,6 +6750,23 @@ echo "[Done: ${count} vendors created sequentially]"
         // Remove old warning if switching types
         const oldWarn = row.querySelector('.cc-pct-warning');
         if (oldWarn) oldWarn.remove();
+        // Remove old type badge
+        const oldBadge = row.querySelector('.cc-type-badge');
+        if (oldBadge) oldBadge.remove();
+
+        // Look up allocation_type from the template config
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const levelConfig = config.itemLevel || {};
+        let allocationType = '';
+        const fieldLists = [...(levelConfig.costFields || []), ...(levelConfig.taxFields || []), ...(levelConfig.discountFields || [])];
+        const matchedField = fieldLists.find(f => f.alternate_name === selected?.value);
+        if (matchedField) allocationType = matchedField.allocation_type || '';
+
+        // Show type badge next to the value label
+        if (selected?.value && valueLabel) {
+            const badgeText = this._costTypeBadgeText(valueType, allocationType);
+            valueLabel.insertAdjacentHTML('afterend', this._typeBadgeHtml(badgeText));
+        }
 
         if (valueType === 'pct') {
             if (valueLabel) valueLabel.textContent = 'Value (%)';
@@ -6745,6 +6791,10 @@ echo "[Done: ${count} vendors created sequentially]"
             if (valueLabel) valueLabel.textContent = 'Value';
             if (valueInput) { valueInput.removeAttribute('max'); valueInput.removeAttribute('min'); }
         }
+
+        // Refresh sibling dropdowns to disable this newly-selected value
+        const tierCostsContainer = row.closest('[id*="-tier-"][id*="-costs"]') || row.closest('[id*="-costs"]');
+        if (tierCostsContainer) this._refreshTierCostDropdowns(tierCostsContainer);
     }
 
     _buildCustomFieldOptions(level, sectionAltName) {
@@ -6755,7 +6805,10 @@ echo "[Done: ${count} vendors created sequentially]"
         // store field_type and constraints as data attrs so we can render correct input on change
         return fields.map(f => {
             const constraintsJson = JSON.stringify(f.constraints || {}).replace(/"/g, '&quot;');
-            return `<option value="${f.alternate_name}" data-type="${f.field_type || 'SHORTTEXT'}" data-constraints="${constraintsJson}">${f.name}</option>`;
+            const ft = f.field_type || 'SHORTTEXT';
+            const typeLabels = { 'SHORTTEXT': 'Short Text', 'LONGTEXT': 'Long Text', 'FLOAT': 'Decimal', 'PERCENTAGE': 'Percentage', 'DATE': 'Date', 'BOOLEAN': 'Yes/No', 'CHOICE': 'Choice', 'INTEGER': 'Number' };
+            const typeBadge = typeLabels[ft] || ft;
+            return `<option value="${f.alternate_name}" data-type="${ft}" data-constraints="${constraintsJson}">${f.name}  [${typeBadge}]</option>`;
         }).join('');
     }
 
@@ -6793,9 +6846,38 @@ echo "[Done: ${count} vendors created sequentially]"
         const constraints = opt?.dataset?.constraints ? JSON.parse(opt.dataset.constraints) : {};
         const valName = selectEl.name.replace('_name', '_value');
         valContainer.innerHTML = this._customFieldValueInput(fieldType, valName, constraints);
+
+        // Show type badge next to the value container
+        const oldBadge = row.querySelector('.cc-type-badge');
+        if (oldBadge) oldBadge.remove();
+        if (opt?.value) {
+            const badgeText = this._fieldTypeBadgeText(fieldType);
+            const valLabel = valContainer.closest('.form-group');
+            if (valLabel) valLabel.insertAdjacentHTML('afterbegin', `<label style="font-size:11px;color:#64748b;">Value ${this._typeBadgeHtml(badgeText)}</label>`);
+        }
+
+        // Refresh sibling field dropdowns to disable this newly-selected value
+        const fieldsContainer = row.closest('.cc-custom-fields-container');
+        if (fieldsContainer) this._refreshCustomFieldDropdowns(fieldsContainer);
     }
 
     _addCustomFieldRow(containerEl, level, sectionAltName, sectionIdx) {
+        // Check if all fields in this section are already used
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const allFields = level === 'contract' ? config.contractLevel?.customSections || [] : config.itemLevel?.customSections || [];
+        const sectionFields = allFields.filter(f => f.section_alternate_name === sectionAltName);
+        if (sectionFields.length > 0) {
+            const usedNames = new Set();
+            containerEl.querySelectorAll('.cc-custom-field-row').forEach(row => {
+                const sel = row.querySelector('select[name$="_name"]');
+                const hid = row.querySelector('input[type="hidden"][name$="_name"]');
+                if (sel && sel.value) usedNames.add(sel.value);
+                else if (hid && hid.value) usedNames.add(hid.value);
+            });
+            const remaining = sectionFields.filter(f => !usedNames.has(f.alternate_name));
+            if (remaining.length === 0) return;
+        }
+
         const fieldIndex = containerEl.children.length;
         const optionsHtml = this._buildCustomFieldOptions(level, sectionAltName);
         const singleField = this._getSingleCustomField(level, sectionAltName);
@@ -6805,9 +6887,11 @@ echo "[Done: ${count} vendors created sequentially]"
         if (singleField) {
             // Only 1 field in section — show as static label, no dropdown
             const constraints = singleField.constraints || {};
-            fieldSelectHtml = `<span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;">${singleField.name}</span>
+            const ft = singleField.field_type || 'SHORTTEXT';
+            const badge = this._typeBadgeHtml(this._fieldTypeBadgeText(ft));
+            fieldSelectHtml = `<span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;">${singleField.name} ${badge}</span>
                 <input type="hidden" name="cc_custom_${sectionIdx}_field_${fieldIndex}_name" value="${singleField.alternate_name}">`;
-            defaultValHtml = this._customFieldValueInput(singleField.field_type || 'SHORTTEXT', valName, constraints);
+            defaultValHtml = this._customFieldValueInput(ft, valName, constraints);
         } else if (optionsHtml) {
             // get first field's type and constraints for default value input
             const tempDiv = document.createElement('div');
@@ -6832,20 +6916,106 @@ echo "[Done: ${count} vendors created sequentially]"
                 <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
             </div>`;
         containerEl.insertAdjacentHTML('beforeend', html);
+        this._refreshCustomFieldDropdowns(containerEl);
+    }
+
+    /**
+     * Disable already-selected custom fields in sibling dropdowns within the same section.
+     */
+    _refreshCustomFieldDropdowns(fieldsContainer) {
+        if (!fieldsContainer) return;
+        const rows = fieldsContainer.querySelectorAll('.cc-custom-field-row');
+        const usedValues = new Set();
+        rows.forEach(row => {
+            const select = row.querySelector('select[name$="_name"]');
+            const hidden = row.querySelector('input[type="hidden"][name$="_name"]');
+            if (select && select.value) usedValues.add(select.value);
+            else if (hidden && hidden.value) usedValues.add(hidden.value);
+        });
+        rows.forEach(row => {
+            const select = row.querySelector('select[name$="_name"]');
+            if (!select) return;
+            const currentVal = select.value;
+            Array.from(select.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = (opt.value !== currentVal && usedValues.has(opt.value));
+            });
+        });
+        // Patch remove buttons
+        rows.forEach(row => {
+            const removeBtn = row.querySelector('button[onclick*="this.parentElement.remove()"]');
+            if (removeBtn && !removeBtn.dataset.patchedRefresh) {
+                removeBtn.dataset.patchedRefresh = 'true';
+                const container = fieldsContainer;
+                removeBtn.removeAttribute('onclick');
+                removeBtn.addEventListener('click', () => {
+                    row.remove();
+                    window.uiController._refreshCustomFieldDropdowns(container);
+                });
+            }
+        });
+    }
+
+    /**
+     * Disable already-used custom sections in sibling section dropdowns.
+     */
+    _refreshCustomSectionDropdowns(sectionsContainer) {
+        if (!sectionsContainer) return;
+        const sections = sectionsContainer.querySelectorAll('.cc-custom-section, .cc-item-custom-section');
+        const usedValues = new Set();
+        sections.forEach(sec => {
+            const select = sec.querySelector('.cc-custom-section-select, select[name$="_section_name"]');
+            if (select && select.value) usedValues.add(select.value);
+        });
+        sections.forEach(sec => {
+            const select = sec.querySelector('.cc-custom-section-select, select[name$="_section_name"]');
+            if (!select) return;
+            const currentVal = select.value;
+            Array.from(select.options).forEach(opt => {
+                if (!opt.value) return;
+                opt.disabled = (opt.value !== currentVal && usedValues.has(opt.value));
+            });
+        });
+        // Patch remove buttons
+        sections.forEach(sec => {
+            const removeBtn = sec.querySelector('button[onclick*="closest"]');
+            if (removeBtn && !removeBtn.dataset.patchedRefresh) {
+                removeBtn.dataset.patchedRefresh = 'true';
+                const container = sectionsContainer;
+                removeBtn.removeAttribute('onclick');
+                removeBtn.addEventListener('click', () => {
+                    sec.remove();
+                    window.uiController._refreshCustomSectionDropdowns(container);
+                });
+            }
+        });
     }
 
     _addContractCustomSection() {
         const container = document.getElementById('contract-custom-container');
+        if (!container) return;
         const index = container.children.length;
         const config = this.templateManager?.getCurrentConfig?.() || {};
         const customSections = config.contractLevel?.customSections || [];
         const seen = new Set();
         const uniqueSections = customSections.filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; });
+
+        // Check if all sections are already added
+        if (uniqueSections.length > 0) {
+            const usedSections = new Set();
+            container.querySelectorAll('.cc-custom-section').forEach(sec => {
+                const sel = sec.querySelector('select[name$="_section_name"], input[name$="_section_name"]');
+                if (sel && sel.value) usedSections.add(sel.value);
+            });
+            const remaining = uniqueSections.filter(s => !usedSections.has(s.section_alternate_name));
+            if (remaining.length === 0) return;
+        }
+
         const sectionOptions = uniqueSections.map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`).join('');
         const firstSectionAlt = uniqueSections[0]?.section_alternate_name || '';
 
         const sectionSelectHtml = sectionOptions
-            ? `<select name="cc_custom_${index}_section_name" class="input-field cc-custom-section-select" data-level="contract" data-index="${index}">${sectionOptions}</select>`
+            ? `<select name="cc_custom_${index}_section_name" class="input-field cc-custom-section-select" data-level="contract" data-index="${index}" onchange="window.uiController._refreshCustomSectionDropdowns(this.closest('[id$=-container]'))">${sectionOptions}</select>`
             : `<input type="text" name="cc_custom_${index}_section_name" class="input-field" placeholder="Section name">`;
 
         const html = `
@@ -6858,6 +7028,7 @@ echo "[Done: ${count} vendors created sequentially]"
                 <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addCustomFieldRow(this.previousElementSibling, 'contract', '${firstSectionAlt}', ${index})">+ Add Field</button>
             </div>`;
         container.insertAdjacentHTML('beforeend', html);
+        this._refreshCustomSectionDropdowns(container);
     }
 
     _renderItemCostsSection(itemIndex) {
@@ -6928,7 +7099,7 @@ echo "[Done: ${count} vendors created sequentially]"
         const sectionKey = `item_${itemIndex}_csec_${rowIndex}`;
 
         const sectionSelectHtml = sectionOptions
-            ? `<select name="${sectionKey}_section_name" class="input-field">${sectionOptions}</select>`
+            ? `<select name="${sectionKey}_section_name" class="input-field" onchange="window.uiController._refreshCustomSectionDropdowns(this.closest('[id$=-custom]'))">${sectionOptions}</select>`
             : `<input type="text" name="${sectionKey}_section_name" class="input-field" placeholder="e.g., Essential Terms">`;
 
         return `
@@ -6956,11 +7127,13 @@ echo "[Done: ${count} vendors created sequentially]"
         mandatoryFields.forEach((field, fi) => {
             const valName = `cc_custom_${sectionIdx}_field_${fi}_value`;
             const constraints = field.constraints || {};
-            const valHtml = this._customFieldValueInput(field.field_type || 'SHORTTEXT', valName, constraints);
+            const ft = field.field_type || 'SHORTTEXT';
+            const badge = this._typeBadgeHtml(this._fieldTypeBadgeText(ft));
+            const valHtml = this._customFieldValueInput(ft, valName, constraints);
             const html = `
                 <div class="cc-custom-field-row" data-mandatory="true" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;background:#f0fdf4;border-radius:4px;padding:4px;">
                     <div class="form-group" style="flex:2;margin:0;">
-                        <label style="font-size:11px;color:#16a34a;">★ ${field.name} <small>(required)</small></label>
+                        <label style="font-size:11px;color:#16a34a;">★ ${field.name} ${badge} <small>(required)</small></label>
                         <span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;">${field.name}</span>
                         <input type="hidden" name="cc_custom_${sectionIdx}_field_${fi}_name" value="${field.alternate_name}">
                     </div>
@@ -6981,8 +7154,25 @@ echo "[Done: ${count} vendors created sequentially]"
     _addItemCustomSection(itemIndex) {
         const container = document.getElementById(`item-${itemIndex}-custom`);
         if (!container) return;
+
+        // Check if all sections are already added
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const customSections = config.itemLevel?.customSections || [];
+        const seen = new Set();
+        const uniqueSections = customSections.filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; });
+        if (uniqueSections.length > 0) {
+            const usedSections = new Set();
+            container.querySelectorAll('.cc-item-custom-section').forEach(sec => {
+                const sel = sec.querySelector('select[name$="_section_name"], input[name$="_section_name"]');
+                if (sel && sel.value) usedSections.add(sel.value);
+            });
+            const remaining = uniqueSections.filter(s => !usedSections.has(s.section_alternate_name));
+            if (remaining.length === 0) return;
+        }
+
         const index = container.children.length;
         container.insertAdjacentHTML('beforeend', this._renderItemCustomSectionRow(itemIndex, index));
+        this._refreshCustomSectionDropdowns(container);
     }
 
     _getMandatoryFields(costType) {
@@ -6999,6 +7189,8 @@ echo "[Done: ${count} vendors created sequentially]"
         const renderField = (field, costType) => {
             const vt = field.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
             const valLabel = vt === 'pct' ? 'Value (%)' : 'Value';
+            const badgeText = this._costTypeBadgeText(vt, field.allocation_type || '');
+            const badge = this._typeBadgeHtml(badgeText);
             html += `
             <div class="cc-tier-cost-row" data-mandatory="true" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;background:#f0fdf4;border-radius:4px;padding:4px;">
                 <div class="form-group" style="flex:2;margin:0;">
@@ -7008,7 +7200,7 @@ echo "[Done: ${count} vendors created sequentially]"
                     <span class="input-field" style="display:block;background:#f1f5f9;color:#334155;padding:6px 8px;font-size:12px;cursor:default;">${field.name}</span>
                 </div>
                 <div class="form-group" style="flex:1;margin:0;">
-                    <label style="font-size:11px;color:#64748b;" class="cc-cost-value-label">${valLabel}</label>
+                    <label style="font-size:11px;color:#64748b;" class="cc-cost-value-label">${valLabel} ${badge}</label>
                     <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${rowIdx}_value" class="input-field" step="0.01" placeholder="0"
                         ${vt === 'pct' ? `oninput="(function(el){var w=el.parentElement.querySelector('.cc-pct-warning');if(!w){w=document.createElement('span');w.className='cc-pct-warning';w.style.cssText='color:#f59e0b;font-size:10px;display:none;margin-top:2px;';el.parentElement.appendChild(w);}var v=parseFloat(el.value);if(isNaN(v)){w.style.display='none';}else if(v===0){w.textContent='⚠ Value is 0%';w.style.display='block';}else if(v>100){w.textContent='⚠ Value exceeds 100% ('+v+'%)';w.style.display='block';}else{w.style.display='none';}})(this)"` : ''}>
                 </div>
@@ -7025,6 +7217,36 @@ echo "[Done: ${count} vendors created sequentially]"
     _addTierCostRow(itemIndex, tierIndex, costType) {
         const container = document.getElementById(`item-${itemIndex}-tier-${tierIndex}-costs`);
         if (!container) return;
+
+        // Check if all fields of this costType are already used in this tier
+        const config = this.templateManager?.getCurrentConfig?.() || {};
+        const levelConfig = config.itemLevel || {};
+        const availableFields = costType === 'cost' ? levelConfig.costFields || []
+            : costType === 'tax' ? levelConfig.taxFields || []
+            : levelConfig.discountFields || [];
+
+        if (availableFields.length > 0) {
+            // Collect all used field names in this tier (from both mandatory and dynamic rows)
+            const tierCard = container.closest('.cc-tier-card');
+            const usedNames = new Set();
+            if (tierCard) {
+                tierCard.querySelectorAll('.cc-tier-cost-row').forEach(row => {
+                    // Check hidden type input to only count rows of the same costType
+                    const typeInput = row.querySelector('input[type="hidden"][name$="_type"]');
+                    if (typeInput && typeInput.value !== costType) return;
+                    const select = row.querySelector('.cc-cost-select');
+                    const hidden = row.querySelector('input[type="hidden"][name$="_name"]');
+                    if (select && select.value) usedNames.add(select.value);
+                    else if (hidden && hidden.value) usedNames.add(hidden.value);
+                });
+            }
+            const remaining = availableFields.filter(f => !usedNames.has(f.alternate_name));
+            if (remaining.length === 0) {
+                // All fields of this type are already added
+                return;
+            }
+        }
+
         // Offset by mandatory row count so indices don't collide
         const mandatoryCount = container.closest('.cc-tier-card')?.querySelectorAll('.cc-tier-cost-row[data-mandatory]')?.length || 0;
         const index = container.children.length + mandatoryCount;
@@ -7036,6 +7258,8 @@ echo "[Done: ${count} vendors created sequentially]"
         if (singleField) {
             // Only 1 option — show as static label, no dropdown
             const vt = singleField.cost_type === 'PERCENTAGE' ? 'pct' : 'abs';
+            const badgeText = this._costTypeBadgeText(vt, singleField.allocation_type || '');
+            const badge = this._typeBadgeHtml(badgeText);
             html = `
             <div class="cc-tier-cost-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:6px;">
                 <div class="form-group" style="flex:2;margin:0;">
@@ -7045,7 +7269,7 @@ echo "[Done: ${count} vendors created sequentially]"
                     <input type="hidden" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_type" value="${costType}">
                 </div>
                 <div class="form-group" style="flex:1;margin:0;">
-                    <label style="font-size:11px;color:#64748b;" class="cc-cost-value-label">${vt === 'pct' ? 'Value (%)' : 'Value'}</label>
+                    <label style="font-size:11px;color:#64748b;" class="cc-cost-value-label">${vt === 'pct' ? 'Value (%)' : 'Value'} ${badge}</label>
                     <input type="number" name="item_${itemIndex}_tier_${tierIndex}_cost_${index}_value" class="input-field" step="0.01" placeholder="0">
                 </div>
                 <button type="button" onclick="this.parentElement.remove()" style="padding:6px 10px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:2px;">✕</button>
@@ -7083,6 +7307,50 @@ echo "[Done: ${count} vendors created sequentially]"
             </div>`;
         }
         container.insertAdjacentHTML('beforeend', html);
+        this._refreshTierCostDropdowns(container);
+    }
+
+    /**
+     * Disable already-selected cost/tax/discount options in sibling dropdowns within the same tier.
+     * Also updates remove buttons to refresh on removal.
+     */
+    _refreshTierCostDropdowns(tierCostsContainer) {
+        if (!tierCostsContainer) return;
+        const rows = tierCostsContainer.querySelectorAll('.cc-tier-cost-row');
+        // Collect all currently selected values (from dropdowns and hidden inputs for single/mandatory fields)
+        const usedValues = new Set();
+        rows.forEach(row => {
+            const select = row.querySelector('.cc-cost-select');
+            const hidden = row.querySelector('input[type="hidden"][name$="_name"]');
+            if (select && select.value) usedValues.add(select.value);
+            else if (hidden && hidden.value) usedValues.add(hidden.value);
+        });
+
+        // Disable used options in all dropdowns
+        rows.forEach(row => {
+            const select = row.querySelector('.cc-cost-select');
+            if (!select) return;
+            const currentVal = select.value;
+            Array.from(select.options).forEach(opt => {
+                if (!opt.value) return; // skip placeholder
+                // Disable if used by another row, but keep enabled if it's this row's own selection
+                opt.disabled = (opt.value !== currentVal && usedValues.has(opt.value));
+            });
+        });
+
+        // Patch remove buttons to also refresh dropdowns on removal
+        rows.forEach(row => {
+            const removeBtn = row.querySelector('button[onclick*="this.parentElement.remove()"]');
+            if (removeBtn && !removeBtn.dataset.patchedRefresh) {
+                removeBtn.dataset.patchedRefresh = 'true';
+                const container = tierCostsContainer;
+                removeBtn.removeAttribute('onclick');
+                removeBtn.addEventListener('click', () => {
+                    row.remove();
+                    window.uiController._refreshTierCostDropdowns(container);
+                });
+            }
+        });
     }
 
     // ============================================================
@@ -7704,16 +7972,29 @@ echo "[Done: ${count} vendors created sequentially]"
 
     _addContractCustomSectionUpdate() {
         const container = document.getElementById('contract-custom-container-update');
+        if (!container) return;
         const index = container.children.length;
         const config = this.templateManager?.getCurrentConfig?.() || {};
         const customSections = config.contractLevel?.customSections || [];
         const seen = new Set();
         const uniqueSections = customSections.filter(f => { if (seen.has(f.section_alternate_name)) return false; seen.add(f.section_alternate_name); return true; });
+
+        // Check if all sections are already added
+        if (uniqueSections.length > 0) {
+            const usedSections = new Set();
+            container.querySelectorAll('.cc-custom-section').forEach(sec => {
+                const sel = sec.querySelector('select[name$="_section_name"], input[name$="_section_name"]');
+                if (sel && sel.value) usedSections.add(sel.value);
+            });
+            const remaining = uniqueSections.filter(s => !usedSections.has(s.section_alternate_name));
+            if (remaining.length === 0) return;
+        }
+
         const sectionOptions = uniqueSections.map(f => `<option value="${f.section_alternate_name}">${f.section_name}</option>`).join('');
         const firstSectionAlt = uniqueSections[0]?.section_alternate_name || '';
 
         const sectionSelectHtml = sectionOptions
-            ? `<select name="cc_custom_${index}_section_name" class="input-field cc-custom-section-select" data-level="contract" data-index="${index}">${sectionOptions}</select>`
+            ? `<select name="cc_custom_${index}_section_name" class="input-field cc-custom-section-select" data-level="contract" data-index="${index}" onchange="window.uiController._refreshCustomSectionDropdowns(this.closest('[id$=-container]'))">${sectionOptions}</select>`
             : `<input type="text" name="cc_custom_${index}_section_name" class="input-field" placeholder="Section name">`;
 
         const html = `
@@ -7726,6 +8007,7 @@ echo "[Done: ${count} vendors created sequentially]"
                 <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addCustomFieldRow(this.previousElementSibling, 'contract', '${firstSectionAlt}', ${index})">+ Add Field</button>
             </div>`;
         container.insertAdjacentHTML('beforeend', html);
+        this._refreshCustomSectionDropdowns(container);
     }
 
     // ============================================================
@@ -12093,8 +12375,11 @@ echo "[Done: ${count} vendors created sequentially]"
                 // Create the costs section if it doesn't exist yet
                 costsSection = document.createElement('div');
                 costsSection.className = 'tier-costs-section';
+                // Auto-add mandatory cost/tax/discount rows
+                const mandatory = this._renderMandatoryCostRows(parseInt(itemIndex), parseInt(tierIndex));
                 costsSection.innerHTML = `
                     <p style="font-size:12px;color:#64748b;margin:8px 0 4px;">Tier Costs</p>
+                    ${mandatory.html}
                     <div id="item-${itemIndex}-tier-${tierIndex}-costs"></div>
                     <div class="tier-cost-btns" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;"></div>`;
                 tierCard.appendChild(costsSection);
