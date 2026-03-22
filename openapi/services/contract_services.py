@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import asdict
+from decimal import Decimal
 
 from additional_costs import services as additional_cost_service
 from additional_costs.models import AdditionalCostLinkage
@@ -67,6 +68,18 @@ from factwise.backbone.states import EnterpriseItemState
 from factwise.exception import BadRequestException, ValidationException
 from factwise.openapi.service import JsonbConcat, make_json_safe
 from factwise.utils import set_statement_timeout
+
+
+def _to_int(val):
+    if val is None:
+        return None
+    return int(Decimal(val))
+
+
+def _to_decimal(val):
+    if val is None:
+        return None
+    return Decimal(val)
 
 
 @transaction.atomic
@@ -858,6 +871,33 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
             with transaction.atomic():
                 set_statement_timeout(900000)
 
+                payload["lead_time"] = _to_int(payload.get("lead_time"))
+                for cost in payload.get("additional_costs", []):
+                    cost["value"] = _to_decimal(cost.get("value"))
+
+                for cost in payload.get("taxes", []):
+                    cost["value"] = _to_decimal(cost.get("value"))
+
+                for cost in payload.get("discounts", []):
+                    cost["value"] = _to_decimal(cost.get("value"))
+
+                for item in payload.get("contract_items", []):
+                    item["lead_time"] = _to_int(item.get("lead_time"))
+
+                    for tier in item.get("pricing_tiers", []):
+                        tier["min_quantity"] = _to_int(tier.get("min_quantity"))
+                        tier["max_quantity"] = _to_int(tier.get("max_quantity"))
+                        tier["rate"] = _to_decimal(tier.get("rate"))
+
+                        for c in tier.get("additional_costs", []):
+                            c["value"] = _to_decimal(c.get("value"))
+
+                        for c in tier.get("taxes", []):
+                            c["value"] = _to_decimal(c.get("value"))
+
+                        for c in tier.get("discounts", []):
+                            c["value"] = _to_decimal(c.get("value"))
+
                 user_id = user_id_map.get(payload.get("created_by_user_email"))
                 if not user_id:
                     raise ValidationException(
@@ -1157,7 +1197,10 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
 
                     enterprise_item_id = enterprise_item.enterprise_item_id
 
-                    currency_code = currency_map[contract_item.get("currency_code_id")]
+                    currency_code_id = contract_item.get("currency_code_id")
+                    if isinstance(currency_code_id, str):
+                        currency_code_id = uuid.UUID(currency_code_id)
+                    currency_code = currency_map[currency_code_id]
                     measurement_unit_id = contract_item.get("measurement_unit_id")
 
                     for attribute in contract_item.get("attributes"):
@@ -1203,10 +1246,12 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                         tier["taxes"] = format_costs_result["taxes"]
                         tier["discounts"] = format_costs_result["discounts"]
 
+                        min_q = tier["min_quantity"]
+                        max_q = tier["max_quantity"]
+
                         tier["effective_rate"] = (
                             additional_cost_service._get_item_effective_rate(
-                                base_quantity=tier["max_quantity"]
-                                - tier["min_quantity"],
+                                base_quantity=max_q - min_q,
                                 base_rate=tier["rate"],
                                 additional_costs=[
                                     asdict(c) for c in tier["additional_costs"]
@@ -1216,8 +1261,8 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                             )
                         )
 
-                        if item_quantity < tier["max_quantity"]:
-                            item_quantity = tier["max_quantity"]
+                        if item_quantity < max_q:
+                            item_quantity = max_q
 
                     pricing_information = ContractItemPricingInformation(
                         currency_code_id=currency_code.entry_id,
@@ -1365,7 +1410,7 @@ def create_contracts_bulk_task(self, *, enterprise_id, contracts_payload, task_i
         raise
 
 
-ASYNC_CONTRACT_THRESHOLD = 1000
+ASYNC_CONTRACT_THRESHOLD = 30
 
 
 def create_contracts_bulk(
@@ -2491,6 +2536,26 @@ def _process_contract_items(
     ) = ([], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [])
 
     for contract_item in contract_items:
+        # ---- NORMALIZE CONTRACT ITEM ----
+        contract_item["lead_time"] = _to_int(contract_item.get("lead_time"))
+        contract_item["prepayment_percentage"] = _to_decimal(
+            contract_item.get("prepayment_percentage")
+        )
+
+        for tier in contract_item.get("pricing_tiers", []):
+            tier["min_quantity"] = _to_int(tier.get("min_quantity"))
+            tier["max_quantity"] = _to_int(tier.get("max_quantity"))
+            tier["rate"] = _to_decimal(tier.get("rate"))
+
+            for c in tier.get("additional_costs", []):
+                c["value"] = _to_decimal(c.get("value"))
+
+            for c in tier.get("taxes", []):
+                c["value"] = _to_decimal(c.get("value"))
+
+            for c in tier.get("discounts", []):
+                c["value"] = _to_decimal(c.get("value"))
+
         (
             contract_item_attributes,
             contract_item_additional_costs,
@@ -2526,6 +2591,8 @@ def _process_contract_items(
 
         enterprise_item_id = enterprise_item.enterprise_item_id
         currency_code_id = contract_item.get("currency_code_id")
+        if isinstance(currency_code_id, str):
+            currency_code_id = uuid.UUID(currency_code_id)
         currency_code = currency_code_map[currency_code_id]
 
         measurement_unit_id = contract_item.get("measurement_unit_id")
