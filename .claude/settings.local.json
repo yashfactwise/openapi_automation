@@ -5,7 +5,8 @@
       "Bash(xargs grep -l \"class AttributeType\\\\|class EnterpriseItemState\\\\|class EnterpriseItemType\\\\|class ProjectStatus\\\\|class PeriodType\\\\|class AppliedFromType\\\\|class EntityContactStatus\")",
       "Bash(grep -n \"states_as_list\\\\|ChoiceField\" c:/In-Progress/Factwise/Factwise-Backend/factwise/openapi/views/*.py)",
       "Bash(grep -n \"else if \\(module === ''vendors''\" \"c:\\\\In-Progress\\\\Curler\\\\curler\\\\js\\\\ui-controller.js\")",
-      "Bash(\"/c/In-Progress/Curler/curler/css/styles.css\")"
+      "Bash(\"/c/In-Progress/Curler/curler/css/styles.css\")",
+      "Bash(python generate_template.py)"
     ]
   }
 }

@@ -186,6 +186,7 @@ def create_contract(
 
     vendor_contact_information = (
         _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
+            user_id=user.user_id,
             buyer_entity_id=buyer_entity_id,
             seller_entity_id=seller_entity_id,
             vendor_contact=vendor_contact,
@@ -949,6 +950,7 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                 enterprise_vm = entity_vm.enterprise_vendor_master
 
                 vendor_contact_information = _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
+                    user_id=user_id,
                     buyer_entity_id=buyer_entity_id,
                     seller_entity_id=enterprise_vm.seller_entity_id,
                     vendor_contact=payload.get("vendor_contact"),
@@ -1410,7 +1412,7 @@ def create_contracts_bulk_task(self, *, enterprise_id, contracts_payload, task_i
         raise
 
 
-ASYNC_CONTRACT_THRESHOLD = 30
+ASYNC_CONTRACT_THRESHOLD = 8
 
 
 def create_contracts_bulk(
@@ -1565,6 +1567,7 @@ def update_contract(
 
     vendor_contact_information = (
         _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
+            user_id=user_id,
             buyer_entity_id=buyer_entity_id,
             seller_entity_id=seller_entity_id,
             vendor_contact=vendor_contact,
@@ -1952,6 +1955,7 @@ def _update_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                     )
 
                 vendor_contact_information = _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
+                    user_id=user.user_id,
                     buyer_entity_id=buyer_entity_id,
                     seller_entity_id=seller_entity_id,
                     vendor_contact=payload.get("vendor_contact"),
@@ -2357,25 +2361,47 @@ def _get_entity_vm_from_code(*, buyer_entity_id, factwise_vendor_code, ERP_vendo
     return entity_vm
 
 
+def get_primary_vendor_contact_via_admin_list(
+    *, user_id, buyer_entity_id, seller_entity_id
+):
+    qs = vendor_contact_service.admin_list_buyer_vendor_contacts(
+        user_id=user_id,
+        buyer_entity_id=buyer_entity_id,
+        seller_entity_id=seller_entity_id,
+    ).filter(
+        is_primary=True,
+        deleted_datetime__isnull=True,
+    )
+
+    return qs.first()
+
+
 def _get_vendor_contact_information_from_buyer_and_seller_entity_and_email(
-    *, buyer_entity_id, seller_entity_id, vendor_contact
+    *, user_id, buyer_entity_id, seller_entity_id, vendor_contact
 ):
     try:
-        vendor_contact = (
+        vendor_contact_obj = (
             vendor_contact_service.get_vendor_contact_for_buyer_entity_via_email(
                 buyer_entity_id=buyer_entity_id,
                 seller_entity_id=seller_entity_id,
                 email=vendor_contact,
             )
         )
-        vendor_contact_information = (
-            contract_service.construct_vendor_contact_information(
-                vendor_contact=vendor_contact
-            )
-        )
     except VendorContact.DoesNotExist:
-        raise ValidationException("Vendor contact does not exist")
-    return vendor_contact_information
+        vendor_contact_obj = get_primary_vendor_contact_via_admin_list(
+            user_id=user_id,
+            buyer_entity_id=buyer_entity_id,
+            seller_entity_id=seller_entity_id,
+        )
+
+        if not vendor_contact_obj:
+            raise ValidationException(
+                "Vendor contact does not exist and no primary contact is set"
+            )
+
+    return contract_service.construct_vendor_contact_information(
+        vendor_contact=vendor_contact_obj
+    )
 
 
 def _get_vendor_address_information_from_seller_entity_and_nickname(

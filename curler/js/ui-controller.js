@@ -1965,7 +1965,7 @@ class UIController {
                 <div class="form-row">
                     <div class="form-group">
                         <label>ERP PO ID *</label>
-                        <input type="text" name="ERP_po_id" class="input-field" required value="E5PPicinF04311">
+                        <input type="text" name="ERP_po_id" class="input-field" required value="SS-ERP-35565">
                     </div>
                     <div class="form-group">
                         <label>Status *</label>
@@ -2033,7 +2033,7 @@ class UIController {
 
                 <div class="form-group">
                     <label>Contacts (comma-separated)</label>
-                    <input type="text" name="buyer_contacts" class="input-field" value="8928219571" placeholder="Phone numbers">
+                    <input type="text" name="buyer_contacts" class="input-field" value="globalfielsETE@gmail.com" placeholder="Emails or phone numbers">
                 </div>
 
                 <!-- ③ Seller Details -->
@@ -2044,12 +2044,13 @@ class UIController {
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>ERP Vendor Code</label>
-                        <input type="text" name="seller_erp_vendor_code" class="input-field" value="ERPV002">
+                        <label>Factwise Vendor Code <span style="color:#64748b;font-weight:400;">(preferred)</span></label>
+                        <input type="text" name="seller_factwise_vendor_code" class="input-field" placeholder="Factwise vendor code">
                     </div>
                     <div class="form-group">
-                        <label>Factwise Vendor Code</label>
-                        <input type="text" name="seller_factwise_vendor_code" class="input-field" placeholder="Factwise vendor code">
+                        <label>ERP Vendor Code</label>
+                        <input type="text" name="seller_erp_vendor_code" class="input-field" placeholder="ERP vendor code">
+                        <small id="erp-vendor-warning" style="color:#dc2626;display:none;">⚠ ERP code only — may fail if multiple vendors share this code</small>
                     </div>
                 </div>
 
@@ -2060,19 +2061,24 @@ class UIController {
                     </div>
                     <div class="form-group">
                         <label>Seller Full Address</label>
-                        <input type="text" name="seller_full_address" class="input-field" value="Mumbai">
+                        <input type="text" name="seller_full_address" class="input-field" placeholder="Full address text">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Seller Identifications (comma-separated)</label>
-                        <input type="text" name="seller_identifications" class="input-field" value="GST">
+                        <label>Seller ID Type (e.g. GST)</label>
+                        <input type="text" name="seller_id_name" class="input-field" placeholder="e.g. GST, PAN">
                     </div>
                     <div class="form-group">
-                        <label>Seller Contacts (comma-separated)</label>
-                        <input type="text" name="seller_contacts" class="input-field" value="8928219571">
+                        <label>Seller ID Value</label>
+                        <input type="text" name="seller_id_value" class="input-field" placeholder="e.g. 29ABCDE1234F1Z5">
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Seller Contacts (comma-separated)</label>
+                    <input type="text" name="seller_contacts" class="input-field" placeholder="vendor@example.com">
                 </div>
 
                 <!-- Custom Fields from Template -->
@@ -2398,11 +2404,15 @@ class UIController {
             if (templateSelect) {
                 templateSelect.addEventListener('change', async (e) => {
                     const templateName = e.target.value;
-                    if (templateName) {
+                    if (templateName && this.templateManager?.poTemplates) {
                         console.log('PO template selected:', templateName);
-                        const config = this.templateManager.parsePOTemplateConfig(templateName);
-                        if (config && config.customFields && config.customFields.length > 0) {
-                            this._populatePOCustomFields(config.customFields);
+                        const template = this.templateManager.poTemplates.find(t => (t.name || t.template_name) === templateName);
+                        if (template) {
+                            const config = this.templateManager.parsePOTemplateConfig(template);
+                            this.templateManager.poTemplateConfig = config;
+                            if (config && config.customFields && config.customFields.length > 0) {
+                                this._populatePOCustomFields(config.customFields);
+                            }
                         }
                     }
                 });
@@ -2411,6 +2421,25 @@ class UIController {
             window.uiController = this;
             // Add first PO item
             this._addPOItem();
+
+            // Vendor lookup and item search for PO
+            setTimeout(() => {
+                const form = this.elements.operationForm;
+                this._setupVendorLookupPO(form);
+                this._setupPOItemSearchDropdowns(form);
+
+                // Show warning if only ERP code filled, no Factwise code
+                const fwInput = form.querySelector('[name="seller_factwise_vendor_code"]');
+                const erpInput = form.querySelector('[name="seller_erp_vendor_code"]');
+                const erpWarning = form.querySelector('#erp-vendor-warning');
+                const checkVendorWarning = () => {
+                    if (erpWarning) {
+                        erpWarning.style.display = (!fwInput?.value?.trim() && erpInput?.value?.trim()) ? 'block' : 'none';
+                    }
+                };
+                fwInput?.addEventListener('input', checkVendorWarning);
+                erpInput?.addEventListener('input', checkVendorWarning);
+            }, 50);
         }
 
         // Script buttons only visible in bulk mode — always hide on initial render (default is single)
@@ -4490,7 +4519,7 @@ class UIController {
                 </div>
                 <div class="form-group">
                     <label>Factwise Item Code</label>
-                    <input type="text" name="po_item_${itemIndex}_fw_code" class="input-field" value="ADGA0001">
+                    <input type="text" name="po_item_${itemIndex}_fw_code" class="input-field item-code-input" value="AA-FW-01">
                 </div>
             </div>
 
@@ -4498,11 +4527,11 @@ class UIController {
             <div class="form-row">
                 <div class="form-group">
                     <label>Price *</label>
-                    <input type="number" name="po_item_${itemIndex}_price" class="input-field" required value="78.9" step="0.01">
+                    <input type="number" name="po_item_${itemIndex}_price" class="input-field" required value="10" step="0.01">
                 </div>
                 <div class="form-group">
                     <label>Quantity *</label>
-                    <input type="number" name="po_item_${itemIndex}_quantity" class="input-field" required value="100" step="0.01">
+                    <input type="number" name="po_item_${itemIndex}_quantity" class="input-field" required value="10" step="0.01">
                 </div>
             </div>
 
@@ -4607,7 +4636,7 @@ class UIController {
                 </div>
                 <div class="form-group">
                     <label>Delivery Quantity *</label>
-                    <input type="number" name="po_item_${itemIndex}_delivery_quantity" class="input-field" required value="100" step="0.01">
+                    <input type="number" name="po_item_${itemIndex}_delivery_quantity" class="input-field" required value="10" step="0.01">
                 </div>
             </div>
 
@@ -4648,12 +4677,18 @@ class UIController {
         };
 
         // Seller details
+        // If factwise_vendor_code is present, always prefer it and null out ERP code.
+        // If only ERP code is given, send it (may fail if backend has duplicate ERP codes).
+        const sellerIdName = get('seller_id_name');
+        const sellerIdValue = get('seller_id_value');
+        const fwVendorCode = get('seller_factwise_vendor_code') || null;
+        const erpVendorCode = get('seller_erp_vendor_code') || null;
         const seller_details = {
-            ERP_vendor_code: get('seller_erp_vendor_code') || null,
-            factwise_vendor_code: get('seller_factwise_vendor_code') || null,
+            ERP_vendor_code: fwVendorCode ? null : erpVendorCode,
+            factwise_vendor_code: fwVendorCode,
             seller_address_id: get('seller_address_id') || null,
             seller_full_address: get('seller_full_address') || "",
-            identifications: get('seller_identifications') ? get('seller_identifications').split(',').map(s => s.trim()).filter(s => s) : [],
+            identifications: sellerIdName ? [{ identification_name: sellerIdName, identification_value: sellerIdValue || "" }] : [],
             contacts: get('seller_contacts') ? get('seller_contacts').split(',').map(s => s.trim()).filter(s => s) : []
         };
 
@@ -4663,7 +4698,7 @@ class UIController {
             ERP_po_id: get('ERP_po_id'),
             status: get('po_status'),
             template_name: get('template_name') || null,
-            issue_date: get('issue_date') || null,
+            issued_date: get('issue_date') || null,
             accepted_date: get('accepted_date') || null,
             currency_code: get('currency_code'),
             notes: get('po_notes') || "",
@@ -4675,7 +4710,13 @@ class UIController {
             additional_costs: [],
             taxes: [],
             discounts: [],
-            custom_sections: []
+            custom_sections: (() => {
+                const config = this.templateManager?.poTemplateConfig;
+                if (config?.sectionNames?.length > 0) {
+                    return config.sectionNames.map(name => ({ name, custom_fields: [] }));
+                }
+                return [];
+            })()
         };
 
         // PO items
@@ -4717,7 +4758,13 @@ class UIController {
                     additional_costs: [],
                     taxes: [],
                     discounts: [],
-                    custom_sections: [],
+                    custom_sections: (() => {
+                        const config = this.templateManager?.poTemplateConfig;
+                        if (config?.sectionNames?.length > 0) {
+                            return config.sectionNames.map(name => ({ name, custom_fields: [] }));
+                        }
+                        return [];
+                    })(),
                     attachments: []
                 };
 
@@ -6293,11 +6340,139 @@ echo "[Done: ${count} vendors created sequentially]"
             tag = document.createElement('div');
             tag.id = 'vendor-lookup-tag';
             tag.style.cssText = 'font-size:11px;margin-top:4px;';
-            const refEl = form.querySelector('[name="factwise_vendor_code"]') || form.querySelector('[name="ERP_vendor_code"]');
+            const refEl = form.querySelector('[name="factwise_vendor_code"]') || form.querySelector('[name="ERP_vendor_code"]') || form.querySelector('[name="seller_factwise_vendor_code"]') || form.querySelector('[name="seller_erp_vendor_code"]');
             refEl?.closest('.form-row')?.insertAdjacentElement('afterend', tag);
         }
         tag.style.color = color;
         tag.textContent = text;
+    }
+
+    // ── PO Vendor Lookup ────────────────────────────────────────────────────
+
+    _setupVendorLookupPO(form) {
+        const fetchVendors = async (q) => {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            if (!token) return [];
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            try {
+                const res = await fetch(`${baseUrl}dashboard/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dashboard_view: 'enterprise_vendor', tab: 'active',
+                        page_number: 1, items_per_page: 8,
+                        sort_fields: [], search_text: q,
+                        query_data: { vendor_entity_status: null }, filters: null
+                    })
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                const records = data?.data || data?.results || (Array.isArray(data) ? data : []);
+                return records.map(v => ({
+                    vendor: v,
+                    code: v.vendor_code,
+                    html: `<strong>${v.vendor_code}</strong>${v.ERP_vendor_code ? ` / ${v.ERP_vendor_code}` : ''} <span style="color:#64748b;">— ${v.vendor_name || ''}</span>`
+                }));
+            } catch { return []; }
+        };
+
+        const onSelect = (r) => this._fillVendorFromRecordPO(form, r.vendor);
+
+        const fwEl = form.querySelector('[name="seller_factwise_vendor_code"]');
+        const erpEl = form.querySelector('[name="seller_erp_vendor_code"]');
+        if (fwEl) this._attachSearchDropdown(fwEl, fetchVendors, onSelect);
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect);
+    }
+
+    async _fillVendorFromRecordPO(form, vendor) {
+        const fwEl = form.querySelector('[name="seller_factwise_vendor_code"]');
+        const erpEl = form.querySelector('[name="seller_erp_vendor_code"]');
+        if (fwEl && vendor.vendor_code) fwEl.value = vendor.vendor_code;
+        if (erpEl && vendor.ERP_vendor_code) erpEl.value = vendor.ERP_vendor_code;
+
+        this._setVendorTag(`Loading ${vendor.vendor_name || vendor.vendor_code}...`, '#64748b', form);
+
+        let detail = vendor;
+        const masterId = vendor.enterprise_vendor_master_id;
+        if (masterId) {
+            try {
+                const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+                const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+                const res = await fetch(`${baseUrl}organization/vendor_master/${masterId}/admin/`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                if (res.ok) detail = await res.json();
+            } catch (e) {
+                console.warn('Vendor admin fetch failed, using dashboard data', e);
+            }
+        }
+
+        // Identifications — fill name + value fields
+        const idNameEl = form.querySelector('[name="seller_id_name"]');
+        const idValueEl = form.querySelector('[name="seller_id_value"]');
+        const firstSellerId = detail.seller_identifications?.[0];
+        if (firstSellerId) {
+            if (idNameEl) idNameEl.value = typeof firstSellerId === 'string' ? firstSellerId : (firstSellerId.identification_name || '');
+            if (idValueEl) idValueEl.value = typeof firstSellerId === 'string' ? '' : (firstSellerId.identification_value || '');
+        }
+
+        // Address
+        const addrIdEl = form.querySelector('[name="seller_address_id"]');
+        const addrFullEl = form.querySelector('[name="seller_full_address"]');
+        const firstAddr = detail.seller_address_information?.[0];
+        if (firstAddr) {
+            if (addrIdEl && firstAddr.address_id) addrIdEl.value = firstAddr.address_id;
+            if (addrFullEl) {
+                if (typeof firstAddr === 'string') {
+                    addrFullEl.value = firstAddr;
+                } else {
+                    const parts = [firstAddr.address1, firstAddr.address2, firstAddr.city, firstAddr.state_or_territory, firstAddr.country].filter(Boolean);
+                    addrFullEl.value = parts.join(', ');
+                }
+            }
+        }
+
+        // Contacts — comma-separated emails
+        const contactsEl = form.querySelector('[name="seller_contacts"]');
+        if (contactsEl) {
+            const emails = [];
+            if (detail.primary_vendor_contact?.primary_email) {
+                emails.push(detail.primary_vendor_contact.primary_email);
+            }
+            (detail.secondary_vendor_contacts || []).forEach(c => {
+                if (c.primary_email && !emails.includes(c.primary_email)) {
+                    emails.push(c.primary_email);
+                }
+            });
+            if (emails.length > 0) contactsEl.value = emails.join(', ');
+        }
+
+        this._setVendorTag(`✓ ${detail.vendor_name || detail.vendor_code} — filled`, '#16a34a', form);
+    }
+
+    // ── PO Item search dropdowns ──────────────────────────────────────────────
+
+    _setupPOItemSearchDropdowns(form) {
+        const attach = () => {
+            form.querySelectorAll('.item-code-input').forEach(input => {
+                if (input.dataset.searchAttached) return;
+                input.dataset.searchAttached = '1';
+
+                const fetchFn = (q) => this._searchItems(q);
+                const onSelect = (r) => {
+                    input.value = r.code;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                    input.dispatchEvent(new Event('blur', { bubbles: true }));
+                };
+                this._attachSearchDropdown(input, fetchFn, onSelect);
+            });
+        };
+
+        attach();
+        const container = form.querySelector('#po-items-container');
+        if (container) {
+            new MutationObserver(attach).observe(container, { childList: true, subtree: true });
+        }
     }
 
     _addPricingTier(itemIndex) {

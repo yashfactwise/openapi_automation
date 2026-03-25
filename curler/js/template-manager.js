@@ -731,7 +731,8 @@ class TemplateManager {
 
         const config = {
             templateName: template.name || template.template_name,
-            customFields: []
+            customFields: [],
+            sectionNames: []
         };
 
         // Parse section_list for custom fields
@@ -740,6 +741,7 @@ class TemplateManager {
                 if (section.is_hidden) return; // Skip hidden sections
 
                 const sectionName = section.name || section.section_name;
+                if (sectionName) config.sectionNames.push(sectionName);
 
                 // Parse custom fields in this section
                 if (section.custom_fields && Array.isArray(section.custom_fields)) {

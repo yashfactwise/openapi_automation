@@ -24,6 +24,7 @@ from module_templates import services as template_services
 from module_templates.types import ModuleTemplateType
 from openapi.models import BulkTask
 from openapi.structures import ProcurementInfo
+from organization.models import Address
 from organization.org_models.item_master_model import EnterpriseItem
 from organization.org_models.vendor_master_model import EnterpriseVendorMaster
 from organization.services import (
@@ -64,6 +65,7 @@ from purchase_order.structures.po_structures import (
 from purchase_order.workflows import event_po_workflows, po_workflows
 from pydantic import ValidationError
 
+from factwise.additional_costs.states import ItemCostType
 from factwise.exception import BadRequestException, ValidationException
 from factwise.openapi.service import JsonbConcat, make_json_safe
 
@@ -673,11 +675,18 @@ def create_purchase_order(
         seller_address_id = seller_address.address_id
     seller_full_address = seller_details.get("seller_full_address")
 
-    seller_identification_name_list = seller_details.get("identifications")
-    seller_identifications = identification_service.get_identification_list(
-        identification_name_list=seller_identification_name_list,
-        entity_id=seller_entity_id,
-    ).values_list("identification_id", flat=True)
+    seller_identifications = []
+    seller_custom_identifications = []
+    seller_identifications_input = seller_details.get("identifications")
+    if seller_identifications_input:
+        seller_custom_identifications = seller_identifications_input
+    else:
+        seller_identifications = [
+            i.get("identification_id")
+            for i in (enterprise_vm.seller_identifications or [])
+            if i.get("identification_id")
+        ]
+
     seller_contact_emails = seller_details.get("contacts")
     vcs = vendor_contact_service.get_vendor_contacts_from_emails(
         seller_entity_id=seller_entity_id,
@@ -697,7 +706,7 @@ def create_purchase_order(
             deleted_datetime__isnull=True
         )
         for rfq_item in rfq_items:
-            rfq_items_map[rfq_item.enterprise_item.ERP_item_code] = rfq_item
+            rfq_items_map[rfq_item.enterprise_item.code] = rfq_item
         event_id = event.event_id
 
     ERP_po_id = purchase_order_details.get("ERP_po_id")
@@ -1140,7 +1149,7 @@ def create_purchase_order(
                 )
             )
         else:
-            rfq_item = rfq_items_map[ERP_item_code]
+            rfq_item = rfq_items_map[enterprise_item.code]
             rfq_item_id = rfq_item.rfq_item_entry_id
             purchase_order_item_obj, context = (
                 purchase_order_item_service.create_purchase_order_item(
@@ -1204,7 +1213,7 @@ def create_purchase_order(
         seller_full_address=seller_full_address,
         buyer_identifications=buyer_identifications,
         seller_identifications=seller_identifications,
-        seller_custom_identifications=[],
+        seller_custom_identifications=seller_custom_identifications,
         discount_percentage=Decimal(0),
         buyer_contact_list=[user_id],
         seller_contact_list=seller_contact_list,
@@ -1228,7 +1237,7 @@ def create_purchase_order(
         taxes=po_taxes,
         discounts=po_discounts,
         custom_fields={"section_list": []},
-        # custom_sections=custom_sections,
+        custom_sections=custom_sections,
         purchase_order_items=created_purchase_order_items_dicts,
     )
     purchase_order, context = purchase_order_service.get_purchase_order(
@@ -1516,24 +1525,17 @@ def _create_purchase_orders_bulk_impl(
 
                 seller_full_address = seller_details.get("seller_full_address")
 
+                seller_identifications = []
+                seller_custom_identifications = []
                 seller_identifications_input = seller_details.get("identifications")
-                seller_identifications_qs = (
-                    identification_service.get_identification_list(
-                        identification_name_list=seller_identifications_input,
-                        entity_id=seller_entity_id,
-                    )
-                )
-                if (
-                    seller_identifications_input
-                    and not seller_identifications_qs.exists()
-                ):
-                    raise ValidationException(
-                        f"Invalid seller identifications: {seller_identifications_input}"
-                    )
-
-                seller_identifications = seller_identifications_qs.values_list(
-                    "identification_id", flat=True
-                )
+                if seller_identifications_input:
+                    seller_custom_identifications = seller_identifications_input
+                else:
+                    seller_identifications = [
+                        i.get("identification_id")
+                        for i in (enterprise_vm.seller_identifications or [])
+                        if i.get("identification_id")
+                    ]
 
                 seller_contacts_input = seller_details.get("contacts")
                 vcs = vendor_contact_service.get_vendor_contacts_from_emails(
@@ -1567,7 +1569,7 @@ def _create_purchase_orders_bulk_impl(
                         deleted_datetime__isnull=True
                     )
                     for rfq_item in rfq_items:
-                        rfq_items_map[rfq_item.enterprise_item.ERP_item_code] = rfq_item
+                        rfq_items_map[rfq_item.enterprise_item.code] = rfq_item
 
                     event_id = event.event_id
 
@@ -1655,6 +1657,13 @@ def _create_purchase_orders_bulk_impl(
 
                 for cost in purchase_order_details.get("additional_costs"):
                     ac = additional_costs_by_name[cost["name"]]
+                    if (
+                        cost["value"] > 100
+                        and ac.cost_type == ItemCostType.PERCENTAGE.value
+                    ):
+                        raise ValidationException(
+                            f"Additional cost {cost['name']} cannot have value more than 100%"
+                        )
                     po_additional_costs.append(
                         AdditionalCostDataClass(
                             additional_cost_id=ac.additional_cost_id,
@@ -1667,6 +1676,13 @@ def _create_purchase_orders_bulk_impl(
 
                 for cost in purchase_order_details.get("taxes"):
                     ac = additional_costs_by_name[cost["name"]]
+                    if (
+                        cost["value"] > 100
+                        and ac.cost_type == ItemCostType.PERCENTAGE.value
+                    ):
+                        raise ValidationException(
+                            f"Tax {cost['name']} cannot have value more than 100%"
+                        )
                     po_taxes.append(
                         AdditionalCostDataClass(
                             additional_cost_id=ac.additional_cost_id,
@@ -1679,6 +1695,10 @@ def _create_purchase_orders_bulk_impl(
 
                 for cost in purchase_order_details.get("discounts"):
                     if cost["name"] == "Overall discount":
+                        if cost["value"] > 100:
+                            raise ValidationException(
+                                f"{cost['name']} cannot have value more than 100%"
+                            )
                         po_discounts.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=None,
@@ -1690,6 +1710,13 @@ def _create_purchase_orders_bulk_impl(
                         )
                     else:
                         ac = additional_costs_by_name[cost["name"]]
+                        if (
+                            cost["value"] > 100
+                            and ac.cost_type == ItemCostType.PERCENTAGE.value
+                        ):
+                            raise ValidationException(
+                                f"Discount {cost['name']} cannot have value more than 100%"
+                            )
                         po_discounts.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=ac.additional_cost_id,
@@ -1840,6 +1867,14 @@ def _create_purchase_orders_bulk_impl(
                     # ---------------- COSTS ----------------
                     for cost in item_additional_costs:
                         additional_cost = additional_costs_by_name[cost["name"]]
+                        if (
+                            cost["value"] > 100
+                            and additional_cost.cost_type
+                            == ItemCostType.PERCENTAGE.value
+                        ):
+                            raise ValidationException(
+                                f"Additional cost {cost['name']} cannot have value more than 100%"
+                            )
                         po_item_additional_costs.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=additional_cost.additional_cost_id,
@@ -1852,6 +1887,14 @@ def _create_purchase_orders_bulk_impl(
 
                     for cost in item_taxes:
                         additional_cost = additional_costs_by_name[cost["name"]]
+                        if (
+                            cost["value"] > 100
+                            and additional_cost.cost_type
+                            == ItemCostType.PERCENTAGE.value
+                        ):
+                            raise ValidationException(
+                                f"Tax {cost['name']} cannot have value more than 100%"
+                            )
                         po_item_taxes.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=additional_cost.additional_cost_id,
@@ -1866,6 +1909,14 @@ def _create_purchase_orders_bulk_impl(
                         cost_name = cost["name"]
                         if cost_name != "Discount":
                             additional_cost = additional_costs_by_name[cost_name]
+                            if (
+                                cost["value"] > 100
+                                and additional_cost.cost_type
+                                == ItemCostType.PERCENTAGE.value
+                            ):
+                                raise ValidationException(
+                                    f"Discount {cost['name']} cannot have value more than 100%"
+                                )
                             po_item_discounts.append(
                                 AdditionalCostDataClass(
                                     additional_cost_id=additional_cost.additional_cost_id,
@@ -1876,6 +1927,10 @@ def _create_purchase_orders_bulk_impl(
                                 )
                             )
                         else:
+                            if cost["value"] > 100:
+                                raise ValidationException(
+                                    f"{cost['name']} cannot have value more than 100%"
+                                )
                             po_item_discounts.append(
                                 AdditionalCostDataClass(
                                     additional_cost_id=None,
@@ -2041,10 +2096,10 @@ def _create_purchase_orders_bulk_impl(
                     # ---------------- RFQ PATH ----------------
                     else:
                         try:
-                            rfq_item = rfq_items_map[ERP_item_code]
+                            rfq_item = rfq_items_map[enterprise_item.code]
                         except KeyError:
                             raise ValidationException(
-                                f"Invalid ERP_item_code (RFQ item not found): {ERP_item_code}"
+                                f"Invalid ERP_item_code (RFQ item not found): {enterprise_item.code}"
                             )
                         rfq_item_id = rfq_item.rfq_item_entry_id
 
@@ -2112,7 +2167,7 @@ def _create_purchase_orders_bulk_impl(
                     seller_full_address=seller_full_address,
                     buyer_identifications=buyer_identifications,
                     seller_identifications=seller_identifications,
-                    seller_custom_identifications=[],
+                    seller_custom_identifications=seller_custom_identifications,
                     discount_percentage=Decimal(0),
                     buyer_contact_list=[user_id],
                     seller_contact_list=seller_contact_list,
@@ -2394,11 +2449,18 @@ def update_purchase_order(
         seller_address_id = seller_address.address_id
     seller_full_address = seller_details.get("seller_full_address")
 
-    seller_identification_name_list = seller_details.get("identifications")
-    seller_identifications = identification_service.get_identification_list(
-        identification_name_list=seller_identification_name_list,
-        entity_id=seller_entity_id,
-    ).values_list("identification_id", flat=True)
+    seller_identifications = []
+    seller_custom_identifications = []
+    seller_identifications_input = seller_details.get("identifications")
+    if seller_identifications_input:
+        seller_custom_identifications = seller_identifications_input
+    else:
+        seller_identifications = [
+            i.get("identification_id")
+            for i in (enterprise_vm.seller_identifications or [])
+            if i.get("identification_id")
+        ]
+
     seller_contact_emails = seller_details.get("contacts")
     vcs = vendor_contact_service.get_vendor_contacts_from_emails(
         seller_entity_id=seller_entity_id,
@@ -2764,7 +2826,7 @@ def update_purchase_order(
         seller_full_address=seller_full_address,
         buyer_identifications=buyer_identifications,
         seller_identifications=seller_identifications,
-        seller_custom_identifications=[],
+        seller_custom_identifications=seller_custom_identifications,
         discount_percentage=Decimal(0),
         buyer_contact_list=[user_id],
         seller_contact_list=seller_contact_list,
@@ -3019,51 +3081,71 @@ def _update_purchase_orders_bulk_impl(
                 seller_entity_id = enterprise_vm.seller_entity_id
                 seller_enterprise_id = enterprise_vm.seller_enterprise_id
 
-                seller_identification_name_list = seller_details.get("identifications")
-                seller_identifications = identification_service.get_identification_list(
-                    identification_name_list=seller_identification_name_list,
-                    entity_id=seller_entity_id,
-                ).values_list("identification_id", flat=True)
+                seller_identifications = []
+                seller_custom_identifications = []
+                seller_identifications_input = seller_details.get("identifications")
+                if seller_identifications_input:
+                    seller_custom_identifications = seller_identifications_input
+                else:
+                    seller_identifications = [
+                        i.get("identification_id")
+                        for i in (enterprise_vm.seller_identifications or [])
+                        if i.get("identification_id")
+                    ]
 
-                seller_contact_emails = seller_details.get("contacts")
-
+                seller_contacts_input = seller_details.get("contacts")
                 vcs = vendor_contact_service.get_vendor_contacts_from_emails(
                     seller_entity_id=seller_entity_id,
-                    emails=seller_contact_emails,
+                    emails=seller_contacts_input,
                 )
-
+                if seller_contacts_input and not vcs.exists():
+                    raise ValidationException(
+                        f"Invalid seller contacts (emails not found): {seller_contacts_input}"
+                    )
                 seller_contact_list = vcs.values_list("user_id", flat=True)
 
                 seller_address_id = None
                 seller_address_nickname = seller_details.get("seller_address_id")
-
                 if seller_address_nickname:
-                    seller_address = address_service.get_address_via_name(
-                        enterprise_id=seller_enterprise_id,
-                        address=seller_address_nickname,
-                    )
-                    seller_address_id = seller_address.address_id
+                    try:
+                        seller_address = address_service.get_address_via_name(
+                            enterprise_id=seller_enterprise_id,
+                            address=seller_address_nickname,
+                        )
+                        seller_address_id = seller_address.address_id
+                    except Address.DoesNotExist:
+                        raise ValidationError("Seller address not found")
 
                 seller_full_address = seller_details.get("seller_full_address")
 
                 # --------------------------------------------------
                 # EXISTING PO RESOLUTION (CRITICAL)
                 # --------------------------------------------------
-                try:
-                    if pod.get("factwise_po_id"):
+                if pod.get("factwise_po_id"):
+                    try:
                         old_po = purchase_order_service.get_purchase_order_details_from_custom_purchase_order_id(
                             user_id=user_id,
                             enterprise_id=enterprise_id,
                             custom_purchase_order_id=pod.get("factwise_po_id"),
                         )
-                    else:
+                    except Exception:
+                        raise BadRequestException("Purchase Order does not exist")
+                    if (
+                        pod.get("ERP_po_id")
+                        and pod.get("ERP_po_id") != old_po.ERP_po_id
+                    ):
+                        raise ValidationException(
+                            f"Invalid ERP_po_id for purchase order {old_po.custom_purchase_order_id}"
+                        )
+                else:
+                    try:
                         old_po = purchase_order_service.get_purchase_order_details_from_ERP_po_id(
                             user_id=user_id,
                             enterprise_id=enterprise_id,
                             ERP_po_id=pod.get("ERP_po_id"),
                         )
-                except Exception:
-                    raise BadRequestException("Purchase Order does not exist")
+                    except Exception:
+                        raise BadRequestException("Purchase Order does not exist")
 
                 event_id = old_po.event_id
                 old_po_id = old_po.purchase_order_id
@@ -3113,6 +3195,13 @@ def _update_purchase_orders_bulk_impl(
 
                 for cost in pod.get("additional_costs"):
                     ac = additional_costs_by_name[cost["name"]]
+                    if (
+                        cost["value"] > 100
+                        and ac.cost_type == ItemCostType.PERCENTAGE.value
+                    ):
+                        raise ValidationException(
+                            f"Additional cost {cost['name']} cannot have value more than 100%"
+                        )
                     po_additional_costs.append(
                         AdditionalCostDataClass(
                             additional_cost_id=ac.additional_cost_id,
@@ -3125,6 +3214,13 @@ def _update_purchase_orders_bulk_impl(
 
                 for cost in pod.get("taxes"):
                     ac = additional_costs_by_name[cost["name"]]
+                    if (
+                        cost["value"] > 100
+                        and ac.cost_type == ItemCostType.PERCENTAGE.value
+                    ):
+                        raise ValidationException(
+                            f"Tax {cost['name']} cannot have value more than 100%"
+                        )
                     po_taxes.append(
                         AdditionalCostDataClass(
                             additional_cost_id=ac.additional_cost_id,
@@ -3137,6 +3233,13 @@ def _update_purchase_orders_bulk_impl(
 
                 for cost in pod.get("discounts"):
                     ac = additional_costs_by_name[cost["name"]]
+                    if (
+                        cost["value"] > 100
+                        and ac.cost_type == ItemCostType.PERCENTAGE.value
+                    ):
+                        raise ValidationException(
+                            f"Discount {cost['name']} cannot have value more than 100%"
+                        )
                     po_discounts.append(
                         AdditionalCostDataClass(
                             additional_cost_id=ac.additional_cost_id,
@@ -3222,6 +3325,13 @@ def _update_purchase_orders_bulk_impl(
                     # --------------------------------------------------
                     for cost in item_additional_costs:
                         ac = additional_costs_by_name[cost["name"]]
+                        if (
+                            cost["value"] > 100
+                            and ac.cost_type == ItemCostType.PERCENTAGE.value
+                        ):
+                            raise ValidationException(
+                                f"Additional cost {cost['name']} cannot have value more than 100%"
+                            )
                         po_item_additional_costs.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=ac.additional_cost_id,
@@ -3234,6 +3344,13 @@ def _update_purchase_orders_bulk_impl(
 
                     for cost in item_taxes:
                         ac = additional_costs_by_name[cost["name"]]
+                        if (
+                            cost["value"] > 100
+                            and ac.cost_type == ItemCostType.PERCENTAGE.value
+                        ):
+                            raise ValidationException(
+                                f"Tax {cost['name']} cannot have value more than 100%"
+                            )
                         po_item_taxes.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=ac.additional_cost_id,
@@ -3246,6 +3363,13 @@ def _update_purchase_orders_bulk_impl(
 
                     for cost in item_discounts:
                         ac = additional_costs_by_name[cost["name"]]
+                        if (
+                            cost["value"] > 100
+                            and ac.cost_type == ItemCostType.PERCENTAGE.value
+                        ):
+                            raise ValidationException(
+                                f"Discount {cost['name']} cannot have value more than 100%"
+                            )
                         po_item_discounts.append(
                             AdditionalCostDataClass(
                                 additional_cost_id=ac.additional_cost_id,
@@ -3410,7 +3534,7 @@ def _update_purchase_orders_bulk_impl(
                     seller_full_address=seller_full_address,
                     buyer_identifications=buyer_identifications,
                     seller_identifications=seller_identifications,
-                    seller_custom_identifications=[],
+                    seller_custom_identifications=seller_custom_identifications,
                     discount_percentage=Decimal(0),
                     buyer_contact_list=[user_id],
                     seller_contact_list=seller_contact_list,

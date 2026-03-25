@@ -3,7 +3,10 @@
     "allow": [
       "Bash(TOKEN=\"eyJraWQiOiJudW05MTBGWFZjeGQ4ZDBzUHZPYU9ydis3NE5tOXpSXC9GWHVlYzVoSm91az0iLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOiJjOWZiY2QwNy1mZWIzLTQ1NTMtYWQ0Yy1mMjViZjc1NDJmMzAiLCJjdXN0b206ZW50ZXJwcmlzZVVzZXJJZCI6ImM5YWRkMDk5LTBhZjktNDYxZi05MDEyLTU5NGIzY2QwNjViNSIsImN1c3RvbTplbnRlcnByaXNlSWQiOiIzOWQ0MDIxZS0xMDM3LTQ1MDQtYjFkOC0wYzE3ZjQ3NGFmYjciLCJpc3MiOiJodHRwczpcL1wvY29nbml0by1pZHAudXMtZWFzdC0xLmFtYXpvbmF3cy5jb21cL3VzLWVhc3QtMV9EYkVzZDM4VTciLCJjb2duaXRvOnVzZXJuYW1lIjoiZ2xvYmFsZmllbGRzZXRlIiwib3JpZ2luX2p0aSI6ImQwMjUxNjNhLWVmODMtNGFkYi05ZTg0LThkZDUxZGExZGQ5MSIsImF1ZCI6IjI5bW9mb244bGFjOTRxdTR1MzNjNGJjcmg5IiwiZXZlbnRfaWQiOiIxMGU0MjA1Mi05ODJjLTQwZGUtODg3Ni1iNWFlNTkzMTVhOGMiLCJ0b2tlbl91c2UiOiJpZCIsImF1dGhfdGltZSI6MTc3Mzg1NzAwMywiZXhwIjoxNzc0MDg0NDg0LCJpYXQiOjE3NzM5OTgwODQsImp0aSI6Ijg0ZDYxNGQyLWUxYmYtNDhjNi04MmUwLTBlNTQwMTQ3MjAzMSIsImVtYWlsIjoiZ2xvYmFsZmllbGRzRVRFQGdtYWlsLmNvbSJ9.VVeuSpBEhaiRPqOr0HGen4IO913FcjC4fU9_se61nsXe5OPZD76Gm3F8om_-u6-59kcZPctHOEP4bwovW_lLWYGaD2ef4jzgHmEbZ96Kc0FyCq8Jrmz-A5a6oZoroYqOSVxonJvLwQJTfUTmLOXgJO3em39zcNE_t7NHqboEhQMfyDulDz4n5D6cCACtdzGM2yFP7yxDXx3b4ajomFegVwEIe8drn6nqoxrXU-5dXME473IX9KGNtsSomw6tlqZWhIdh3lwfXoc72JQ76uz97F6joe0zQpNtMfer-ngKFS0emQwH_sDY5iC5JWwiSE7QYsSJcegx4ia0GXpk_CXxQA\")",
       "Bash(__NEW_LINE_1d77149e183de297__ curl -s \"https://poiigw0go0.execute-api.us-east-1.amazonaws.com/dev/module_templates/?entity_id=20d11e41-5ee0-40f1-9f01-a619d20e74e3&template_type=CLM\" -H \"Authorization: Bearer $TOKEN\")",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(docker exec factwise-backend-db-1 psql -U postgres -d \"mainp\" -c \"\\\\dt\")",
+      "Bash(docker exec factwise-backend-db-1 psql -U postgres -d \"mainp\" -c \"\\\\dt *entity*\")",
+      "Bash(docker exec factwise-backend-db-1 psql -U postgres -d \"mainp\" -c \"SELECT entity_id, entity_name, description FROM organization_entity WHERE LOWER\\(entity_name\\) LIKE ''%syrma%'';\")"
     ]
   }
 }

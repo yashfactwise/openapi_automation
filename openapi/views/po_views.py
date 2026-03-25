@@ -287,6 +287,24 @@ class PurchaseOrderItemsInputSerializer(serializers.Serializer):
     )
 
 
+class IdentificationSerializer(serializers.Serializer):
+    identification_name = serializers.CharField(
+        allow_blank=False,
+        error_messages={
+            "blank": "identification_name cannot be empty",
+            "invalid": "identification_name must be a string",
+        },
+    )
+
+    identification_value = serializers.CharField(
+        allow_blank=False,
+        error_messages={
+            "blank": "identification_value cannot be empty",
+            "invalid": "identification_value must be a string",
+        },
+    )
+
+
 class CreatePOBaseInputSerializer(serializers.Serializer):
     class BuyerDetailsSerializer(serializers.Serializer):
         entity_name = serializers.CharField(
@@ -363,17 +381,11 @@ class CreatePOBaseInputSerializer(serializers.Serializer):
             },
         )
         identifications = serializers.ListField(
-            child=serializers.CharField(
-                allow_blank=False,
-                error_messages={
-                    "blank": "identifications entries cannot be empty",
-                    "invalid": "identifications entries must be strings",
-                },
-            ),
+            child=IdentificationSerializer(),
             required=False,
             default=list,
             error_messages={
-                "not_a_list": "identifications must be a list of strings",
+                "not_a_list": "identifications must be a list of objects",
             },
         )
         contacts = serializers.ListField(
@@ -666,17 +678,11 @@ class UpdatePOBaseInputSerializer(serializers.Serializer):
             },
         )
         identifications = serializers.ListField(
-            child=serializers.CharField(
-                allow_blank=False,
-                error_messages={
-                    "blank": "identifications entries cannot be empty",
-                    "invalid": "identifications entries must be strings",
-                },
-            ),
+            child=IdentificationSerializer(),
             required=False,
             default=list,
             error_messages={
-                "not_a_list": "identifications must be a list of strings",
+                "not_a_list": "identifications must be a list of objects",
             },
         )
         contacts = serializers.ListField(
@@ -703,19 +709,19 @@ class UpdatePOBaseInputSerializer(serializers.Serializer):
             },
         )
         factwise_po_id = serializers.CharField(
-            required=True,
+            required=False,
             allow_blank=False,
+            default=None,
             error_messages={
-                "required": "factwise_po_id is required",
                 "blank": "factwise_po_id cannot be empty",
                 "invalid": "factwise_po_id must be a string",
             },
         )
         ERP_po_id = serializers.CharField(
-            required=True,
+            required=False,
             allow_blank=False,
+            default=None,
             error_messages={
-                "required": "ERP_po_id is required",
                 "blank": "ERP_po_id cannot be empty",
                 "invalid": "ERP_po_id must be a string",
             },
@@ -865,6 +871,17 @@ class UpdatePOBaseInputSerializer(serializers.Serializer):
                 "invalid": "custom_sections must be a list of valid objects",
             },
         )
+
+        def validate(self, attrs):
+            factwise_po_id = attrs.get("factwise_po_id")
+            erp_po_id = attrs.get("ERP_po_id")
+
+            if not factwise_po_id and not erp_po_id:
+                raise serializers.ValidationError(
+                    "Either factwise_po_id or ERP_po_id must be provided"
+                )
+
+            return attrs
 
     buyer_details = BuyerDetailsSerializer(
         required=True,
