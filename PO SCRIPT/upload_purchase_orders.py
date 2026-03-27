@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Factwise Bulk Purchase Order Upload Script
 - Reads xlsx/csv from same folder
@@ -149,7 +148,7 @@ def _parse_delivery_schedules(row, item_idx):
             break
         schedules.append({
             "delivery_date": normalise_date(date_val),
-            "quantity": safe_str(qty_val) or safe_str(row.get("Item Quantity")) or "0",
+            "quantity": safe_float(qty_val) or safe_float(row.get("Item Quantity")) or 0,
             "cost_centre_id": safe_str(row.get(f"Cost Centre {suffix}")),
             "general_ledger_id": safe_str(row.get(f"General Ledger {suffix}")),
             "project_id": safe_str(row.get(f"Project {suffix}")),
@@ -159,7 +158,7 @@ def _parse_delivery_schedules(row, item_idx):
     if not schedules:
         schedules.append({
             "delivery_date": None,
-            "quantity": safe_str(row.get("Item Quantity")) or "0",
+            "quantity": safe_float(row.get("Item Quantity")) or 0,
             "cost_centre_id": None,
             "general_ledger_id": None,
             "project_id": None,
@@ -222,7 +221,6 @@ def row_to_purchase_order(row):
         "prepayment_percentage": safe_float(g("Prepayment %")) or 0,
         "payment_type": safe_str(g("Payment Type")),
         "payment_terms": parse_payment_terms(g("Payment Terms")),
-        "deliverables_payment_terms": parse_json_field(g("Deliverables Payment Terms")),
         "lead_time": safe_float(g("Lead Time")),
         "lead_time_period": safe_str(g("Lead Time Period")),
         "additional_costs": [],
@@ -359,6 +357,76 @@ def fire_batch(purchase_orders, batch_num=0, sheet=None):
 def ask(prompt):
     return input(prompt).strip()
 
+def retry_failed(state):
+    """Retry all failed entries in state that have a saved _payload."""
+    failed_entries = [r for r in state["results"] if r.get("status") in ("failed", "send_error") and r.get("_payload")]
+    if not failed_entries:
+        print("  No retryable failed POs found.")
+        return
+
+    print(f"\n  Retrying {len(failed_entries)} failed PO(s)...")
+    purchase_orders = [e["_payload"] for e in failed_entries]
+
+    # Remove old failed entries so we replace them with retry results
+    state["results"] = [r for r in state["results"] if not (r.get("status") in ("failed", "send_error") and r.get("_payload"))]
+
+    batch_num = 9000  # retry batches use high numbers to avoid collision
+    for i in range(0, len(purchase_orders), BATCH_SIZE):
+        chunk = purchase_orders[i:i + BATCH_SIZE]
+        batch_num += 1
+        print(f"\n  Retry batch {batch_num - 9000}: {len(chunk)} PO(s)")
+        try:
+            task_id, sync_result = fire_batch(chunk, batch_num=batch_num, sheet="retry")
+        except Exception as e:
+            print(f"  X Retry batch fire error: {e}")
+            for po in chunk:
+                state["results"].append({
+                    "row": "retry",
+                    "sheet": "retry",
+                    "status": "send_error",
+                    "error": str(e),
+                    "erp_po_id": po.get("purchase_order_details", {}).get("ERP_po_id", ""),
+                    "_payload": po,
+                })
+            continue
+
+        if task_id:
+            try:
+                result = poll_task_and_save(task_id, batch_num, "retry")
+            except TimeoutError as e:
+                print(f"  X {e}")
+                result = {"status": "timeout", "successful": [], "failed": []}
+        else:
+            result = sync_result
+
+        successful = result.get("successful") or result.get("success") or []
+        failed     = result.get("failed") or []
+
+        for s in successful:
+            ri = s.get("index", 0)
+            state["results"].append({
+                "row": "retry",
+                "sheet": "retry",
+                "status": "success",
+                "purchase_order_code": s.get("purchase_order_code"),
+                "purchase_order_id": s.get("purchase_order_id"),
+                "erp_purchase_order_code": s.get("erp_purchase_order_code"),
+                "erp_po_id": chunk[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(chunk) else "",
+            })
+        for f in failed:
+            ri = f.get("index", 0)
+            state["results"].append({
+                "row": "retry",
+                "sheet": "retry",
+                "status": "failed",
+                "error": f.get("error", ""),
+                "erp_purchase_order_code": f.get("erp_purchase_order_code"),
+                "erp_po_id": chunk[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(chunk) else "",
+                "_payload": chunk[ri] if ri < len(chunk) else None,
+            })
+        print(f"  Retry done - {len(successful)} success, {len(failed)} failed")
+    save_state(state)
+
 def pick_file(folder):
     files = glob.glob(os.path.join(folder, "*.xlsx")) + glob.glob(os.path.join(folder, "*.csv"))
     if not files:
@@ -411,6 +479,12 @@ def main():
         if resume.lower() != "y":
             state = {"completed_sheets": [], "current_sheet": None, "last_batch_start": 0, "results": []}
             save_state(state)
+        else:
+            prev_failed = [r for r in state.get("results", []) if r.get("status") in ("failed", "send_error") and r.get("_payload")]
+            if prev_failed:
+                do_retry = ask(f"  {len(prev_failed)} PO(s) failed in previous run. Retry those before continuing? (y/n): ")
+                if do_retry.lower() == "y":
+                    retry_failed(state)
 
     completed_sheets = state.get("completed_sheets", [])
 
@@ -424,10 +498,10 @@ def main():
         print(f"{'='*60}")
 
         if filepath.endswith(".csv"):
-            df = pd.read_csv(filepath, dtype=str, keep_default_na=False)
+            df = pd.read_csv(filepath, dtype=str, keep_default_na=False, skiprows=[1])
         else:
             df = pd.read_excel(filepath, sheet_name=sheet, dtype=str,
-                               keep_default_na=False, engine="openpyxl")
+                               keep_default_na=False, engine="openpyxl", skiprows=[1])
 
         df = df[df.iloc[:, 0].str.strip() != ""].reset_index(drop=True)
         total_rows = len(df)
@@ -527,6 +601,7 @@ def main():
                     "error": f.get("error", ""),
                     "erp_purchase_order_code": f.get("erp_purchase_order_code"),
                     "erp_po_id": purchase_orders[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(purchase_orders) else "",
+                    "_payload": purchase_orders[ri] if ri < len(purchase_orders) else None,
                 })
 
             s_count = len(successful)
@@ -545,6 +620,13 @@ def main():
         state["current_sheet"] = None
         save_state(state)
         print(f"\nSheet '{sheet}' complete")
+
+    # Retry failed at end of run
+    end_failed = [r for r in state["results"] if r.get("status") in ("failed", "send_error") and r.get("_payload")]
+    if end_failed:
+        do_retry = ask(f"\n{len(end_failed)} PO(s) failed. Retry them now? (y/n): ")
+        if do_retry.lower() == "y":
+            retry_failed(state)
 
     results = state["results"]
     total   = len(results)

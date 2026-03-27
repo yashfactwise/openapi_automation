@@ -4712,10 +4712,9 @@ class UIController {
             discounts: [],
             custom_sections: (() => {
                 const config = this.templateManager?.poTemplateConfig;
-                if (config?.sectionNames?.length > 0) {
-                    return config.sectionNames.map(name => ({ name, custom_fields: [] }));
-                }
-                return [];
+                const fields = config?.poLevel?.customSections || [];
+                const seen = new Set();
+                return fields.map(f => f.section_name).filter(n => n && !seen.has(n) && seen.add(n)).map(name => ({ name, custom_fields: [] }));
             })()
         };
 
@@ -4760,10 +4759,9 @@ class UIController {
                     discounts: [],
                     custom_sections: (() => {
                         const config = this.templateManager?.poTemplateConfig;
-                        if (config?.sectionNames?.length > 0) {
-                            return config.sectionNames.map(name => ({ name, custom_fields: [] }));
-                        }
-                        return [];
+                        const fields = config?.itemLevel?.customSections || [];
+                        const seen = new Set();
+                        return fields.map(f => f.section_name).filter(n => n && !seen.has(n) && seen.add(n)).map(name => ({ name, custom_fields: [] }));
                     })(),
                     attachments: []
                 };
