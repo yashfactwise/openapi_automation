@@ -6,6 +6,7 @@ from additional_costs import services as additional_cost_service
 from additional_costs.models import AdditionalCostLinkage
 from additional_costs.states import AdditionalCostLinkageModule, AdditionalCostType
 from additional_costs.structures import AdditionalCostDataClass
+from attachment.models import Attachment
 from attributes import services as attribute_service
 from attributes.models import AttributeLinkage, AttributeValueLinkage
 from attributes.states import AttributeLinkageModule
@@ -64,6 +65,12 @@ from purchase_order.structures.event_po_structures import (
     EventPurchaseOrderTermsAndConditions,
 )
 
+from factwise.attachment.service import (
+    link_attachment_with_resource,
+    process_attachments_for_resource,
+)
+from factwise.attachment.types import AttachmentModuleType, AttachmentType
+from factwise.aws.s3 import S3Client
 from factwise.backbone.states import EnterpriseItemState
 from factwise.exception import BadRequestException, ValidationException
 from factwise.openapi.service import JsonbConcat, make_json_safe
@@ -1040,6 +1047,27 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                 contract.save()
                 contract_id = contract.contract_id
 
+                s3_client = S3Client()
+
+                attachments = process_attachments_for_resource(
+                    attachments=payload.get("attachments") or [],
+                    enterprise_id=enterprise_id,
+                    resource_id=None,
+                    attachment_type=AttachmentModuleType.CONTRACT.value,
+                    s3_client=s3_client,
+                )
+
+                attachment_ids = [
+                    attachment["attachment_id"] for attachment in attachments
+                ]
+
+                link_attachment_with_resource(
+                    enterprise_id=enterprise_id,
+                    resource_id=contract_id,
+                    attachment_ids=attachment_ids,
+                    attachment_type=AttachmentModuleType.CONTRACT.value,
+                )
+
                 existing_factwise_id_map.add(contract.custom_contract_id)
                 existing_erp_id_map.add(contract.ERP_contract_id)
 
@@ -1295,6 +1323,25 @@ def _create_contracts_bulk_impl(*, enterprise_id, contracts_payload, task_id=Non
                     )
 
                     contract_items_to_create.append(contract_item_obj)
+
+                    attachments = process_attachments_for_resource(
+                        attachments=contract_item.get("attachments") or [],
+                        enterprise_id=enterprise_id,
+                        resource_id=None,
+                        attachment_type=AttachmentModuleType.CONTRACT_ITEM.value,
+                        s3_client=s3_client,
+                    )
+
+                    attachment_ids = [
+                        attachment["attachment_id"] for attachment in attachments
+                    ]
+
+                    link_attachment_with_resource(
+                        enterprise_id=enterprise_id,
+                        resource_id=contract_id,
+                        attachment_ids=attachment_ids,
+                        attachment_type=AttachmentModuleType.CONTRACT_ITEM.value,
+                    )
 
                     _attrs, _vals, _ = attribute_service.handle_attributes(
                         enterprise_id=enterprise_id,
@@ -3061,6 +3108,34 @@ def _process_contract_items(
                 )
                 custom_fields_to_create.extend(_custom_fields_to_create)
 
+        s3_client = S3Client()
+
+        attachments = process_attachments_for_resource(
+            attachments=attachments or [],
+            enterprise_id=enterprise_id,
+            resource_id=None,
+            attachment_type=AttachmentModuleType.CONTRACT_ITEM.value,
+            s3_client=s3_client,
+        )
+
+        attachment_ids = [attachment["attachment_id"] for attachment in attachments]
+
+        attachment_ids = attachment_ids or []
+
+        Attachment.objects.filter(
+            resource_id=contract_item.contract_item_id,
+            attachment_type=AttachmentModuleType.CONTRACT_ITEM.value,
+            type=AttachmentType.ATTACHMENT.value,
+        ).update(resource_id=None)
+
+        if attachment_ids:
+            link_attachment_with_resource(
+                enterprise_id=enterprise_id,
+                resource_id=contract_id,
+                attachment_ids=attachment_ids,
+                attachment_type=AttachmentModuleType.CONTRACT_ITEM.value,
+            )
+
     ContractItem.objects.bulk_create(contract_items_to_create)
     PricingTier.objects.bulk_create(pricing_tiers_to_create)
     PricingTier.objects.bulk_update(
@@ -3233,6 +3308,34 @@ def _update_contract(
     contract.modified_by_user_id = user_id
     contract.save()
     contract_id = contract.contract_id
+
+    s3_client = S3Client()
+
+    attachments = process_attachments_for_resource(
+        attachments=attachments or [],
+        enterprise_id=enterprise_id,
+        resource_id=None,
+        attachment_type=AttachmentModuleType.CONTRACT.value,
+        s3_client=s3_client,
+    )
+
+    attachment_ids = [attachment["attachment_id"] for attachment in attachments]
+
+    attachment_ids = attachment_ids or []
+
+    Attachment.objects.filter(
+        resource_id=contract_id,
+        attachment_type=AttachmentModuleType.CONTRACT.value,
+        type=AttachmentType.ATTACHMENT.value,
+    ).update(resource_id=None)
+
+    if attachment_ids:
+        link_attachment_with_resource(
+            enterprise_id=enterprise_id,
+            resource_id=contract_id,
+            attachment_ids=attachment_ids,
+            attachment_type=AttachmentModuleType.CONTRACT.value,
+        )
 
     additional_costs_to_create, additional_costs_to_update = (
         additional_cost_service.handle_additional_costs(
@@ -3479,6 +3582,25 @@ def _update_submitted_contract(
     )
     CustomSection.objects.bulk_create(custom_sections_to_create)
     CustomField.objects.bulk_create(custom_fields_to_create)
+
+    s3_client = S3Client()
+
+    attachments = process_attachments_for_resource(
+        attachments=attachments or [],
+        enterprise_id=enterprise_id,
+        resource_id=None,
+        attachment_type=AttachmentModuleType.CONTRACT.value,
+        s3_client=s3_client,
+    )
+
+    attachment_ids = [attachment["attachment_id"] for attachment in attachments]
+
+    link_attachment_with_resource(
+        enterprise_id=enterprise_id,
+        resource_id=new_contract_id,
+        attachment_ids=attachment_ids,
+        attachment_type=AttachmentModuleType.CONTRACT.value,
+    )
 
     _process_contract_items(
         user_id=user_id,

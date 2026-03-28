@@ -1,6 +1,6 @@
 from custom.serializers import CustomSectionsOpenAPIInputSerializer
 from django.urls import reverse
-from openapi.serializers import AdditionalCostInputSerializer, AttachmentSerializer
+from openapi.serializers import AdditionalCostInputSerializer, UrlAttachmentSerializer
 from openapi.services import po_services as openapi_po_service
 from purchase_order.states import PurchaseOrderState, PurchaseOrderTerminationStatus
 from purchase_order.views.request_serializer import (
@@ -277,7 +277,7 @@ class PurchaseOrderItemsInputSerializer(serializers.Serializer):
             "invalid": "custom_sections must be a list of valid objects",
         },
     )
-    attachments = AttachmentSerializer(
+    attachments = UrlAttachmentSerializer(
         many=True,
         required=True,
         error_messages={

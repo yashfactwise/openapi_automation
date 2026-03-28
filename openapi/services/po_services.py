@@ -66,8 +66,11 @@ from purchase_order.workflows import event_po_workflows, po_workflows
 from pydantic import ValidationError
 
 from factwise.additional_costs.states import ItemCostType
+from factwise.attachment.service import process_attachments_for_resource
+from factwise.attachment.types import AttachmentModuleType
+from factwise.aws.s3 import S3Client
 from factwise.exception import BadRequestException, ValidationException
-from factwise.openapi.service import JsonbConcat, make_json_safe
+from factwise.openapi.service import JsonbConcat, make_json_safe, restore_floats_to_decimal
 
 # from custom.structures import CustomSectionDataClass, CustomFieldDataClass
 from factwise.openapi.services import custom_services
@@ -1808,6 +1811,8 @@ def _create_purchase_orders_bulk_impl(
                 created_purchase_order_items_dicts = []
                 permissions_to_create = []
 
+                s3_client = S3Client()
+
                 for purchase_order_item in purchase_order_items:
                     (
                         po_item_additional_costs,
@@ -1984,7 +1989,18 @@ def _create_purchase_orders_bulk_impl(
                         template_section_item_map=template_section_item_map,
                     )
 
-                    attachments = purchase_order_item.get("attachments")
+                    # Call attachments func
+                    attachments = process_attachments_for_resource(
+                        attachments=purchase_order_item.get("attachments") or [],
+                        enterprise_id=enterprise_id,
+                        resource_id=None,
+                        attachment_type=AttachmentModuleType.PO_GROUP_ITEM.value,
+                        s3_client=s3_client,
+                    )
+
+                    attachment_ids = [
+                        attachment["attachment_id"] for attachment in attachments
+                    ]
 
                     # ---------------- NON-RFQ PATH ----------------
                     if not custom_event_id:
@@ -2039,7 +2055,7 @@ def _create_purchase_orders_bulk_impl(
                             lead_time_period=lead_time_period,
                             requisition_information=[],
                             incoterm_id=incoterm_id,
-                            attachment_ids=attachments,
+                            attachment_ids=attachment_ids,
                             custom_fields={"section_list": []},
                             custom_sections=custom_sections,
                             custom_section_map=custom_section_map,
@@ -2224,7 +2240,7 @@ def _create_purchase_orders_bulk_impl(
                     "status": "success",
                     "erp_purchase_order_code": purchase_order.ERP_po_id,
                     "purchase_order_code": purchase_order.custom_purchase_order_id,
-                    "purchase_order_id": purchase_order.purchase_order_id,
+                    "purchase_order_id": str(purchase_order.purchase_order_id),
                 }
             )
 
@@ -2279,6 +2295,7 @@ def create_purchase_orders_bulk_task(
     self, *, enterprise_id, purchase_orders_payload, task_id
 ):
     try:
+        purchase_orders_payload = restore_floats_to_decimal(purchase_orders_payload)
         return _create_purchase_orders_bulk_impl(
             enterprise_id=enterprise_id,
             purchase_orders_payload=purchase_orders_payload,
@@ -2292,7 +2309,7 @@ def create_purchase_orders_bulk_task(
         raise
 
 
-ASYNC_PO_THRESHOLD = 1000
+ASYNC_PO_THRESHOLD = 5
 
 
 def create_purchase_orders_bulk(
@@ -3256,6 +3273,8 @@ def _update_purchase_orders_bulk_impl(
                 # --------------------------------------------------
                 created_purchase_order_items_dicts = []
 
+                s3_client = S3Client()
+
                 for purchase_order_item in purchase_order_items:
                     (
                         po_item_additional_costs,
@@ -3421,10 +3440,21 @@ def _update_purchase_orders_bulk_impl(
                     # --------------------------------------------------
                     # ATTACHMENTS & CUSTOM FIELDS
                     # --------------------------------------------------
-                    attachments = purchase_order_item.get("attachments")
                     item_additional_details = purchase_order_item.get(
                         "item_additional_details"
                     )
+
+                    attachments = process_attachments_for_resource(
+                        attachments=purchase_order_item.get("attachments") or [],
+                        enterprise_id=enterprise_id,
+                        resource_id=None,
+                        attachment_type=AttachmentModuleType.PO_GROUP_ITEM.value,
+                        s3_client=s3_client,
+                    )
+
+                    attachment_ids = [
+                        attachment["attachment_id"] for attachment in attachments
+                    ]
 
                     # --------------------------------------------------
                     # PO GROUP ITEM (AMENDMENT MODE)
@@ -3459,7 +3489,7 @@ def _update_purchase_orders_bulk_impl(
                         lead_time_period=lead_time_period,
                         requisition_information=[],
                         incoterm_id=incoterm_id,
-                        attachment_ids=attachments,
+                        attachment_ids=attachment_ids,
                         custom_fields={"section_list": []},
                         custom_sections=[],
                         for_po_amendment=True,
@@ -3526,8 +3556,8 @@ def _update_purchase_orders_bulk_impl(
                 purchase_order_id = event_po_service.revise_event_purchase_order(
                     purchase_order_id=old_po_id,
                     user_id=user_id,
-                    ERP_po_id=pod.get("ERP_po_id"),
-                    factwise_po_id=pod.get("factwise_po_id"),
+                    ERP_po_id=old_po.ERP_po_id,
+                    factwise_po_id=old_po.custom_purchase_order_id,
                     buyer_entity_id=buyer_entity_id,
                     seller_entity_id=seller_entity_id,
                     seller_address_id=seller_address_id,
@@ -3594,7 +3624,7 @@ def _update_purchase_orders_bulk_impl(
                     "status": "success",
                     "erp_purchase_order_code": purchase_order.ERP_po_id,
                     "purchase_order_code": purchase_order.custom_purchase_order_id,
-                    "purchase_order_id": purchase_order.purchase_order_id,
+                    "purchase_order_id": str(purchase_order.purchase_order_id),
                 }
             )
 
@@ -3646,6 +3676,7 @@ def update_purchase_orders_bulk_task(
     self, *, enterprise_id, purchase_orders_payload, task_id
 ):
     try:
+        purchase_orders_payload = restore_floats_to_decimal(purchase_orders_payload)
         return _update_purchase_orders_bulk_impl(
             enterprise_id=enterprise_id,
             purchase_orders_payload=purchase_orders_payload,

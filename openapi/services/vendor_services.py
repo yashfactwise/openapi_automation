@@ -1,6 +1,7 @@
 import datetime
 import uuid
 from collections import defaultdict
+from types import SimpleNamespace
 
 from additional_costs import services as additional_cost_service
 from additional_costs.models import AdditionalCostLinkage
@@ -85,6 +86,7 @@ def create_enterprise_vendor(
     created_by_user_email,
     enterprise_id,
     # vendor_code,
+    factwise_vendor_code,
     vendor_name,
     ERP_vendor_code,
     notes,
@@ -107,9 +109,18 @@ def create_enterprise_vendor(
             "Only admin users can perform the actions. Please change the user's email"
         )
 
-    # vendor_master_service.__validate_unique_vendor_code__(
-    #     vendor_code=vendor_code, enterprise_id=enterprise_id
-    # )
+    if not factwise_vendor_code:
+        vendor_code = (
+            f"{org_user.enterprise_name[:3].upper()}"
+            f"VENDOR"
+            f"{datetime.datetime.utcnow().strftime('%m%d%Y%H%M%S')}"
+            f"{uuid.uuid4().hex[:4].upper()}"
+        )
+    else:
+        vendor_master_service.validate_unique_vendor_code(
+            vendor_code=factwise_vendor_code, enterprise_id=enterprise_id
+        )
+        vendor_code = factwise_vendor_code
 
     entity_objs = entity_service.get_entities_via_names(
         entity_names=[entity["entity_name"] for entity in entities],
@@ -232,12 +243,6 @@ def create_enterprise_vendor(
         ):
             filtered_enterprises.append(user_enterprise_id)
 
-    vendor_code = (
-        f"{org_user.enterprise_name[:3].upper()}"
-        f"VENDOR"
-        f"{datetime.datetime.utcnow().strftime('%m%d%Y%H%M%S')}"
-        f"{uuid.uuid4().hex[:4].upper()}"
-    )
     if filtered_enterprises:
         tags = tag_service.get_or_create_tags(
             tags=tags, enterprise_id=enterprise_id, tag_type=TagType.VENDOR
@@ -396,6 +401,12 @@ def create_enterprise_vendor(
     return enterprise_vendor_master.enterprise_vendor_master_id
 
 
+def normalize_contact(c):
+    if isinstance(c, dict):
+        return SimpleNamespace(**c)
+    return c
+
+
 def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
     results = []
 
@@ -513,11 +524,19 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                 entity_ids = [e.entity_id for e in entity_objs]
 
                 # ---- email validation ----
-                primary_email = payload["primary_contact"].primary_email.lower()
-                secondary_emails = [
-                    s.primary_email.lower()
-                    for s in payload.get("secondary_contacts", [])
-                ]
+                primary_contact = payload["primary_contact"]
+
+                if isinstance(primary_contact, dict):
+                    primary_email = primary_contact["primary_email"].lower()
+                else:
+                    primary_email = primary_contact.primary_email.lower()
+
+                secondary_emails = []
+                for s in payload.get("secondary_contacts", []):
+                    if isinstance(s, dict):
+                        secondary_emails.append(s["primary_email"].lower())
+                    else:
+                        secondary_emails.append(s.primary_email.lower())
 
                 # primary vs secondary
                 if primary_email in secondary_emails:
@@ -562,9 +581,12 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
 
                 # ---- filtered_enterprises logic (unchanged) ----
                 filtered_enterprises = []
-                primary_email_domain = payload["primary_contact"].primary_email.split(
-                    "@"
-                )[1]
+                if isinstance(primary_contact, dict):
+                    primary_email_domain = primary_contact["primary_email"].split("@")[
+                        1
+                    ]
+                else:
+                    primary_email_domain = primary_contact.primary_email.split("@")[1]
 
                 for eid, domains in users_map.items():
                     if (
@@ -574,12 +596,22 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                         or (
                             payload.get("seller_identifications")
                             and any(
-                                i.identification_name
-                                in ident.get("identification_name")
-                                and i.identification_value
-                                == ident.get("identification_value")
+                                (
+                                    i.identification_name
+                                    in (
+                                        ident.get("identification_name")
+                                        if isinstance(ident, dict)
+                                        else ident.identification_name
+                                    )
+                                    and i.identification_value
+                                    == (
+                                        ident.get("identification_value")
+                                        if isinstance(ident, dict)
+                                        else ident.identification_value
+                                    )
+                                )
                                 for i in identifications_map[eid]
-                                for ident in payload.get("seller_identifications")
+                                for ident in payload.get("seller_identifications", [])
                             )
                         )
                     ):
@@ -665,6 +697,20 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                     for f in fields_to_create:
                         f.attachment_values.add(*attachments_map[f.custom_field_id])
 
+                    pc = payload["primary_contact"]
+                    if isinstance(pc, dict):
+                        full_name = pc.get("full_name")
+                        primary_email = pc.get("primary_email")
+                        phone_numbers = pc.get("phone_numbers")
+                        tags_val = pc.get("tags")
+                        notes_val = pc.get("notes")
+                    else:
+                        full_name = pc.full_name
+                        primary_email = pc.primary_email
+                        phone_numbers = pc.phone_numbers
+                        tags_val = pc.tags
+                        notes_val = pc.notes
+
                     vendor_contact = vendor_contact_service.save_vendor_contact(
                         user_id=org_user.user_id,
                         enterprise_vendor_master_id=enterprise_vendor_master_id,
@@ -672,11 +718,11 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                         seller_enterprise_id=None,
                         seller_entity_id=None,
                         vendor_user_id=None,
-                        full_name=payload["primary_contact"].full_name,
-                        primary_email=payload["primary_contact"].primary_email,
-                        phone_numbers=payload["primary_contact"].phone_numbers,
-                        tags=payload["primary_contact"].tags,
-                        notes=payload["primary_contact"].notes,
+                        full_name=full_name,
+                        primary_email=primary_email,
+                        phone_numbers=phone_numbers,
+                        tags=tags_val,
+                        notes=notes_val,
                         is_primary=True,
                         status=EntityContactStatus.INVITED.value,
                     )
@@ -699,11 +745,11 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                             seller_enterprise_id=None,
                             seller_entity_id=None,
                             vendor_user_id=None,
-                            full_name=payload["primary_contact"].full_name,
-                            primary_email=payload["primary_contact"].primary_email,
-                            phone_numbers=payload["primary_contact"].phone_numbers,
-                            tags=payload["primary_contact"].tags,
-                            notes=payload["primary_contact"].notes,
+                            full_name=full_name,
+                            primary_email=primary_email,
+                            phone_numbers=phone_numbers,
+                            tags=tags_val,
+                            notes=notes_val,
                             is_primary=True,
                             status=EntityContactStatus.INVITED.value,
                             buyer_entity_id=entity.entity_id,
@@ -712,6 +758,19 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
 
                         # ---- entity-level secondary contacts ----
                         for secondary in payload.get("secondary_contacts", []):
+                            if isinstance(secondary, dict):
+                                full_name = secondary.get("full_name")
+                                primary_email = secondary.get("primary_email")
+                                phone_numbers = secondary.get("phone_numbers")
+                                tags_val = secondary.get("tags")
+                                notes_val = secondary.get("notes")
+                            else:
+                                full_name = secondary.full_name
+                                primary_email = secondary.primary_email
+                                phone_numbers = secondary.phone_numbers
+                                tags_val = secondary.tags
+                                notes_val = secondary.notes
+
                             entity_secondary_contact = vendor_contact_service.save_vendor_contact(
                                 user_id=org_user.user_id,
                                 enterprise_vendor_master_id=enterprise_vendor_master_id,
@@ -720,11 +779,11 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                                 seller_enterprise_id=None,
                                 seller_entity_id=None,
                                 vendor_user_id=None,
-                                full_name=secondary.full_name,
-                                primary_email=secondary.primary_email,
-                                phone_numbers=secondary.phone_numbers,
-                                tags=secondary.tags,
-                                notes=secondary.notes,
+                                full_name=full_name,
+                                primary_email=primary_email,
+                                phone_numbers=phone_numbers,
+                                tags=tags_val,
+                                notes=notes_val,
                                 is_primary=False,
                                 status=EntityContactStatus.INVITED.value,
                                 buyer_entity_id=entity.entity_id,
@@ -739,6 +798,12 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                             "SAP Vendor Code already exists in the enterprise"
                         )
 
+                    primary_contact = normalize_contact(payload.get("primary_contact"))
+                    secondary_contacts = [
+                        normalize_contact(s)
+                        for s in payload.get("secondary_contacts", [])
+                    ]
+
                     evm = vendor_master_service.admin_invite_enterprise_vendor(
                         user_id=org_user.user_id,
                         entity_ids=entity_ids,
@@ -752,8 +817,8 @@ def _create_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                         additional_costs=vendor_additional_costs,
                         notes=payload.get("notes"),
                         tags=payload.get("tags"),
-                        primary_contact=payload.get("primary_contact"),
-                        secondary_contacts=payload.get("secondary_contacts", []),
+                        primary_contact=primary_contact,
+                        secondary_contacts=secondary_contacts,
                         custom_sections=custom_sections,
                     )
 
@@ -831,7 +896,7 @@ def create_vendors_bulk_task(self, *, enterprise_id, vendors_payload, task_id):
         raise
 
 
-ASYNC_VENDOR_THRESHOLD = 10000
+ASYNC_VENDOR_THRESHOLD = 100
 
 
 def create_vendors_bulk(
@@ -1144,13 +1209,19 @@ def _update_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                     )
 
                 # ---- entity validation ----
+                entity_names = []
+                for e in payload.get("entities", []):
+                    if isinstance(e, str):
+                        entity_names.append(e)
+                    elif isinstance(e, dict):
+                        entity_names.append(e.get("entity_name"))
+                    else:
+                        entity_names.append(e.entity_name)
                 entity_objs = entity_service.get_entities_via_names(
-                    entity_names=[
-                        e["entity_name"] for e in payload.get("entities", [])
-                    ],
+                    entity_names=entity_names,
                     enterprise_id=enterprise_id,
                 )
-                if len(payload.get("entities", [])) != entity_objs.count():
+                if len(entity_names) != entity_objs.count():
                     raise ValidationException(
                         "Input entity(s) not found in the enterprise! Please enter correct entity name(s)"
                     )
@@ -1311,10 +1382,29 @@ def _update_vendors_bulk_impl(*, enterprise_id, vendors_payload, task_id=None):
                             or enterprise_map[enterprise_id_].enterprise_name.lower()
                             == payload["vendor_name"].lower()
                             or any(
-                                identification.identification_name
-                                in identification_struct.get("identification_name")
-                                and identification.identification_value
-                                == identification_struct.get("identification_value")
+                                (
+                                    (
+                                        ident_name := (
+                                            identification_struct.get(
+                                                "identification_name"
+                                            )
+                                            if isinstance(identification_struct, dict)
+                                            else identification_struct.identification_name
+                                        )
+                                    )
+                                    and (
+                                        ident_value := (
+                                            identification_struct.get(
+                                                "identification_value"
+                                            )
+                                            if isinstance(identification_struct, dict)
+                                            else identification_struct.identification_value
+                                        )
+                                    )
+                                    and identification.identification_name in ident_name
+                                    and identification.identification_value
+                                    == ident_value
+                                )
                                 for identification in identifications_map[
                                     enterprise_id_
                                 ]

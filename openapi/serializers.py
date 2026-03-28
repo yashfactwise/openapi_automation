@@ -8,7 +8,6 @@ from openapi.structures import (
     Identification,
     InvitedContact,
     PurchaseOrderItem,
-    TermsAndConditionsStruct,
     VendorContactDeleteRequest,
 )
 from organization.org_models.vendor_master_model import (
@@ -312,6 +311,34 @@ class AttributeInputSerializer(serializers.Serializer):
             "invalid": "Invalid attribute value.",
         },
     )
+
+
+class UrlAttachmentSerializer(serializers.Serializer):
+    url = serializers.URLField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "url is required",
+            "blank": "url cannot be empty",
+            "invalid": "url must be a valid URL",
+        },
+    )
+    filename = serializers.CharField(
+        required=True,
+        allow_blank=False,
+        error_messages={
+            "required": "filename is required",
+            "blank": "filename cannot be empty",
+            "invalid": "filename must be a string",
+        },
+    )
+
+    def validate_filename(self, value):
+        if "/" in value or "\\" in value:
+            raise serializers.ValidationError(
+                "filename must not contain path separators"
+            )
+        return value
 
 
 class AttachmentSerializer(serializers.Serializer):

@@ -133,7 +133,7 @@ def make_json_safe(obj):
     if isinstance(obj, uuid.UUID):
         return str(obj)
     if isinstance(obj, Decimal):
-        return str(obj)
+        return float(obj)
     if isinstance(obj, (datetime, date, time)):
         return obj.isoformat()
     if isinstance(obj, Enum):
@@ -151,6 +151,21 @@ def make_json_safe(obj):
     if isinstance(obj, Model):
         return obj.pk
     return str(obj)
+
+
+def restore_floats_to_decimal(obj):
+    """Convert floats back to Decimal in a deserialized JSON payload."""
+    if obj is None or isinstance(obj, (bool, str)):
+        return obj
+    if isinstance(obj, float):
+        return Decimal(str(obj))
+    if isinstance(obj, int):
+        return obj
+    if isinstance(obj, list):
+        return [restore_floats_to_decimal(v) for v in obj]
+    if isinstance(obj, dict):
+        return {k: restore_floats_to_decimal(v) for k, v in obj.items()}
+    return obj
 
 
 class JsonbConcat(Func):

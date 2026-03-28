@@ -67,9 +67,7 @@ def resolve_custom_field_value(field):
 BATCH_SIZE = 1000
 
 
-def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, request):
-
-    clean_path = request.path.rstrip("/").removesuffix("/costing-sheet")
+def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime):
 
     queryset = (
         CostingSheet.objects.filter(
@@ -91,7 +89,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
 
     response = []
 
-    for sheet in queryset.iterator(chunk_size=1):
+    for sheet in queryset:
 
         # ---------------- CUSTOMER EMAILS ----------------
 
@@ -125,7 +123,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                     for field in section.custom_fields
                 ],
             }
-            for section in sheet_sections.iterator()
+            for section in sheet_sections
         ]
 
         # ---------------- TEMPLATE ----------------
@@ -146,9 +144,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for att in Attachment.objects.filter(
                 resource_id=sheet.costing_sheet_id,
                 attachment_type=AttachmentModuleType.COSTING_SHEET.value,
-            )
-            .only("attachment_id")
-            .iterator(chunk_size=100)
+            ).only("attachment_id")
         ]
 
         # ---------------- ITEMS (BATCHED) ----------------
@@ -173,14 +169,10 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
 
             item_attachment_map = defaultdict(list)
 
-            for att in (
-                Attachment.objects.filter(
-                    resource_id__in=batch_ids,
-                    attachment_type=AttachmentModuleType.COSTING_SHEET_ITEM.value,
-                )
-                .only("attachment_id")
-                .iterator(chunk_size=BATCH_SIZE)
-            ):
+            for att in Attachment.objects.filter(
+                resource_id__in=batch_ids,
+                attachment_type=AttachmentModuleType.COSTING_SHEET_ITEM.value,
+            ).only("attachment_id"):
                 item_attachment_map[att.resource_id].append(
                     attachment_service.generate_download_url(
                         attachment_id=att.attachment_id
@@ -227,7 +219,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
                 deleted_datetime__isnull=True,
             ).prefetch_related("attributevaluelinkage_set")
 
-            for attr in attr_qs.iterator(chunk_size=BATCH_SIZE):
+            for attr in attr_qs:
                 attr_map[attr.costing_sheet_item_id].append(
                     {
                         "attribute_name": attr.attribute_name,
@@ -248,7 +240,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for cost in AdditionalCostLinkage.objects.filter(
                 costing_sheet_item_id__in=batch_ids,
                 deleted_datetime__isnull=True,
-            ).iterator(chunk_size=BATCH_SIZE):
+            ):
                 data = {"name": cost.cost_name, "value": cost.cost_value}
 
                 if cost.type == AdditionalCostType.ADDITIONAL_COST.value:
@@ -264,7 +256,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for ds_item in DeliveryScheduleItem.objects.filter(
                 costing_sheet_item_id__in=batch_ids,
                 deleted_datetime__isnull=True,
-            ).iterator(chunk_size=BATCH_SIZE):
+            ):
                 delivery_map[ds_item.costing_sheet_item_id].append(
                     {
                         "quantity": ds_item.quantity,
@@ -277,7 +269,7 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for field in CustomField.objects.filter(
                 costing_sheet_item_id__in=batch_ids,
                 deleted_datetime__isnull=True,
-            ).iterator(chunk_size=1000):
+            ):
                 field_map[field.costing_sheet_item_id].append(
                     {"name": field.name, "value": resolve_custom_field_value(field)}
                 )
@@ -301,14 +293,14 @@ def get_enterprise_costing_sheets(enterprise_id, start_datetime, end_datetime, r
             for field in CustomField.objects.filter(
                 enterprise_item_id__in=enterprise_item_ids,
                 deleted_datetime__isnull=True,
-            ).iterator(chunk_size=1000):
+            ):
                 enterprise_item_field_map[field.enterprise_item_id].append(
                     {"name": field.name, "value": resolve_custom_field_value(field)}
                 )
 
             # -------- BUILD ITEMS --------
             batch_items_data = []
-            for item in items.iterator(chunk_size=BATCH_SIZE):
+            for item in items:
 
                 enterprise_item = item.enterprise_item
 

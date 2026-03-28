@@ -32,7 +32,6 @@ class CostingSheetListAPI(APIView):
             enterprise_id=request.enterprise_id,
             start_datetime=start_datetime,
             end_datetime=end_datetime,
-            request=request,
         )
 
         return Response(data, status=status.HTTP_200_OK)

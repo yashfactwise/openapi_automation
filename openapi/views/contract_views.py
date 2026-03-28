@@ -6,12 +6,12 @@ from drf_spectacular.utils import extend_schema
 from openapi.serializers import (
     AdditionalCostInputSerializer,
     AddressSerializer,
-    AttachmentSerializer,
     AttributeInputSerializer,
     DeliverablesPaymentTermsSerializer,
     PaymentTermsSerializer,
     PricingTierInputSerializer,
     TermsAndConditionsSerializer,
+    UrlAttachmentSerializer,
     VendorIdentificationSerializer,
 )
 from openapi.services import contract_services
@@ -130,10 +130,12 @@ class ContractItemSerializer(serializers.Serializer):
             "min_length": "At least one pricing tier is required.",
         },
     )
-    attachments = AttachmentSerializer(
+    attachments = UrlAttachmentSerializer(
         many=True,
+        required=True,
         error_messages={
-            "invalid": "Invalid attachment data.",
+            "required": "attachments is required",
+            "invalid": "attachments must be a list of valid objects",
         },
     )
     custom_sections = CustomSectionsOpenAPIInputSerializer(
@@ -379,11 +381,12 @@ class ContractCreateBaseInputSerializer(serializers.Serializer):
             "not_a_list": "Custom sections must be a list.",
         },
     )
-    attachments = AttachmentSerializer(
+    attachments = UrlAttachmentSerializer(
         many=True,
+        required=True,
         error_messages={
-            "invalid": "Invalid attachment data.",
-            "not_a_list": "Attachments must be a list.",
+            "required": "attachments is required",
+            "invalid": "attachments must be a list of valid objects",
         },
     )
     terms_and_conditions = TermsAndConditionsSerializer(
@@ -698,11 +701,12 @@ class ContractUpdateBaseInputSerializer(serializers.Serializer):
             "not_a_list": "Custom sections must be a list.",
         },
     )
-    attachments = AttachmentSerializer(
+    attachments = UrlAttachmentSerializer(
         many=True,
+        required=True,
         error_messages={
-            "invalid": "Invalid attachment data.",
-            "not_a_list": "Attachments must be a list.",
+            "required": "attachments is required",
+            "invalid": "attachments must be a list of valid objects",
         },
     )
     terms_and_conditions = TermsAndConditionsSerializer(

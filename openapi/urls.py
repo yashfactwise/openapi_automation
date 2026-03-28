@@ -239,7 +239,12 @@ default_url = [
     path(
         "attachments/<uuid:attachment_id>/download/",
         default_views.AttachmentDownloadAPI.as_view(),
-        name="attachment-download",
+        name="attachment_download",
+    ),
+    path(
+        "attachments/upload/",
+        default_views.AttachmentUploadAPI.as_view(),
+        name="attachment_upload",
     ),
     path(
         "tasks/<uuid:task_id>/",
