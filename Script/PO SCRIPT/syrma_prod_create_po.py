@@ -17,9 +17,9 @@ import pandas as pd
 from datetime import datetime, date
 
 # ─── CONFIG ───────────────────────────────────────────────────────────────────
-BASE_URL    = "https://n29p4xri95.execute-api.us-east-1.amazonaws.com/dev/"
-X_API_KEY   = "G620jT6lwx3IbKQKFtmlw9zNYvqVZLQQ5HHCexBj"
-API_ID      = "h7kbdchbl2"
+BASE_URL    = "https://kaxklbtq4f.execute-api.us-east-1.amazonaws.com/prod/"
+X_API_KEY   = "4AIu1XuzEzalDwF8iFAiU1yLzDyTzAG3avHVwiGZ"
+API_ID      = "nzj6nbxbpj"
 BATCH_SIZE  = 15
 POLL_INTERVAL = 5   # seconds between status polls
 POLL_TIMEOUT  = 300 # max seconds to wait for a batch
@@ -214,8 +214,8 @@ def row_to_purchase_order(row):
         "notes": safe_str(g("PO Notes")) or "",
         "event": safe_str(g("Event")),
         "terms_and_conditions": {
-            "name": safe_str(g("TnC Name")) or "FactWise Default TNC",
-            "data": safe_str(g("TnC Data")) or "<p>Acceptance of order...</p>"
+            "name": safe_str(g("TnC Name")),
+            "data": safe_str(g("TnC Data"))
         },
         "incoterm": safe_str(g("Incoterm")) or "NA",
         "prepayment_percentage": safe_float(g("Prepayment %")) or 0,
@@ -239,16 +239,12 @@ def row_to_purchase_order(row):
         "price": safe_float(g("Item Price")) or 0,
         "quantity": safe_float(g("Item Quantity")) or 0,
         "measurement_unit": safe_str(g("Item Unit")),
-        "incoterm": safe_str(g("Item Incoterm")) or "DAP",
+        "incoterm": safe_str(g("Item Incoterm")) or "NA",
         "prepayment_percentage": safe_float(g("Item Prepayment %")) or 0,
         "lead_time": safe_str(g("Item Lead Time")),
-        "lead_time_period": safe_str(g("Item Lead Time Period")) or "DAYS",
+        "lead_time_period": safe_str(g("Item Lead Time Period")),
         "payment_type": safe_str(g("Item Payment Type")) or "PER_INVOICE_ITEM",
-        "payment_terms": parse_payment_terms(g("Item Payment Terms")) or {
-            "term": 2,
-            "period": "MONTHS",
-            "applied_from": "INVOICE_DATE"
-        },
+        "payment_terms": parse_payment_terms(g("Item Payment Terms")),
         "deliverables_payment_terms": parse_json_field(g("Item Deliverables Pmt Terms")),
         "delivery_schedules": _parse_delivery_schedules(row, 0),
         "additional_costs": [],
