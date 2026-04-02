@@ -6,7 +6,8 @@
       "Bash(grep -n \"states_as_list\\\\|ChoiceField\" c:/In-Progress/Factwise/Factwise-Backend/factwise/openapi/views/*.py)",
       "Bash(grep -n \"else if \\(module === ''vendors''\" \"c:\\\\In-Progress\\\\Curler\\\\curler\\\\js\\\\ui-controller.js\")",
       "Bash(\"/c/In-Progress/Curler/curler/css/styles.css\")",
-      "Bash(python generate_template.py)"
+      "Bash(python generate_template.py)",
+      "Bash(node -e \":*)"
     ]
   },
   "enabledPlugins": {

@@ -137,9 +137,9 @@ class ModuleRegistry {
                         id: "update",
                         name: "Items Update",
                         description: "Modify an existing item",
-                        endpoint: "/openapi/items/update/",
+                        endpoint: "/dev/api/items/bulk-update/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true
                     },
                     {
                         id: "update_state",
@@ -167,9 +167,9 @@ class ModuleRegistry {
                         id: "update",
                         name: "Vendors Update",
                         description: "Modify an existing vendor",
-                        endpoint: "/openapi/vendors/update/",
+                        endpoint: "/dev/api/vendors/bulk-update/",
                         method: "PUT",
-                        implemented: false // Phase 3+: will be true
+                        implemented: true
                     },
                     {
                         id: "state",
@@ -216,6 +216,66 @@ class ModuleRegistry {
                         endpoint: "/dev/api/project/create/",
                         method: "POST",
                         implemented: true // Phase 3: IMPLEMENTED
+                    },
+                    {
+                        id: "update",
+                        name: "Project Update",
+                        description: "Update project(s)",
+                        endpoint: "/dev/api/project/bulk-create/",
+                        method: "PUT",
+                        implemented: true
+                    }
+                ]
+            },
+            {
+                id: "requisitions",
+                name: "Requisitions",
+                operations: [
+                    {
+                        id: "create",
+                        name: "Requisition Create",
+                        description: "Create a new requisition",
+                        endpoint: "/dev/api/requisition/create/",
+                        method: "POST",
+                        implemented: true
+                    },
+                    {
+                        id: "update",
+                        name: "Requisition Update",
+                        description: "Modify an existing requisition",
+                        endpoint: "/dev/api/requisition/update/",
+                        method: "PUT",
+                        implemented: true
+                    },
+                    {
+                        id: "terminate",
+                        name: "Requisition Terminate",
+                        description: "Terminate a requisition",
+                        endpoint: "/dev/api/requisition/terminate/",
+                        method: "PUT",
+                        implemented: true
+                    }
+                ]
+            },
+            {
+                id: "costing_sheet",
+                name: "Costing Sheets",
+                operations: [
+                    {
+                        id: "create",
+                        name: "Costing Sheet Create",
+                        description: "Create a new costing sheet",
+                        endpoint: "/dev/api/costing-sheet/",
+                        method: "POST",
+                        implemented: true
+                    },
+                    {
+                        id: "mapping",
+                        name: "Costing Sheet Mapping",
+                        description: "Map costing sheet ERP IDs",
+                        endpoint: "/dev/api/costing-sheet/mapping/",
+                        method: "PUT",
+                        implemented: true
                     }
                 ]
             }

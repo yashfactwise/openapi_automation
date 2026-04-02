@@ -2293,6 +2293,315 @@ class UIController {
                     </div>
                 </div>
             `;
+        } else if (module.id === 'items' && operation.id === 'update') {
+            // ── Items Update Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📦</span>
+                    <h4>Item Update</h4>
+                    <span class="fst-badge">Bulk Wrapper</span>
+                </div>
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required
+                        value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Item Name *</label>
+                        <input type="text" name="name" class="input-field" required value="Natural Rubber - TSNR - TSR10">
+                    </div>
+                    <div class="form-group">
+                        <label>ERP Item Code *</label>
+                        <input type="text" name="ERP_item_code" class="input-field" required value="ERP-BKT-01111">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Factwise Item Code *</label>
+                        <input type="text" name="factwise_item_code" class="input-field" required value="">
+                    </div>
+                    <div class="form-group">
+                        <label>Measurement Unit ID *</label>
+                        <input type="text" name="measurement_units" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Item Type *</label>
+                        <select name="item_type" class="input-field" required>
+                            <option value="RAW_MATERIAL" selected>RAW_MATERIAL</option>
+                            <option value="FINISHED_GOOD">FINISHED_GOOD</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="entity_name" class="input-field" required value="FactWise">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea name="description" class="form-textarea" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Notes</label><input type="text" name="notes" class="input-field"></div>
+                    <div class="form-group"><label>Internal Notes</label><input type="text" name="internal_notes" class="input-field"></div>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">💰</span><h4>Pricing Information</h4></div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="is_buyer" value="true" checked><span>Is Buyer *</span></label>
+                    </div>
+                    <div class="form-group">
+                        <label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" name="is_seller" value="true"><span>Is Seller *</span></label>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Buyer Price</label><input type="number" name="buyer_price" class="input-field" step="0.01" value="78"></div>
+                    <div class="form-group"><label>Buyer Currency ID</label><input type="text" name="buyer_currency_code_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Seller Price</label><input type="number" name="seller_price" class="input-field" step="0.01"></div>
+                    <div class="form-group"><label>Seller Currency ID</label><input type="text" name="seller_currency_code_id" class="input-field"></div>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">🏷️</span><h4>Additional Information</h4></div>
+                <div class="form-group"><label>Tags (comma-separated)</label><input type="text" name="tags" class="input-field"></div>
+                <div class="form-group"><label>Custom IDs (name:value, comma-separated)</label><input type="text" name="custom_ids" class="input-field" placeholder="e.g. HSN:40012200"></div>
+                <div class="form-section-title"><span class="fst-icon">🏭</span><h4>Entities</h4></div>
+                <div class="form-group"><label>Preferred Vendors (comma-separated ERP codes)</label><input type="text" name="preferred_vendors" class="input-field"></div>
+                <div class="form-section-title"><span class="fst-icon">🔧</span><h4>Custom Sections</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="item-update-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCustomSection('item-update-custom-sections-container','iu_cs')">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'vendors' && operation.id === 'update') {
+            // ── Vendors Update Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">🏢</span><h4>Vendor Update</h4><span class="fst-badge">Bulk Wrapper</span></div>
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Vendor Name *</label><input type="text" name="vendor_name" class="input-field" required value="API Test Vendor"></div>
+                    <div class="form-group"><label>ERP Vendor Code *</label><input type="text" name="ERP_vendor_code" class="input-field" required value="ERPV01"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Factwise Vendor Code *</label><input type="text" name="factwise_vendor_code" class="input-field" required value=""></div>
+                    <div class="form-group"><label>Notes</label><input type="text" name="notes" class="input-field"></div>
+                </div>
+                <div class="form-group"><label>Tags (comma-separated)</label><input type="text" name="tags" class="input-field"></div>
+                <div class="form-section-title"><span class="fst-icon">👤</span><h4>Primary Contact</h4><span class="fst-badge">Required</span></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Full Name *</label><input type="text" name="primary_full_name" class="input-field" required value="Ashir Ansari"></div>
+                    <div class="form-group"><label>Primary Email *</label><input type="email" name="primary_email" class="input-field" required value="ashir@factwise.io"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Phone Numbers (comma-separated)</label><input type="text" name="primary_phone_numbers" class="input-field" value="8928219571"></div>
+                    <div class="form-group"><label>Email Type</label><select name="primary_email_type" class="input-field"><option value="TO">TO</option><option value="CC" selected>CC</option></select></div>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">📍</span><h4>Seller Information</h4></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Address Information (comma-separated)</label><input type="text" name="seller_address_information" class="input-field" value="Mumbai"></div>
+                    <div class="form-group"><label>Identification Name</label><input type="text" name="identification_name" class="input-field"></div>
+                </div>
+                <div class="form-group"><label>Identification Value</label><input type="text" name="identification_value" class="input-field"></div>
+                <div class="form-section-title"><span class="fst-icon">🏭</span><h4>Entities</h4><span class="fst-badge">Required</span></div>
+                <div class="form-group"><label>Entity Names (comma-separated) *</label><input type="text" name="entity_names" class="input-field" required value="Global fields ETE"></div>
+                <div class="form-section-title"><span class="fst-icon">💰</span><h4>Additional Costs</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="vendor-update-costs-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCostRow('vendor-update-costs-container','vu_cost')">＋ Add Cost</button>
+                <div class="form-section-title"><span class="fst-icon">🔧</span><h4>Custom Sections</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="vendor-update-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCustomSection('vendor-update-custom-sections-container','vu_cs')">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'projects' && operation.id === 'update') {
+            // ── Project Update Form (duplicate of create) ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">📋</span><h4>Project Update</h4><span class="fst-badge">Bulk Wrapper</span></div>
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Project Name *</label><input type="text" name="project_name" class="input-field" required value="API Test Project"></div>
+                    <div class="form-group"><label>Entity Name *</label><input type="text" name="entity_name" class="input-field" required value="FactWise"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Project Code</label><input type="text" name="project_code" class="input-field"></div>
+                    <div class="form-group"><label>ERP Project Code</label><input type="text" name="ERP_project_code" class="input-field" value="ERP9701"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Customer Code</label><input type="text" name="customer_code" class="input-field" value="CXJKU05"></div>
+                    <div class="form-group"><label>Template Name</label><input type="text" name="template_name" class="input-field"></div>
+                </div>
+                <div class="form-group">
+                    <label>Project Status *</label>
+                    <select name="project_status" class="input-field" required>
+                        <option value="DRAFT" selected>DRAFT</option><option value="SUBMITTED">SUBMITTED</option><option value="EXPIRED">EXPIRED</option>
+                    </select>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">📅</span><h4>Project Timeline</h4></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Validity From</label><input type="datetime-local" name="validity_from" class="input-field"></div>
+                    <div class="form-group"><label>Validity To</label><input type="datetime-local" name="validity_to" class="input-field"></div>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">📝</span><h4>Additional Information</h4></div>
+                <div class="form-group"><label>Description</label><textarea name="description" class="form-textarea" rows="3"></textarea></div>
+                <div class="form-group"><label>Internal Notes</label><textarea name="internal_notes" class="form-textarea" rows="3"></textarea></div>
+                <div class="form-section-title"><span class="fst-icon">🔧</span><h4>Custom Sections</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="project-update-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCustomSection('project-update-custom-sections-container','pu_cs')">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'requisitions' && operation.id === 'create') {
+            // ── Requisition Create Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">📝</span><h4>Requisition Create</h4><span class="fst-badge">Bulk Wrapper</span></div>
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Requisition Name *</label><input type="text" name="requisition_name" class="input-field" required value="API Test Requisition"></div>
+                    <div class="form-group"><label>ERP Requisition ID *</label><input type="text" name="ERP_requisition_id" class="input-field" required value="ERPREQ001"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Currency Code ID *</label><input type="text" name="currency_code_id" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3"></div>
+                    <div class="form-group"><label>Entity Name *</label><input type="text" name="entity_name" class="input-field" required value="FactWise"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Template Name *</label><input type="text" name="template_name" class="input-field" required></div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="status" class="input-field" required>
+                            <option value="DRAFTED" selected>DRAFTED</option><option value="SUBMITTED">SUBMITTED</option><option value="ONGOING">ONGOING</option><option value="TERMINATED">TERMINATED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Project Code</label><input type="text" name="project_code" class="input-field"></div>
+                    <div class="form-group"><label>Notes</label><input type="text" name="notes" class="input-field"></div>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">📦</span><h4>Requisition Items</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="req-create-items-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addRequisitionItem('req-create-items-container','rc_item')">＋ Add Item</button>
+                <div class="form-section-title"><span class="fst-icon">🔧</span><h4>Custom Sections</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="req-create-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCustomSection('req-create-custom-sections-container','rc_cs')">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'requisitions' && operation.id === 'update') {
+            // ── Requisition Update Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">📝</span><h4>Requisition Update</h4><span class="fst-badge">Bulk Wrapper</span></div>
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Requisition Name *</label><input type="text" name="requisition_name" class="input-field" required value="API Test Requisition"></div>
+                    <div class="form-group"><label>ERP Requisition ID *</label><input type="text" name="ERP_requisition_id" class="input-field" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Factwise Requisition ID *</label><input type="text" name="factwise_requisition_id" class="input-field" required></div>
+                    <div class="form-group"><label>Currency Code ID *</label><input type="text" name="currency_code_id" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Entity Name *</label><input type="text" name="entity_name" class="input-field" required value="FactWise"></div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="status" class="input-field" required>
+                            <option value="DRAFTED">DRAFTED</option><option value="SUBMITTED" selected>SUBMITTED</option><option value="ONGOING">ONGOING</option><option value="TERMINATED">TERMINATED</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Project Code</label><input type="text" name="project_code" class="input-field"></div>
+                    <div class="form-group"><label>Notes</label><input type="text" name="notes" class="input-field"></div>
+                </div>
+                <div class="form-section-title"><span class="fst-icon">📦</span><h4>Requisition Items</h4><span class="fst-badge">Required</span></div>
+                <div id="req-update-items-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addRequisitionItem('req-update-items-container','ru_item')">＋ Add Item</button>
+                <div class="form-section-title"><span class="fst-icon">🔧</span><h4>Custom Sections</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="req-update-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCustomSection('req-update-custom-sections-container','ru_cs')">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'requisitions' && operation.id === 'terminate') {
+            // ── Requisition Terminate Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">🚫</span><h4>Requisition Terminate</h4><span class="fst-badge">Bulk Wrapper</span></div>
+                <div class="form-group">
+                    <label>Modified By User Email *</label>
+                    <input type="email" name="modified_by_user_email" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>ERP Requisition ID *</label><input type="text" name="ERP_requisition_id" class="input-field" required></div>
+                    <div class="form-group"><label>Factwise Requisition ID *</label><input type="text" name="factwise_requisition_id" class="input-field" required></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="status" class="input-field" required><option value="TERMINATED" selected>TERMINATED</option></select>
+                    </div>
+                    <div class="form-group"><label>Notes</label><input type="text" name="notes" class="input-field"></div>
+                </div>
+            `;
+        } else if (module.id === 'costing_sheet' && operation.id === 'create') {
+            // ── Costing Sheet Create Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">📊</span><h4>Costing Sheet Create</h4><span class="fst-badge">Single Object</span></div>
+                <div class="form-group">
+                    <label>Created By User Email *</label>
+                    <input type="email" name="created_by_user_email" class="input-field" required value="${this.currentAccount?.user_email || 'globalfieldsETE@gmail.com'}">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Name *</label><input type="text" name="name" class="input-field" required value="API Test Quote"></div>
+                    <div class="form-group"><label>ERP Costing Sheet ID</label><input type="text" name="ERP_costing_sheet_id" class="input-field"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Factwise Costing Sheet Code</label><input type="text" name="factwise_costing_sheet_code" class="input-field"></div>
+                    <div class="form-group"><label>Template Name</label><input type="text" name="template_name" class="input-field"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Seller Entity Name</label><input type="text" name="seller_entity_name" class="input-field" value="FactWise"></div>
+                    <div class="form-group"><label>Customer Entity Name</label><input type="text" name="customer_entity_name" class="input-field"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Currency Code ID</label><input type="text" name="currency_code_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3"></div>
+                    <div class="form-group"><label>Project Code</label><input type="text" name="project_code" class="input-field"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="status" class="input-field"><option value="DRAFT" selected>DRAFT</option><option value="SUBMITTED">SUBMITTED</option><option value="APPROVED">APPROVED</option></select>
+                    </div>
+                    <div class="form-group"><label>Modified By User Email</label><input type="email" name="modified_by_user_email" class="input-field"></div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Validity Datetime</label><input type="datetime-local" name="validity_datetime" class="input-field"></div>
+                    <div class="form-group"><label>Deadline Datetime</label><input type="datetime-local" name="deadline_datetime" class="input-field"></div>
+                </div>
+                <div class="form-group"><label>Customer Contact Emails (comma-separated)</label><input type="text" name="customer_contact_emails" class="input-field"></div>
+                <div class="form-row">
+                    <div class="form-group"><label>Internal Notes</label><textarea name="internal_notes" class="form-textarea" rows="2"></textarea></div>
+                    <div class="form-group"><label>External Notes</label><textarea name="external_notes" class="form-textarea" rows="2"></textarea></div>
+                </div>
+                <div class="form-group"><label>Status Notes</label><input type="text" name="status_notes" class="input-field"></div>
+                <div class="form-section-title"><span class="fst-icon">💰</span><h4>Additional Costs</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="cs-create-costs-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCostRow('cs-create-costs-container','cs_cost')">＋ Add Cost</button>
+                <div class="form-section-title"><span class="fst-icon">📦</span><h4>Costing Sheet Items</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="cs-create-items-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addCostingSheetItem()">＋ Add Item</button>
+                <div class="form-section-title"><span class="fst-icon">🔧</span><h4>Custom Sections</h4><span class="fst-badge" style="background:#94a3b8;">Optional</span></div>
+                <div id="cs-create-custom-sections-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addGenericCustomSection('cs-create-custom-sections-container','cs_cs')">＋ Add Custom Section</button>
+            `;
+        } else if (module.id === 'costing_sheet' && operation.id === 'mapping') {
+            // ── Costing Sheet Mapping Form ──
+            bodyInputsHtml = `
+                <div class="form-section-title no-margin-top"><span class="fst-icon">🔗</span><h4>Costing Sheet ERP Mapping</h4><span class="fst-badge">Bulk Wrapper</span></div>
+                <div id="cs-mapping-container"></div>
+                <button type="button" class="btn-add-row" onclick="window.uiController._addCostingSheetMapping()">＋ Add Mapping</button>
+            `;
         } else {
             // Generic placeholder for other operations
             bodyInputsHtml = `
@@ -2440,6 +2749,20 @@ class UIController {
                 fwInput?.addEventListener('input', checkVendorWarning);
                 erpInput?.addEventListener('input', checkVendorWarning);
             }, 50);
+        } else if (module.id === 'items' && operation.id === 'update') {
+            window.uiController = this;
+        } else if (module.id === 'vendors' && operation.id === 'update') {
+            window.uiController = this;
+        } else if (module.id === 'projects' && operation.id === 'update') {
+            window.uiController = this;
+        } else if (module.id === 'requisitions') {
+            window.uiController = this;
+        } else if (module.id === 'costing_sheet' && operation.id === 'create') {
+            window.uiController = this;
+        } else if (module.id === 'costing_sheet' && operation.id === 'mapping') {
+            window.uiController = this;
+            // Add first mapping row
+            this._addCostingSheetMapping();
         }
 
         // Script buttons only visible in bulk mode — always hide on initial render (default is single)
@@ -3600,6 +3923,527 @@ class UIController {
             }
         });
         return result;
+    }
+
+    // ============================================================
+    // NEW BULK API PAYLOAD BUILDERS & HELPERS
+    // ============================================================
+
+    /**
+     * Generic helper: add a cost row (name + value) to any container
+     */
+    _addGenericCostRow(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const idx = container.querySelectorAll('.cc-custom-item').length;
+        const card = document.createElement('div');
+        card.className = 'cc-custom-item';
+        card.style.cssText = 'padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;position:relative;';
+        card.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;">✕</button>
+            <div class="form-row">
+                <div class="form-group"><label>Cost Name</label><input type="text" name="${prefix}_${idx}_name" class="input-field" placeholder="e.g. Freight"></div>
+                <div class="form-group"><label>Value</label><input type="number" name="${prefix}_${idx}_value" class="input-field" step="0.01" value="0"></div>
+            </div>`;
+        container.appendChild(card);
+    }
+
+    /**
+     * Generic helper: add a custom section row (section name + JSON fields) to any container
+     */
+    _addGenericCustomSection(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const idx = container.querySelectorAll('.cc-custom-item').length;
+        const card = document.createElement('div');
+        card.className = 'cc-custom-item';
+        card.style.cssText = 'padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;position:relative;';
+        card.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;">✕</button>
+            <div class="form-group"><label>Section Name</label><input type="text" name="${prefix}_${idx}_name" class="input-field" placeholder="e.g. Item details"></div>
+            <div class="form-group"><label>Custom Fields (JSON array)</label><textarea name="${prefix}_${idx}_fields" class="form-textarea" rows="2" placeholder='[{"name":"field1","value":"val1"}]'></textarea></div>`;
+        container.appendChild(card);
+    }
+
+    /**
+     * Collect generic cost rows from a container
+     */
+    _collectGenericCosts(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        const costs = [];
+        container.querySelectorAll('.cc-custom-item').forEach((card, i) => {
+            const name = card.querySelector(`[name="${prefix}_${i}_name"]`)?.value?.trim();
+            const value = card.querySelector(`[name="${prefix}_${i}_value"]`)?.value;
+            if (name && value) costs.push({ name, value: parseFloat(value) });
+        });
+        return costs;
+    }
+
+    /**
+     * Collect generic custom sections from a container
+     */
+    _collectGenericCustomSections(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        const sections = [];
+        container.querySelectorAll('.cc-custom-item').forEach((card, i) => {
+            const sectionName = card.querySelector(`[name="${prefix}_${i}_name"]`)?.value?.trim();
+            const fieldsJson = card.querySelector(`[name="${prefix}_${i}_fields"]`)?.value?.trim();
+            if (sectionName && fieldsJson) {
+                try {
+                    sections.push({ name: sectionName, custom_fields: JSON.parse(fieldsJson) });
+                } catch (e) { console.error('Invalid JSON in custom section:', e); }
+            }
+        });
+        return sections;
+    }
+
+    /**
+     * Items Update payload builder
+     */
+    _buildItemUpdatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            name: get('name'),
+            ERP_item_code: get('ERP_item_code'),
+            factwise_item_code: get('factwise_item_code'),
+            item_type: get('item_type'),
+            is_buyer: !!form.querySelector('[name="is_buyer"]')?.checked,
+            is_seller: !!form.querySelector('[name="is_seller"]')?.checked,
+            measurement_units: get('measurement_units') ? get('measurement_units').split(',').map(u => u.trim()).filter(u => u) : []
+        };
+
+        const desc = get('description'); if (desc) payload.description = desc;
+        const notes = get('notes'); if (notes) payload.notes = notes;
+        const intNotes = get('internal_notes'); if (intNotes) payload.internal_notes = intNotes;
+
+        // Buyer pricing
+        if (payload.is_buyer) {
+            const bp = get('buyer_price'), bc = get('buyer_currency_code_id');
+            if (bp || bc) payload.buyer_pricing_information = { price: bp ? parseFloat(bp) : 0, currency_code_id: bc || null, additional_costs: [], taxes: [] };
+        }
+        // Seller pricing
+        if (payload.is_seller) {
+            const sp = get('seller_price'), sc = get('seller_currency_code_id');
+            if (sp || sc) payload.seller_pricing_information = { price: sp ? parseFloat(sp) : 0, currency_code_id: sc || null, additional_costs: [], taxes: [] };
+        }
+
+        // Tags
+        const tags = get('tags');
+        payload.tags = tags ? tags.split(',').map(t => t.trim()).filter(t => t) : [];
+
+        // Custom IDs
+        payload.custom_ids = [];
+        const customIds = get('custom_ids');
+        if (customIds) {
+            customIds.split(',').forEach(pair => {
+                const [n, v] = pair.split(':').map(s => s.trim());
+                if (n && v) payload.custom_ids.push({ name: n, value: v });
+            });
+        }
+
+        // Entities
+        const entityName = get('entity_name');
+        const prefVendors = get('preferred_vendors');
+        payload.entities = [{
+            entity_name: entityName,
+            ERP_preferred_vendors: prefVendors ? prefVendors.split(',').map(v => v.trim()).filter(v => v) : []
+        }];
+
+        // Custom sections
+        payload.custom_sections = this._collectGenericCustomSections('item-update-custom-sections-container', 'iu_cs');
+
+        return { items: [payload] };
+    }
+
+    /**
+     * Vendors Update payload builder
+     */
+    _buildVendorUpdatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            vendor_name: get('vendor_name'),
+            ERP_vendor_code: get('ERP_vendor_code'),
+            factwise_vendor_code: get('factwise_vendor_code'),
+            notes: get('notes') || null,
+            tags: get('tags') ? get('tags').split(',').map(t => t.trim()).filter(t => t) : [],
+            seller_address_information: get('seller_address_information') ? get('seller_address_information').split(',').map(a => a.trim()).filter(a => a) : [],
+            seller_identifications: [],
+            additional_costs: [],
+            entities: [],
+            primary_contact: {},
+            custom_sections: []
+        };
+
+        // Primary contact
+        const primaryPhones = get('primary_phone_numbers');
+        payload.primary_contact = {
+            full_name: get('primary_full_name'),
+            phone_numbers: primaryPhones ? primaryPhones.split(',').map(p => parseInt(p.trim())).filter(p => !isNaN(p)) : [],
+            emails: [{ email: get('primary_email'), type: get('primary_email_type') }]
+        };
+
+        // Identifications
+        if (get('identification_name') && get('identification_value')) {
+            payload.seller_identifications.push({ identification_name: get('identification_name'), identification_value: get('identification_value') });
+        }
+
+        // Entities
+        const entityNames = get('entity_names');
+        if (entityNames) entityNames.split(',').forEach(n => { const t = n.trim(); if (t) payload.entities.push({ entity_name: t }); });
+
+        // Costs
+        payload.additional_costs = this._collectGenericCosts('vendor-update-costs-container', 'vu_cost');
+
+        // Custom sections
+        payload.custom_sections = this._collectGenericCustomSections('vendor-update-custom-sections-container', 'vu_cs');
+
+        return { vendors: [payload] };
+    }
+
+    /**
+     * Project Update payload builder (duplicate of create logic)
+     */
+    _buildProjectUpdatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            project_name: get('project_name'),
+            entity_name: get('entity_name'),
+            project_status: get('project_status')
+        };
+
+        const pc = get('project_code'); if (pc) payload.project_code = pc;
+        const epc = get('ERP_project_code'); if (epc) payload.ERP_project_code = epc;
+        const cc = get('customer_code'); if (cc) payload.customer_code = cc;
+        const tn = get('template_name'); if (tn) payload.template_name = tn;
+        const desc = get('description'); if (desc) payload.description = desc;
+        const intNotes = get('internal_notes'); if (intNotes) payload.internal_notes = intNotes;
+
+        const vf = get('validity_from');
+        payload.validity_from = vf ? new Date(vf).toISOString() : null;
+        const vt = get('validity_to');
+        payload.validity_to = vt ? new Date(vt).toISOString() : null;
+
+        payload.custom_sections = this._collectGenericCustomSections('project-update-custom-sections-container', 'pu_cs');
+
+        return { projects: [payload] };
+    }
+
+    /**
+     * Add a requisition item row
+     */
+    _addRequisitionItem(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const idx = container.querySelectorAll('.cc-custom-item').length;
+        const card = document.createElement('div');
+        card.className = 'cc-custom-item';
+        card.style.cssText = 'padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;position:relative;';
+        card.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;">✕</button>
+            <div style="font-weight:600;margin-bottom:8px;color:#1e293b;">Item ${idx + 1}</div>
+            <div class="form-row">
+                <div class="form-group"><label>ERP Item Code</label><input type="text" name="${prefix}_${idx}_erp_item_code" class="input-field"></div>
+                <div class="form-group"><label>Factwise Item Code</label><input type="text" name="${prefix}_${idx}_fw_item_code" class="input-field"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Measurement Unit ID</label><input type="text" name="${prefix}_${idx}_measurement_unit_id" class="input-field" placeholder="UUID"></div>
+                <div class="form-group"><label>Quantity</label><input type="number" name="${prefix}_${idx}_quantity" class="input-field" step="0.01" value="1"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Desired Price</label><input type="number" name="${prefix}_${idx}_desired_price" class="input-field" step="0.01"></div>
+                <div class="form-group"><label>Shipping Address ID</label><input type="text" name="${prefix}_${idx}_shipping_address_id" class="input-field"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Incoterm</label>
+                    <select name="${prefix}_${idx}_incoterm" class="input-field">
+                        <option value="NA (NONE)" selected>NA (NONE)</option><option value="FOB (Free On Board)">FOB</option><option value="CIF (Cost, Insurance and Frieght)">CIF</option>
+                        <option value="EXW (Ex Works)">EXW</option><option value="DDP (Delivered Duty Paid)">DDP</option><option value="FCA (Free Carrier)">FCA</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Payment Type</label>
+                    <select name="${prefix}_${idx}_payment_type" class="input-field">
+                        <option value="PER_INVOICE_TERM" selected>PER_INVOICE_TERM</option><option value="PER_PO_TERM">PER_PO_TERM</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Lead Time</label><input type="number" name="${prefix}_${idx}_lead_time" class="input-field" min="1" max="31"></div>
+                <div class="form-group">
+                    <label>Lead Time Period</label>
+                    <select name="${prefix}_${idx}_lead_time_period" class="input-field">
+                        <option value="DAYS" selected>DAYS</option><option value="WEEKS">WEEKS</option><option value="MONTHS">MONTHS</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>Prepayment %</label><input type="number" name="${prefix}_${idx}_prepayment" class="input-field" step="0.01" min="0" max="100"></div>
+            <div class="form-row">
+                <div class="form-group"><label>ERP Vendor Codes (comma-sep)</label><input type="text" name="${prefix}_${idx}_erp_vendor_codes" class="input-field"></div>
+                <div class="form-group"><label>Factwise Vendor Codes (comma-sep)</label><input type="text" name="${prefix}_${idx}_fw_vendor_codes" class="input-field"></div>
+            </div>`;
+        container.appendChild(card);
+    }
+
+    /**
+     * Collect requisition items from a container
+     */
+    _collectRequisitionItems(containerId, prefix) {
+        const container = document.getElementById(containerId);
+        if (!container) return [];
+        const items = [];
+        container.querySelectorAll('.cc-custom-item').forEach((card, i) => {
+            const get = (suffix) => card.querySelector(`[name="${prefix}_${i}_${suffix}"]`)?.value?.trim() || '';
+            const item = {};
+
+            const erp = get('erp_item_code'); if (erp) item.ERP_item_code = erp;
+            const fw = get('fw_item_code'); if (fw) item.factwise_item_code = fw;
+            const mu = get('measurement_unit_id'); if (mu) item.measurement_unit_id = mu.split(',').map(u => u.trim());
+            const qty = get('quantity'); if (qty) item.quantity = parseFloat(qty);
+            const dp = get('desired_price'); if (dp) item.desired_price = parseFloat(dp);
+            const sa = get('shipping_address_id'); if (sa) item.shipping_address_id = sa;
+            const ic = get('incoterm'); if (ic) item.incoterm = ic;
+            const pt = get('payment_type'); if (pt) item.payment_type = pt;
+            const lt = get('lead_time'); if (lt) item.lead_time = parseInt(lt);
+            const ltp = get('lead_time_period'); if (ltp) item.lead_time_period = ltp;
+            const pp = get('prepayment'); if (pp) item.prepayment_percentage = parseFloat(pp);
+
+            const erpVendors = get('erp_vendor_codes');
+            if (erpVendors) item.ERP_vendor_codes = erpVendors.split(',').map(v => v.trim()).filter(v => v);
+            const fwVendors = get('fw_vendor_codes');
+            if (fwVendors) item.factwise_vendor_codes = fwVendors.split(',').map(v => v.trim()).filter(v => v);
+
+            if (Object.keys(item).length > 0) items.push(item);
+        });
+        return items;
+    }
+
+    /**
+     * Requisition Create payload builder
+     */
+    _buildRequisitionCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            requisition_name: get('requisition_name'),
+            ERP_requisition_id: get('ERP_requisition_id'),
+            currency_code_id: get('currency_code_id'),
+            entity_name: get('entity_name'),
+            template_name: get('template_name'),
+            status: get('status')
+        };
+
+        const pc = get('project_code'); if (pc) payload.project_code = pc;
+        const notes = get('notes'); if (notes) payload.notes = notes;
+
+        payload.requisitions_items = this._collectRequisitionItems('req-create-items-container', 'rc_item');
+        payload.custom_sections = this._collectGenericCustomSections('req-create-custom-sections-container', 'rc_cs');
+
+        return { requisitions: [payload] };
+    }
+
+    /**
+     * Requisition Update payload builder
+     */
+    _buildRequisitionUpdatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            requisition_name: get('requisition_name'),
+            ERP_requisition_id: get('ERP_requisition_id'),
+            factwise_requisition_id: get('factwise_requisition_id'),
+            currency_code_id: get('currency_code_id'),
+            entity_name: get('entity_name'),
+            status: get('status')
+        };
+
+        const pc = get('project_code'); if (pc) payload.project_code = pc;
+        const notes = get('notes'); if (notes) payload.notes = notes;
+
+        payload.requisition_items = this._collectRequisitionItems('req-update-items-container', 'ru_item');
+        payload.custom_sections = this._collectGenericCustomSections('req-update-custom-sections-container', 'ru_cs');
+
+        return { requisitions: [payload] };
+    }
+
+    /**
+     * Requisition Terminate payload builder
+     */
+    _buildRequisitionTerminatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            modified_by_user_email: get('modified_by_user_email'),
+            ERP_requisition_id: get('ERP_requisition_id'),
+            factwise_requisition_id: get('factwise_requisition_id'),
+            status: get('status')
+        };
+
+        const notes = get('notes'); if (notes) payload.notes = notes;
+
+        return { requisitions: [payload] };
+    }
+
+    /**
+     * Add a costing sheet item row
+     */
+    _addCostingSheetItem() {
+        const container = document.getElementById('cs-create-items-container');
+        if (!container) return;
+        const idx = container.querySelectorAll('.cc-custom-item').length;
+        const card = document.createElement('div');
+        card.className = 'cc-custom-item';
+        card.style.cssText = 'padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;position:relative;';
+        card.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;">✕</button>
+            <div style="font-weight:600;margin-bottom:8px;color:#1e293b;">Item ${idx + 1}</div>
+            <div class="form-row">
+                <div class="form-group"><label>ERP Item Code</label><input type="text" name="cs_item_${idx}_erp_code" class="input-field"></div>
+                <div class="form-group"><label>Factwise Item Code</label><input type="text" name="cs_item_${idx}_fw_code" class="input-field"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Name</label><input type="text" name="cs_item_${idx}_name" class="input-field"></div>
+                <div class="form-group"><label>Measurement Unit ID</label><input type="text" name="cs_item_${idx}_mu_id" class="input-field" placeholder="UUID"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Quantity *</label><input type="number" name="cs_item_${idx}_quantity" class="input-field" step="0.01" value="1"></div>
+                <div class="form-group"><label>Rate *</label><input type="number" name="cs_item_${idx}_rate" class="input-field" step="0.01" value="0"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Vendor Entity Name</label><input type="text" name="cs_item_${idx}_vendor_entity" class="input-field"></div>
+                <div class="form-group"><label>Vendor Rate *</label><input type="number" name="cs_item_${idx}_vendor_rate" class="input-field" step="0.01" value="0"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Vendor Currency ID *</label><input type="text" name="cs_item_${idx}_vendor_currency" class="input-field" placeholder="UUID"></div>
+                <div class="form-group"><label>Total</label><input type="number" name="cs_item_${idx}_total" class="input-field" step="0.01"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>Lead Time</label><input type="number" name="cs_item_${idx}_lead_time" class="input-field"></div>
+                <div class="form-group">
+                    <label>Lead Time Period</label>
+                    <select name="cs_item_${idx}_lead_time_period" class="input-field"><option value="DAYS">DAYS</option><option value="WEEKS">WEEKS</option><option value="MONTHS">MONTHS</option></select>
+                </div>
+            </div>
+            <div class="form-group"><label>Notes</label><input type="text" name="cs_item_${idx}_notes" class="input-field"></div>
+            <div class="form-group"><label>Description</label><input type="text" name="cs_item_${idx}_description" class="input-field"></div>`;
+        container.appendChild(card);
+    }
+
+    /**
+     * Costing Sheet Create payload builder
+     */
+    _buildCostingSheetCreatePayload() {
+        const form = this.elements.operationForm;
+        const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
+
+        const payload = {
+            created_by_user_email: get('created_by_user_email'),
+            name: get('name'),
+            status: get('status')
+        };
+
+        const addIfPresent = (key, name) => { const v = get(name); if (v) payload[key] = v; };
+        addIfPresent('ERP_costing_sheet_id', 'ERP_costing_sheet_id');
+        addIfPresent('factwise_costing_sheet_code', 'factwise_costing_sheet_code');
+        addIfPresent('template_name', 'template_name');
+        addIfPresent('seller_entity_name', 'seller_entity_name');
+        addIfPresent('customer_entity_name', 'customer_entity_name');
+        addIfPresent('currency_code_id', 'currency_code_id');
+        addIfPresent('project_code', 'project_code');
+        addIfPresent('modified_by_user_email', 'modified_by_user_email');
+        addIfPresent('internal_notes', 'internal_notes');
+        addIfPresent('external_notes', 'external_notes');
+        addIfPresent('status_notes', 'status_notes');
+
+        const vd = get('validity_datetime'); if (vd) payload.validity_datetime = new Date(vd).toISOString();
+        const dd = get('deadline_datetime'); if (dd) payload.deadline_datetime = new Date(dd).toISOString();
+
+        const emails = get('customer_contact_emails');
+        if (emails) payload.customer_contact_emails = emails.split(',').map(e => e.trim()).filter(e => e);
+
+        // Additional costs
+        payload.additional_costs = this._collectGenericCosts('cs-create-costs-container', 'cs_cost');
+
+        // Costing sheet items
+        const itemsContainer = document.getElementById('cs-create-items-container');
+        payload.costing_sheet_items = [];
+        if (itemsContainer) {
+            itemsContainer.querySelectorAll('.cc-custom-item').forEach((card, i) => {
+                const g = (s) => card.querySelector(`[name="cs_item_${i}_${s}"]`)?.value?.trim() || '';
+                const item = {};
+                const erp = g('erp_code'); if (erp) item.erp_item_code = erp;
+                const fw = g('fw_code'); if (fw) item.factwise_item_code = fw;
+                const nm = g('name'); if (nm) item.name = nm;
+                const mu = g('mu_id'); if (mu) item.measurement_unit_id = mu;
+                const qty = g('quantity'); if (qty) item.quantity = parseFloat(qty);
+                const rate = g('rate'); if (rate) item.rate = parseFloat(rate);
+                const ve = g('vendor_entity'); if (ve) item.vendor_entity_name = ve;
+                const vr = g('vendor_rate'); if (vr) item.vendor_rate = parseFloat(vr);
+                const vc = g('vendor_currency'); if (vc) item.vendor_currency_id = vc;
+                const total = g('total'); if (total) item.total = parseFloat(total);
+                const lt = g('lead_time'); if (lt) item.lead_time = parseInt(lt);
+                const ltp = g('lead_time_period'); if (ltp) item.lead_time_period = ltp;
+                const notes = g('notes'); if (notes) item.notes = notes;
+                const desc = g('description'); if (desc) item.description = desc;
+                if (Object.keys(item).length > 0) payload.costing_sheet_items.push(item);
+            });
+        }
+
+        // Custom sections
+        payload.custom_sections = this._collectGenericCustomSections('cs-create-custom-sections-container', 'cs_cs');
+
+        return payload; // No bulk wrapper for costing sheet create
+    }
+
+    /**
+     * Add a costing sheet mapping row
+     */
+    _addCostingSheetMapping() {
+        const container = document.getElementById('cs-mapping-container');
+        if (!container) return;
+        const idx = container.querySelectorAll('.cc-custom-item').length;
+        const card = document.createElement('div');
+        card.className = 'cc-custom-item';
+        card.style.cssText = 'padding:12px;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:8px;position:relative;';
+        card.innerHTML = `
+            <button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:4px;right:8px;background:none;border:none;cursor:pointer;color:#ef4444;font-size:16px;">✕</button>
+            <div class="form-row">
+                <div class="form-group"><label>Factwise ID *</label><input type="text" name="cs_map_${idx}_fw_id" class="input-field" placeholder="Factwise costing sheet ID"></div>
+                <div class="form-group"><label>ERP ID *</label><input type="text" name="cs_map_${idx}_erp_id" class="input-field" placeholder="ERP costing sheet ID"></div>
+            </div>`;
+        container.appendChild(card);
+    }
+
+    /**
+     * Costing Sheet Mapping payload builder
+     */
+    _buildCostingSheetMappingPayload() {
+        const container = document.getElementById('cs-mapping-container');
+        const mappings = [];
+        if (container) {
+            container.querySelectorAll('.cc-custom-item').forEach((card, i) => {
+                const fwId = card.querySelector(`[name="cs_map_${i}_fw_id"]`)?.value?.trim();
+                const erpId = card.querySelector(`[name="cs_map_${i}_erp_id"]`)?.value?.trim();
+                if (fwId && erpId) mappings.push({ factwise_id: fwId, erp_id: erpId });
+            });
+        }
+        return { mappings };
     }
 
     /**
@@ -10699,6 +11543,22 @@ echo "[Done: ${count} vendors created sequentially]"
                     console.log('Building PO state payload...');
                     payload = this._buildPOStatePayload();
                 }
+            } else if (this.currentModule === 'items' && this.currentOperation === 'update') {
+                payload = this._buildItemUpdatePayload();
+            } else if (this.currentModule === 'vendors' && this.currentOperation === 'update') {
+                payload = this._buildVendorUpdatePayload();
+            } else if (this.currentModule === 'projects' && this.currentOperation === 'update') {
+                payload = this._buildProjectUpdatePayload();
+            } else if (this.currentModule === 'requisitions' && this.currentOperation === 'create') {
+                payload = this._buildRequisitionCreatePayload();
+            } else if (this.currentModule === 'requisitions' && this.currentOperation === 'update') {
+                payload = this._buildRequisitionUpdatePayload();
+            } else if (this.currentModule === 'requisitions' && this.currentOperation === 'terminate') {
+                payload = this._buildRequisitionTerminatePayload();
+            } else if (this.currentModule === 'costing_sheet' && this.currentOperation === 'create') {
+                payload = this._buildCostingSheetCreatePayload();
+            } else if (this.currentModule === 'costing_sheet' && this.currentOperation === 'mapping') {
+                payload = this._buildCostingSheetMappingPayload();
             } else {
                 // For non-Contract operations, use form inputs (Phase 1 behavior)
                 payload = this._collectFormData();
@@ -10728,10 +11588,12 @@ echo "[Done: ${count} vendors created sequentially]"
 
             // Execute real API call for Contract + Items + Vendor + Project + PO operations
             const shouldExecuteAPI = this.currentModule === 'contract' ||
-                (this.currentModule === 'items' && ['bulk_create', 'update_state', 'create'].includes(this.currentOperation)) ||
-                (this.currentModule === 'vendors' && ['contacts_create', 'contacts_update', 'contacts_delete', 'state', 'create'].includes(this.currentOperation)) ||
-                (this.currentModule === 'projects' && ['create', 'bulk_create'].includes(this.currentOperation)) ||
-                (this.currentModule === 'purchase_order' && ['create', 'terminate', 'state'].includes(this.currentOperation));
+                (this.currentModule === 'items' && ['bulk_create', 'update_state', 'create', 'update'].includes(this.currentOperation)) ||
+                (this.currentModule === 'vendors' && ['contacts_create', 'contacts_update', 'contacts_delete', 'state', 'create', 'update'].includes(this.currentOperation)) ||
+                (this.currentModule === 'projects' && ['create', 'bulk_create', 'update'].includes(this.currentOperation)) ||
+                (this.currentModule === 'purchase_order' && ['create', 'terminate', 'state'].includes(this.currentOperation)) ||
+                this.currentModule === 'requisitions' ||
+                this.currentModule === 'costing_sheet';
 
             console.log('Should execute API?', shouldExecuteAPI, 'Module:', this.currentModule, 'Op:', this.currentOperation);
 
@@ -11591,6 +12453,22 @@ echo "[Done: ${count} vendors created sequentially]"
             } catch (error) {
                 return `Error: ${error.message}`;
             }
+        } else if (this.currentModule === 'items' && this.currentOperation === 'update') {
+            try { body = this._buildItemUpdatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'vendors' && this.currentOperation === 'update') {
+            try { body = this._buildVendorUpdatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'projects' && this.currentOperation === 'update') {
+            try { body = this._buildProjectUpdatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'requisitions' && this.currentOperation === 'create') {
+            try { body = this._buildRequisitionCreatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'requisitions' && this.currentOperation === 'update') {
+            try { body = this._buildRequisitionUpdatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'requisitions' && this.currentOperation === 'terminate') {
+            try { body = this._buildRequisitionTerminatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'costing_sheet' && this.currentOperation === 'create') {
+            try { body = this._buildCostingSheetCreatePayload(); } catch (error) { return `Error: ${error.message}`; }
+        } else if (this.currentModule === 'costing_sheet' && this.currentOperation === 'mapping') {
+            try { body = this._buildCostingSheetMappingPayload(); } catch (error) { return `Error: ${error.message}`; }
         } else {
             // For other operations, collect form data
             body = this._collectFormData();
