@@ -22,7 +22,7 @@ class UIController {
         this.currentModule = null;
         this.currentOperation = null;
         this.expandedAccountId = null; // Track which account is expanded
-        this.currentMode = 'single'; // Track mode for ALL operations: 'single' or 'bulk'
+        this.currentMode = 'bulk'; // Track mode for ALL operations: 'single' or 'bulk'
 
         // Cache DOM elements
         this.elements = {};
@@ -55,8 +55,6 @@ class UIController {
             bottomBar: document.querySelector('.bottom-bar'),
             btnReset: document.getElementById('btn-reset'),
             btnGenerate: document.getElementById('btn-generate'),
-            btnCopyScript: document.getElementById('btn-copy-script'),
-            btnExecuteScript: document.getElementById('btn-execute-script'),
             btnExecute: document.getElementById('btn-execute'),
 
             // Panel Actions
@@ -263,18 +261,18 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Create Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchContractMode('single')">
-                                📄 Single Contract
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchContractMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchContractMode('bulk')">
                                 📦 Bulk Contracts
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchContractMode('single')">
+                                📄 Single Contract
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Single Mode Form -->
-                <div id="contract-single-form">
+                <div id="contract-single-form" style="display: none;">
                 <!-- ① Config Box -->
                 <div class="cc-config-box">
                     <p class="cc-config-box-title">
@@ -572,7 +570,7 @@ class UIController {
                 </div>
 
                 <!-- Bulk Mode Form -->
-                <div id="contract-bulk-form" style="display: none;"></div>
+                <div id="contract-bulk-form"></div>
             `;
         }
         // Contract Update Form
@@ -1322,18 +1320,18 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Create Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchVendorMode('single')">
-                                📄 Single Vendor
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchVendorMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchVendorMode('bulk')">
                                 📦 Bulk Vendors
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchVendorMode('single')">
+                                📄 Single Vendor
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Single Mode Form -->
-                <div id="vendor-single-form">
+                <div id="vendor-single-form" style="display: none;">
                 <!-- ① Basic Information -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">🏢</span>
@@ -1472,7 +1470,7 @@ class UIController {
                 </div>
 
                 <!-- Bulk Mode Form -->
-                <div id="vendor-bulk-form" style="display: none;"></div>
+                <div id="vendor-bulk-form"></div>
             `;
         } else if (module.id === 'items' && operation.id === 'update_state') {
             bodyInputsHtml = `
@@ -1481,17 +1479,17 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Update Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchMode('single')">
-                                📄 Single Item
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
                                 📦 Bulk Items
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchMode('single')">
+                                📄 Single Item
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div id="operation-single-form">
+                <div id="operation-single-form" style="display: none;">
                 <!-- ① Item Identification -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">🔍</span>
@@ -1548,7 +1546,7 @@ class UIController {
                 </div>
                 </div>
 
-                <div id="operation-bulk-form" style="display: none;"></div>
+                <div id="operation-bulk-form"></div>
             `;
         } else if (module.id === 'items' && operation.id === 'create') {
             bodyInputsHtml = `
@@ -1557,18 +1555,18 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Create Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchItemMode('single')">
-                                📄 Single Item
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchItemMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchItemMode('bulk')">
                                 📦 Bulk Items
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchItemMode('single')">
+                                📄 Single Item
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Single Mode Form -->
-                <div id="item-single-form">
+                <div id="item-single-form" style="display: none;">
                     <!-- ① Basic Information -->
                     <div class="form-section-title no-margin-top">
                         <span class="fst-icon">📦</span>
@@ -1733,8 +1731,8 @@ class UIController {
                 <div id="item-create-additional-costs-container"></div>
                 </div>
 
-                <!-- Bulk Mode Form (hidden by default) -->
-                <div id="item-bulk-form" style="display: none;"></div>
+                <!-- Bulk Mode Form -->
+                <div id="item-bulk-form"></div>
             `;
         } else if (module.id === 'projects' && operation.id === 'create') {
             bodyInputsHtml = `
@@ -1743,18 +1741,18 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Create Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchProjectMode('single')">
-                                📄 Single Project
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchProjectMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchProjectMode('bulk')">
                                 📦 Bulk Projects
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchProjectMode('single')">
+                                📄 Single Project
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Single Mode Form -->
-                <div id="project-single-form">
+                <div id="project-single-form" style="display: none;">
                 <!-- ① Basic Information -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -1850,8 +1848,8 @@ class UIController {
                 <div id="project-create-custom-fields-container"></div>
                 </div>
 
-                <!-- Bulk Mode Form (hidden by default) -->
-                <div id="project-bulk-form" style="display: none;"></div>
+                <!-- Bulk Mode Form -->
+                <div id="project-bulk-form"></div>
             `;
         } else if (module.id === 'projects' && operation.id === 'bulk_create') {
             bodyInputsHtml = `
@@ -1922,18 +1920,18 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Create Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchPOMode('single')">
-                                📄 Single PO
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchPOMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchPOMode('bulk')">
                                 📦 Bulk POs
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchPOMode('single')">
+                                📄 Single PO
                             </button>
                         </div>
                     </div>
                 </div>
 
                 <!-- Single Mode Form -->
-                <div id="po-single-form">
+                <div id="po-single-form" style="display: none;">
                 <!-- Template Selection -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -2114,7 +2112,7 @@ class UIController {
                 </div>
 
                 <!-- Bulk Mode Form -->
-                <div id="po-bulk-form" style="display: none;"></div>
+                <div id="po-bulk-form"></div>
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'terminate') {
             bodyInputsHtml = `
@@ -2123,17 +2121,17 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Terminate Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchMode('single')">
-                                📄 Single PO
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
                                 📦 Bulk POs
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchMode('single')">
+                                📄 Single PO
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div id="po-single-form">
+                <div id="po-single-form" style="display: none;">
                 <!-- PO Terminate Form -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">⚠️</span>
@@ -2203,7 +2201,7 @@ class UIController {
                 </div>
                 </div>
 
-                <div id="po-bulk-form" style="display: none;"></div>
+                <div id="po-bulk-form"></div>
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'state') {
             bodyInputsHtml = `
@@ -2212,17 +2210,17 @@ class UIController {
                     <div style="display: flex; align-items: center; gap: 16px;">
                         <span style="font-weight: 600; color: #475569;">Update Mode:</span>
                         <div class="mode-toggle-group">
-                            <button type="button" class="mode-toggle-btn active" data-mode="single" onclick="window.uiController._switchMode('single')">
-                                📄 Single PO
-                            </button>
-                            <button type="button" class="mode-toggle-btn" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
+                            <button type="button" class="mode-toggle-btn active" data-mode="bulk" onclick="window.uiController._switchMode('bulk')">
                                 📦 Bulk POs
+                            </button>
+                            <button type="button" class="mode-toggle-btn" data-mode="single" onclick="window.uiController._switchMode('single')">
+                                📄 Single PO
                             </button>
                         </div>
                     </div>
                 </div>
 
-                <div id="po-single-form">
+                <div id="po-single-form" style="display: none;">
                 <!-- PO State Update Form -->
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📊</span>
@@ -2292,6 +2290,9 @@ class UIController {
                         </div>
                     </div>
                 </div>
+                </div>
+
+                <div id="po-bulk-form"></div>
             `;
         } else if (module.id === 'items' && operation.id === 'update') {
             // ── Items Update Form ──
@@ -2765,10 +2766,39 @@ class UIController {
             this._addCostingSheetMapping();
         }
 
-        // Script buttons only visible in bulk mode — always hide on initial render (default is single)
+        // Script buttons only visible in bulk script sub-mode — hide on initial render
         if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.add('hidden');
         if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.add('hidden');
         this._currentBulkMode = 'payload';
+
+        // Default mode is bulk — auto-load bulk form content if empty
+        if (this.currentMode === 'bulk') {
+            this._autoLoadBulkForm();
+        }
+    }
+
+    /**
+     * Auto-load bulk form content on initial render when bulk is the default mode.
+     * Checks each module-specific bulk form container and loads if empty.
+     * @private
+     */
+    _autoLoadBulkForm() {
+        const specificBulkForms = {
+            'items': 'item-bulk-form',
+            'projects': 'project-bulk-form',
+            'vendors': 'vendor-bulk-form',
+            'purchase_order': 'po-bulk-form',
+            'contract': 'contract-bulk-form'
+        };
+
+        const genericBulk = document.getElementById('operation-bulk-form');
+        const specificId = specificBulkForms[this.currentModule];
+        const specificBulk = specificId ? document.getElementById(specificId) : null;
+        const targetForm = specificBulk || genericBulk;
+
+        if (targetForm && !targetForm.innerHTML.trim()) {
+            this._loadBulkForm();
+        }
     }
 
     // ============================================================
@@ -4934,7 +4964,7 @@ class UIController {
             vendors.push(vendor);
         });
 
-        return vendors.length === 1 ? vendors[0] : { vendors };
+        return { vendors };
     }
 
     /**
@@ -5050,23 +5080,13 @@ class UIController {
             pos.push(po);
         });
 
-        return pos.length === 1 ? pos[0] : { purchase_orders: pos };
+        return { purchase_orders: pos };
     }
 
     /**
-     * Builds the payload for contract bulk create operation
+     * Builds the payload for contract bulk create — each card mirrors the single form payload exactly.
      */
     _buildContractsBulkCreatePayload() {
-        const form = this.elements.operationForm;
-        const sharedBuyerContact = form.querySelector('[name="bc_buyer_contact"]')?.value || this.currentAccount?.user_email || '';
-        const sharedEntityName = form.querySelector('[name="bc_entity_name"]')?.value || 'FactWise';
-        const sharedBuyerIdentifications = (form.querySelector('[name="bc_buyer_identifications"]')?.value || '').split(',').map(s => s.trim()).filter(s => s);
-        const sharedBuyerAddress = form.querySelector('[name="bc_buyer_address"]')?.value || null;
-        const sharedTemplateName = (() => {
-            const s = form.querySelector('[name="bc_template_name"]');
-            return s?.options[s.selectedIndex]?.dataset?.name || s?.value || 'Default Template';
-        })();
-
         const container = document.getElementById('bulk-contracts-container');
         if (!container) throw new Error('Contract bulk container not found');
 
@@ -5077,64 +5097,85 @@ class UIController {
             const idx = card.dataset.contractIndex;
             const g = (name) => card.querySelector(`[name="bc_${idx}_${name}"]`)?.value || null;
 
+            // Template name from the card's own template selector
+            const templateSelect = card.querySelector(`[name="bc_${idx}_template_name"]`);
+            const templateName = templateSelect?.options[templateSelect.selectedIndex]?.dataset?.name || templateSelect?.value || 'Default Template';
+
+            // T&C from the card's own T&C selector
+            const tncName = g('tnc_name');
+            const tncRecord = tncName ? (this._tncList || []).find(t => t.name === tncName) : null;
+
             const contract = {
-                created_by_user_email: sharedBuyerContact,
+                created_by_user_email: g('buyer_contact') || this.currentAccount?.user_email || null,
                 contract_name: g('contract_name'),
-                factwise_contract_id: g('factwise_contract_id'),
                 ERP_contract_id: g('ERP_contract_id'),
-                contract_start_date: g('start_date'),
-                contract_end_date: g('end_date'),
-                entity_name: sharedEntityName,
-                status: g('status') || 'DRAFT',
-                template_name: sharedTemplateName,
-                buyer_contact: sharedBuyerContact,
-                buyer_identifications: sharedBuyerIdentifications,
-                buyer_address: sharedBuyerAddress,
+                factwise_contract_id: g('factwise_contract_id'),
+                contract_start_date: g('contract_start_date'),
+                contract_end_date: g('contract_end_date'),
+                entity_name: g('entity_name'),
+                status: g('status') || null,
+                template_name: templateName,
+                buyer_identifications: (g('buyer_identifications') || '').split(',').map(s => s.trim()).filter(s => s),
+                buyer_address: g('buyer_address'),
+                buyer_contact: g('buyer_contact'),
                 factwise_vendor_code: g('factwise_vendor_code'),
-                ERP_vendor_code: g('ERP_vendor_code'),
+                ERP_vendor_code: g('factwise_vendor_code') ? null : g('ERP_vendor_code'),
                 vendor_contact: g('vendor_contact'),
-                vendor_identifications: [
-                    {
-                        identification_name: g('vendor_id_name'),
-                        identification_value: g('vendor_id_value')
-                    }
-                ],
+                vendor_identifications: (g('vendor_identification_name') && g('vendor_identification_value'))
+                    ? [{ identification_name: g('vendor_identification_name'), identification_value: g('vendor_identification_value') }]
+                    : [],
                 vendor_address: {
                     address_id: g('vendor_address_id'),
-                    full_address: null
+                    full_address: g('vendor_full_address')
                 },
                 project: g('project'),
+                additional_costs: [],
+                taxes: [],
+                discounts: [],
                 prepayment_percentage: parseFloat(g('prepayment_percentage')) || 0,
-                payment_type: g('payment_type') || 'PER_INVOICE_ITEM',
+                payment_type: g('payment_type') || null,
                 payment_terms: {
-                    term: parseInt(g('payment_term')) || 1,
+                    term: parseInt(g('payment_term')) || 0,
                     period: g('payment_period') || 'MONTHS',
                     applied_from: g('payment_applied_from') || 'INVOICE_DATE'
                 },
                 deliverables_payment_terms: [],
-                incoterm: g('incoterm') || 'NA',
+                incoterm: g('incoterm') || null,
                 lead_time: g('lead_time'),
                 lead_time_period: g('lead_time_period'),
-                additional_costs: [],
-                taxes: [],
-                discounts: [],
                 custom_sections: [],
                 attachments: [],
-                terms_and_conditions: { data: '', name: 'FactWise Default TNC' },
+                terms_and_conditions: tncName ? { name: tncName, data: tncRecord?.data || '' } : null,
                 contract_items: []
             };
+
+            // Collect contract-level custom sections
+            const customContainer = card.querySelector(`#bc-${idx}-contract-custom-container`);
+            if (customContainer) {
+                customContainer.querySelectorAll('.cc-custom-section').forEach((section, sIdx) => {
+                    const sectionName = section.querySelector(`[name="bc_${idx}_custom_${sIdx}_section_name"]`)?.value;
+                    if (sectionName) {
+                        const customFields = [];
+                        section.querySelectorAll('.cc-custom-field-row').forEach((fieldRow, fIdx) => {
+                            const fname = fieldRow.querySelector(`[name="bc_${idx}_custom_${sIdx}_field_${fIdx}_name"]`)?.value;
+                            const fval = fieldRow.querySelector(`[name="bc_${idx}_custom_${sIdx}_field_${fIdx}_value"]`)?.value;
+                            if (fname) customFields.push({ name: fname, value: fval || '' });
+                        });
+                        contract.custom_sections.push({ name: sectionName, custom_fields: customFields });
+                    }
+                });
+            }
 
             // Collect contract items
             const itemsContainer = card.querySelector(`#bc-${idx}-items-container`);
             if (itemsContainer) {
-                const itemCards = itemsContainer.querySelectorAll('.cc-tier-card');
+                const itemCards = itemsContainer.querySelectorAll('.cc-item-card');
                 itemCards.forEach((itemCard, itemIdx) => {
                     const gi = (name) => itemCard.querySelector(`[name="bc_${idx}_item_${itemIdx}_${name}"]`)?.value || null;
 
                     const item = {
-                        factwise_item_code: gi('factwise_code'),
                         ERP_item_code: gi('erp_code'),
-                        quantity: parseFloat(gi('quantity')) || 0,
+                        factwise_item_code: gi('factwise_code'),
                         currency_code_id: gi('currency_id'),
                         measurement_unit_id: gi('unit_id'),
                         attributes: [],
@@ -5160,17 +5201,49 @@ class UIController {
                     // Collect tiers
                     const tiersContainer = itemCard.querySelector(`#bc-${idx}-item-${itemIdx}-tiers`);
                     if (tiersContainer) {
-                        const tierRows = tiersContainer.querySelectorAll('.form-row');
-                        tierRows.forEach((tierRow, t) => {
+                        const tierCards = tiersContainer.querySelectorAll('.cc-tier-card');
+                        tierCards.forEach((tierCard, t) => {
                             const tier = {
-                                min_quantity: parseFloat(tierRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_min"]`)?.value) || 0,
-                                max_quantity: parseFloat(tierRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_max"]`)?.value) || 0,
-                                rate: parseFloat(tierRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_rate"]`)?.value) || 0,
+                                min_quantity: parseInt(tierCard.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_min"]`)?.value) || 0,
+                                max_quantity: parseInt(tierCard.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_max"]`)?.value) || 0,
+                                rate: parseFloat(tierCard.querySelector(`[name="bc_${idx}_item_${itemIdx}_tier_${t}_rate"]`)?.value) || 0,
                                 additional_costs: [],
                                 taxes: [],
                                 discounts: []
                             };
+
+                            // Collect tier costs
+                            const costRows = tierCard.querySelectorAll('.cc-tier-cost-row');
+                            costRows.forEach(costRow => {
+                                const type = costRow.querySelector('[name$="_type"]')?.value;
+                                const name = costRow.querySelector('[name$="_name"]')?.value;
+                                const value = parseFloat(costRow.querySelector('[name$="_value"]')?.value);
+                                if (name && !isNaN(value)) {
+                                    const costItem = { name, value };
+                                    if (type === 'cost') tier.additional_costs.push(costItem);
+                                    else if (type === 'tax') tier.taxes.push(costItem);
+                                    else if (type === 'discount') tier.discounts.push(costItem);
+                                }
+                            });
+
                             item.pricing_tiers.push(tier);
+                        });
+                    }
+
+                    // Collect item-level custom sections
+                    const itemCustomContainer = itemCard.querySelector(`#bc-${idx}-item-${itemIdx}-custom`);
+                    if (itemCustomContainer) {
+                        itemCustomContainer.querySelectorAll('.cc-item-custom-section').forEach((section, sIdx) => {
+                            const sectionName = section.querySelector(`[name="bc_${idx}_item_${itemIdx}_custom_${sIdx}_section_name"]`)?.value;
+                            if (sectionName) {
+                                const customFields = [];
+                                section.querySelectorAll('.cc-custom-field-row').forEach((fieldRow, fIdx) => {
+                                    const fname = fieldRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_custom_${sIdx}_field_${fIdx}_name"]`)?.value;
+                                    const fval = fieldRow.querySelector(`[name="bc_${idx}_item_${itemIdx}_custom_${sIdx}_field_${fIdx}_value"]`)?.value;
+                                    if (fname) customFields.push({ name: fname, value: fval || '' });
+                                });
+                                item.custom_sections.push({ name: sectionName, custom_fields: customFields });
+                            }
                         });
                     }
 
@@ -5181,7 +5254,7 @@ class UIController {
             contracts.push(contract);
         });
 
-        return contracts.length === 1 ? contracts[0] : { contracts };
+        return { contracts };
     }
 
     /**
@@ -6186,12 +6259,475 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
 
         this._currentBulkMode = mode;
 
-        // Script buttons only visible in bulk script mode
-        if (this.elements.btnCopyScript) {
-            this.elements.btnCopyScript.classList.toggle('hidden', !isScript);
+        // In script mode: show script buttons, hide normal buttons. In payload mode: reverse.
+        if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.toggle('hidden', !isScript);
+        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.toggle('hidden', !isScript);
+        if (this.elements.btnGenerate) this.elements.btnGenerate.classList.toggle('hidden', isScript);
+        if (this.elements.btnExecute) this.elements.btnExecute.classList.toggle('hidden', isScript);
+
+        // Load script contract form if switching to script mode and not yet loaded
+        if (isScript && this.currentModule === 'contract') {
+            const scriptFormContainer = document.getElementById('script-contract-form-container');
+            if (scriptFormContainer && !scriptFormContainer.innerHTML.trim()) {
+                this._loadScriptContractForm(scriptFormContainer);
+            }
         }
-        if (this.elements.btnExecuteScript) {
-            this.elements.btnExecuteScript.classList.toggle('hidden', !isScript);
+    }
+
+    /**
+     * Load a single pre-filled contract form inside script mode
+     */
+    _loadScriptContractForm(container) {
+        // Reuse _addBulkContractCard logic but render into the script container with prefix 'sc_'
+        const email = this.currentAccount?.user_email || 'globalfieldsETE@gmail.com';
+        const today = new Date().toISOString().split('T')[0];
+        const nextYear = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
+
+        container.innerHTML = `
+            <!-- Template -->
+            <div class="cc-config-box">
+                <p class="cc-config-box-title">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                    Contract Template
+                </p>
+                <div style="padding: 4px 0;">
+                    <select id="sc_template_select" name="sc_template_name" class="input-field" style="margin-top: 4px;">
+                        <option value="Default Contract">Loading templates...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Basic Information -->
+            <div class="form-section-title no-margin-top">
+                <span class="fst-icon">📋</span>
+                <h4>Basic Information</h4>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Entity Name *</label>
+                    <input type="text" name="sc_entity_name" class="input-field" required value="FactWise">
+                </div>
+                <div class="form-group">
+                    <label>Status *</label>
+                    <select name="sc_status" class="input-field" required>
+                        <option value="DRAFT">DRAFT - Contract is in draft state</option>
+                        <option value="SUBMITTED">SUBMITTED - Contract is in submitted state</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date *</label>
+                    <input type="date" name="sc_contract_start_date" class="input-field" required value="${today}">
+                </div>
+                <div class="form-group">
+                    <label>End Date *</label>
+                    <input type="date" name="sc_contract_end_date" class="input-field" required value="${nextYear}">
+                </div>
+            </div>
+
+            <!-- Buyer Details -->
+            <div class="form-section-title">
+                <span class="fst-icon">🏢</span>
+                <h4>Buyer Details</h4>
+            </div>
+
+            <div class="form-group">
+                <label>Buyer Identifications (comma-separated) *</label>
+                <input type="text" name="sc_buyer_identifications" class="input-field" required value="GST">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Buyer Address</label>
+                    <input type="text" name="sc_buyer_address" class="input-field" value="Main address">
+                </div>
+                <div class="form-group">
+                    <label>Buyer Contact *</label>
+                    <input type="email" name="sc_buyer_contact" class="input-field" required value="${email}">
+                </div>
+            </div>
+
+            <!-- Vendor Details -->
+            <div class="form-section-title">
+                <span class="fst-icon">🤝</span>
+                <h4>Vendor Details</h4>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Factwise Vendor Code</label>
+                    <input type="text" name="sc_factwise_vendor_code" class="input-field" value="V0019">
+                </div>
+                <div class="form-group">
+                    <label>ERP Vendor Code</label>
+                    <input type="text" name="sc_ERP_vendor_code" class="input-field">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Vendor Contact *</label>
+                <input type="email" name="sc_vendor_contact" class="input-field" required value="nestlecompany@gmail.com">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Vendor Identification Name</label>
+                    <input type="text" name="sc_vendor_identification_name" class="input-field" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label>Vendor Identification Value</label>
+                    <input type="text" name="sc_vendor_identification_value" class="input-field" placeholder="Optional">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Vendor Address ID</label>
+                    <input type="text" name="sc_vendor_address_id" class="input-field">
+                </div>
+                <div class="form-group">
+                    <label>Vendor Full Address</label>
+                    <input type="text" name="sc_vendor_full_address" class="input-field" value="432 Tool Ave, Chicago">
+                </div>
+            </div>
+
+            <!-- Payment & Terms -->
+            <div class="form-section-title">
+                <span class="fst-icon">💳</span>
+                <h4>Payment &amp; Terms</h4>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Project</label>
+                    <input type="text" name="sc_project" class="input-field" value="P000039">
+                </div>
+                <div class="form-group">
+                    <label>Prepayment %</label>
+                    <input type="number" name="sc_prepayment_percentage" class="input-field" value="0" min="0" max="100" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Type</label>
+                    <select name="sc_payment_type" class="input-field">
+                        <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
+                        <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Incoterm *</label>
+                    <select name="sc_incoterm" class="input-field" required>
+                        <option value="EXW">EXW</option><option value="FCA">FCA</option><option value="FAS">FAS</option>
+                        <option value="FOB">FOB</option><option value="CFR" selected>CFR</option><option value="CIF">CIF</option>
+                        <option value="CPT">CPT</option><option value="CIP">CIP</option><option value="DAP">DAP</option>
+                        <option value="DAT">DAT</option><option value="DDP">DDP</option><option value="NA">NA</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Lead Time</label>
+                    <input type="number" name="sc_lead_time" class="input-field" value="10" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Lead Time Period</label>
+                    <select name="sc_lead_time_period" class="input-field">
+                        <option value="DAYS" selected>DAYS</option><option value="WEEKS">WEEKS</option>
+                        <option value="MONTHS">MONTHS</option><option value="YEARS">YEARS</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Payment Term</label>
+                    <input type="number" name="sc_payment_term" class="input-field" value="1" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Payment Period</label>
+                    <select name="sc_payment_period" class="input-field">
+                        <option value="DAYS">DAYS</option><option value="WEEKS">WEEKS</option>
+                        <option value="MONTHS" selected>MONTHS</option><option value="YEARS">YEARS</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Applied From</label>
+                    <select name="sc_payment_applied_from" class="input-field">
+                        <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                        <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                        <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Contract Item (one item template) -->
+            <div class="form-section-title">
+                <span class="fst-icon">📦</span>
+                <h4>Contract Item Template</h4>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Factwise Item Code</label>
+                    <input type="text" name="sc_item_factwise_code" class="input-field" value="BKT112">
+                </div>
+                <div class="form-group">
+                    <label>ERP Item Code</label>
+                    <input type="text" name="sc_item_erp_code" class="input-field">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Currency Code ID *</label>
+                    <input type="text" name="sc_item_currency_id" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                </div>
+                <div class="form-group">
+                    <label>Measurement Unit ID *</label>
+                    <input type="text" name="sc_item_unit_id" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Tier Min Quantity</label>
+                    <input type="number" name="sc_tier_min" class="input-field" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Tier Max Quantity</label>
+                    <input type="number" name="sc_tier_max" class="input-field" value="100">
+                </div>
+                <div class="form-group">
+                    <label>Tier Rate</label>
+                    <input type="number" name="sc_tier_rate" class="input-field" value="10" step="0.01">
+                </div>
+            </div>
+        `;
+
+        // Load templates
+        this._populateBulkTemplateSelect('sc_template_select', 'CLM');
+    }
+
+    /**
+     * Build a single contract payload from the script form fields
+     */
+    _buildScriptContractPayload(index, baseCode) {
+        const form = document.getElementById('script-contract-form-container');
+        if (!form) throw new Error('Script form not found');
+        const g = (name) => form.querySelector(`[name="sc_${name}"]`)?.value || null;
+
+        const templateSelect = form.querySelector('[name="sc_template_name"]');
+        const templateName = templateSelect?.options[templateSelect.selectedIndex]?.dataset?.name || templateSelect?.value || 'Default Contract';
+
+        const paddedIdx = String(index).padStart(3, '0');
+        return {
+            created_by_user_email: g('buyer_contact') || this.currentAccount?.user_email || null,
+            contract_name: `${baseCode}_${paddedIdx}`,
+            ERP_contract_id: `ERP_${baseCode}_${paddedIdx}`,
+            factwise_contract_id: `${baseCode}_${paddedIdx}`,
+            contract_start_date: g('contract_start_date'),
+            contract_end_date: g('contract_end_date'),
+            entity_name: g('entity_name'),
+            status: g('status') || null,
+            template_name: templateName,
+            buyer_identifications: (g('buyer_identifications') || '').split(',').map(s => s.trim()).filter(s => s),
+            buyer_address: g('buyer_address'),
+            buyer_contact: g('buyer_contact'),
+            factwise_vendor_code: g('factwise_vendor_code'),
+            ERP_vendor_code: g('factwise_vendor_code') ? null : g('ERP_vendor_code'),
+            vendor_contact: g('vendor_contact'),
+            vendor_identifications: (g('vendor_identification_name') && g('vendor_identification_value'))
+                ? [{ identification_name: g('vendor_identification_name'), identification_value: g('vendor_identification_value') }]
+                : [],
+            vendor_address: {
+                address_id: g('vendor_address_id'),
+                full_address: g('vendor_full_address')
+            },
+            project: g('project'),
+            additional_costs: [],
+            taxes: [],
+            discounts: [],
+            prepayment_percentage: parseFloat(g('prepayment_percentage')) || 0,
+            payment_type: g('payment_type') || null,
+            payment_terms: {
+                term: parseInt(g('payment_term')) || 0,
+                period: g('payment_period') || 'MONTHS',
+                applied_from: g('payment_applied_from') || 'INVOICE_DATE'
+            },
+            deliverables_payment_terms: [],
+            incoterm: g('incoterm') || null,
+            lead_time: g('lead_time'),
+            lead_time_period: g('lead_time_period'),
+            custom_sections: [],
+            attachments: [],
+            terms_and_conditions: null,
+            contract_items: [{
+                ERP_item_code: g('item_erp_code'),
+                factwise_item_code: g('item_factwise_code'),
+                currency_code_id: g('item_currency_id'),
+                measurement_unit_id: g('item_unit_id'),
+                attributes: [],
+                pricing_tiers: [{
+                    min_quantity: parseInt(g('tier_min')) || 0,
+                    max_quantity: parseInt(g('tier_max')) || 100,
+                    rate: parseFloat(g('tier_rate')) || 10,
+                    additional_costs: [],
+                    taxes: [],
+                    discounts: []
+                }],
+                prepayment_percentage: 100,
+                payment_type: 'PER_INVOICE_ITEM',
+                payment_terms: { term: 1, period: 'MONTHS', applied_from: 'INVOICE_DATE' },
+                deliverables_payment_terms: [],
+                incoterm: 'NA',
+                lead_time: '10',
+                lead_time_period: 'DAYS',
+                additional_costs: [],
+                taxes: [],
+                discounts: [],
+                attachments: [],
+                custom_sections: []
+            }]
+        };
+    }
+
+    /**
+     * Generate a Postman pre-request script that builds N contracts as a bulk payload.
+     * Paste into Postman Pre-request Script tab. Set body to {{bulkPayload}}.
+     * Endpoint: /dev/api/contract/bulk-create/
+     */
+    _generateContractScript() {
+        try {
+            const count = parseInt(document.getElementById('script-contract-count')?.value) || 10;
+            const baseCode = document.getElementById('script-contract-base-code')?.value?.trim() || 'SCALE-TEST';
+
+            // Build one sample payload to use as the template
+            const sample = this._buildScriptContractPayload(1, baseCode);
+
+            // Stringify the sample but replace the 3 dynamic fields with template literals
+            const sampleStr = JSON.stringify(sample, null, 4);
+
+            let script = `// Postman Pre-request Script — Contract Scale Test\n`;
+            script += `// ${count} contracts, base code: ${baseCode}\n`;
+            script += `// Endpoint: POST /dev/api/contract/bulk-create/\n`;
+            script += `// Body (raw JSON): {{bulkPayload}}\n\n`;
+            script += `const count = ${count};\n\n`;
+
+            script += `function generateContract(i) {\n`;
+            script += `    const idx = String(i).padStart(3, "0");\n`;
+            script += `    return {\n`;
+
+            // Re-build the object as readable JS source
+            const lines = [];
+            for (const [key, val] of Object.entries(sample)) {
+                if (key === 'contract_name') {
+                    lines.push(`        contract_name: \`${baseCode}_\${idx}\``);
+                } else if (key === 'ERP_contract_id') {
+                    lines.push(`        ERP_contract_id: \`ERP_${baseCode}_\${idx}\``);
+                } else if (key === 'factwise_contract_id') {
+                    lines.push(`        factwise_contract_id: \`${baseCode}_\${idx}\``);
+                } else {
+                    lines.push(`        ${JSON.stringify(key)}: ${JSON.stringify(val)}`);
+                }
+            }
+            script += lines.join(',\n') + '\n';
+            script += `    };\n`;
+            script += `}\n\n`;
+
+            script += `const contracts = [];\n`;
+            script += `for (let i = 1; i <= count; i++) {\n`;
+            script += `    contracts.push(generateContract(i));\n`;
+            script += `}\n\n`;
+            script += `pm.variables.set("bulkPayload", JSON.stringify({ contracts }, null, 2));\n`;
+            script += `// In Postman: Body > raw > JSON > {{bulkPayload}}\n`;
+
+            // Show in the cURL panel
+            const panel = this.elements.actionsSection;
+            const display = this.elements.curlDisplay;
+            const header = panel?.querySelector('h3');
+            if (header) header.textContent = 'Postman Pre-request Script';
+            if (display) display.innerHTML = `<pre><code>${this._escapeHtml(script)}</code></pre>`;
+            if (panel) panel.classList.remove('hidden');
+            this.elements.responseSection?.classList.add('hidden');
+            panel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } catch (err) {
+            this._displayError(err.message);
+        }
+    }
+
+    /**
+     * Execute the contract script — builds N contracts and sends ONE bulk-create request
+     */
+    async _executeContractScript() {
+        try {
+            const count = parseInt(document.getElementById('script-contract-count')?.value) || 10;
+            const baseCode = document.getElementById('script-contract-base-code')?.value?.trim() || 'SCALE-TEST';
+
+            const env = this.environmentManager.getCurrentEnvironment();
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            if (!token) throw new Error('No token available');
+
+            // Build all N contracts
+            const contracts = [];
+            for (let i = 1; i <= count; i++) {
+                contracts.push(this._buildScriptContractPayload(i, baseCode));
+            }
+
+            const payload = { contracts };
+
+            // Show progress
+            this.elements.responseSection?.classList.remove('hidden');
+            this.elements.actionsSection?.classList.add('hidden');
+            this.elements.responseDisplay.innerHTML = `<div style="font-family:monospace;font-size:12px;color:#64748b;">Sending ${count} contracts to bulk-create...</div>`;
+
+            // Use the same API client + URL builder as the main execute handler
+            const op = { method: 'POST', endpoint: '/dev/api/contract/bulk-create/' };
+            const response = await this.apiClient.request({
+                method: op.method,
+                url: `${env.baseUrl}${op.endpoint}`,
+                headers: (() => {
+                    const h = { 'Content-Type': 'application/json' };
+                    if (this.currentAccount?.api_id) h['api-id'] = this.currentAccount.api_id;
+                    if (this.currentAccount?.api_key) h['x-api-key'] = this.currentAccount.api_key;
+                    return h;
+                })(),
+                body: payload
+            });
+
+            const body = response.body || {};
+            const jsonStr = this._escapeHtml(JSON.stringify(body, null, 2));
+            const ok = response.status >= 200 && response.status < 300;
+
+            this.elements.responseDisplay.innerHTML = `
+                <div style="text-align:right;margin-bottom:8px;">
+                    <button type="button" id="copy-script-response-btn"
+                        style="padding:6px 14px;background:#475569;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:500;">
+                        📋 Copy Response
+                    </button>
+                </div>
+                <div style="margin-bottom:12px;padding:12px;border-radius:6px;${ok ? 'background:#f0fdf4;border:1px solid #86efac;color:#166534;' : 'background:#fef2f2;border:1px solid #fca5a5;color:#991b1b;'}">
+                    <strong>${ok ? '✓' : '✗'} ${response.status}</strong> — ${body.successful_count || 0} succeeded, ${body.failed_count || 0} failed out of ${count}
+                </div>
+                <pre><code class="language-json">${jsonStr}</code></pre>`;
+
+            const copyBtn = document.getElementById('copy-script-response-btn');
+            if (copyBtn) {
+                const rawJson = JSON.stringify(body, null, 2);
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(rawJson).then(() => {
+                        copyBtn.textContent = '✓ Copied!';
+                        setTimeout(() => copyBtn.textContent = '📋 Copy Response', 1500);
+                    });
+                });
+            }
+        } catch (err) {
+            this._displayError(err.message);
         }
     }
 
@@ -6565,6 +7101,13 @@ echo "[Done: ${count} vendors created sequentially]"
                 this._displayError('Switch to Script Mode first to generate a script.');
                 return;
             }
+
+            // Use module-specific script generators
+            if (this.currentModule === 'contract') {
+                this._generateContractScript();
+                return;
+            }
+
             const script = this._generateBulkScript();
             navigator.clipboard.writeText(script).then(() => {
                 const btn = this.elements.btnCopyScript;
@@ -6590,6 +7133,13 @@ echo "[Done: ${count} vendors created sequentially]"
                 this._displayError('Switch to Script Mode first to generate a script.');
                 return;
             }
+
+            // Use module-specific script executors
+            if (this.currentModule === 'contract') {
+                this._executeContractScript();
+                return;
+            }
+
             const script = this._generateBulkScript();
 
             // Show script first
@@ -6858,9 +7408,16 @@ echo "[Done: ${count} vendors created sequentially]"
 
     // ── Shared autocomplete dropdown ──────────────────────────────────────────
 
-    _attachSearchDropdown(inputEl, fetchResults, onSelect) {
+    _attachSearchDropdown(inputEl, fetchResults, onSelect, { autoSelectFirst = true, autoSelectIndex = -1 } = {}) {
         let debounceTimer = null;
         let dropdownEl = null;
+        let hasAutoSelected = false;
+        let suppressUntil = 0; // timestamp — ignore input/focus events until this time
+
+        // Pick a random index so each attachment gets a different result
+        if (autoSelectIndex < 0 && autoSelectFirst) {
+            autoSelectIndex = Math.floor(Math.random() * 100);
+        }
 
         const close = () => {
             if (dropdownEl) { dropdownEl.remove(); dropdownEl = null; }
@@ -6869,6 +7426,16 @@ echo "[Done: ${count} vendors created sequentially]"
         const show = (results) => {
             close();
             if (!results.length) return;
+
+            // Auto-select a result to pre-fill the field (rotates through results)
+            if (autoSelectFirst && !hasAutoSelected && results.length > 0) {
+                hasAutoSelected = true;
+                const pickIdx = autoSelectIndex % results.length;
+                // Suppress re-trigger from onSelect dispatching input/focus events
+                suppressUntil = Date.now() + 500;
+                onSelect(results[pickIdx]);
+                return; // don't show dropdown, just fill
+            }
 
             dropdownEl = document.createElement('div');
             dropdownEl.style.cssText = `
@@ -6886,6 +7453,7 @@ echo "[Done: ${count} vendors created sequentially]"
                 item.addEventListener('mouseleave', () => item.style.background = '');
                 item.addEventListener('mousedown', (e) => {
                     e.preventDefault(); // prevent blur before click
+                    suppressUntil = Date.now() + 300;
                     onSelect(r);
                     close();
                 });
@@ -6908,17 +7476,24 @@ echo "[Done: ${count} vendors created sequentially]"
         };
 
         inputEl.addEventListener('input', () => {
+            if (Date.now() < suppressUntil) return;
             const q = inputEl.value.trim();
             if (q.length === 0) { doSearch(''); return; }
             doSearch(q);
         });
 
         inputEl.addEventListener('focus', () => {
+            if (Date.now() < suppressUntil) return;
             if (!dropdownEl) doSearch(inputEl.value.trim());
         });
 
         inputEl.addEventListener('blur', () => setTimeout(close, 150));
         inputEl.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+
+        // Auto-prefill: fire a search immediately to pre-select first result
+        if (autoSelectFirst) {
+            setTimeout(() => doSearch(inputEl.value.trim()), 200);
+        }
     }
 
     // ── Item search dropdowns ─────────────────────────────────────────────────
@@ -7061,7 +7636,7 @@ echo "[Done: ${count} vendors created sequentially]"
         const fwEl = form.querySelector('[name="factwise_contract_id"]');
         const erpEl = form.querySelector('[name="ERP_contract_id"]');
         if (fwEl) this._attachSearchDropdown(fwEl, fetchContracts, onSelect);
-        if (erpEl) this._attachSearchDropdown(erpEl, fetchContracts, onSelect);
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchContracts, onSelect, { autoSelectFirst: false });
     }
 
     // ── Vendor search dropdown ────────────────────────────────────────────────
@@ -7097,8 +7672,8 @@ echo "[Done: ${count} vendors created sequentially]"
 
         const fwEl = form.querySelector('[name="factwise_vendor_code"]');
         const erpEl = form.querySelector('[name="ERP_vendor_code"]');
-        if (fwEl) this._attachSearchDropdown(fwEl, fetchVendors, onSelect);
-        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect);
+        if (fwEl) this._attachSearchDropdown(fwEl, fetchVendors, onSelect, { autoSelectIndex: 0 });
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect, { autoSelectFirst: false });
     }
 
     async _fillVendorFromRecord(form, vendor) {
@@ -7223,7 +7798,7 @@ echo "[Done: ${count} vendors created sequentially]"
         const fwEl = form.querySelector('[name="seller_factwise_vendor_code"]');
         const erpEl = form.querySelector('[name="seller_erp_vendor_code"]');
         if (fwEl) this._attachSearchDropdown(fwEl, fetchVendors, onSelect);
-        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect);
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect, { autoSelectFirst: false });
     }
 
     async _fillVendorFromRecordPO(form, vendor) {
@@ -9567,73 +10142,44 @@ echo "[Done: ${count} vendors created sequentially]"
     }
 
     /**
-     * Load bulk contract create form with proper record cards
+     * Load bulk contract create form — each card is a full copy of the single form
      */
     _loadContractBulkForm(targetForm) {
-        const email = this.currentAccount?.user_email || 'globalfieldsETE@gmail.com';
         targetForm.innerHTML = `
             ${this._bulkModeToggleHTML()}
             <div id="bulk-payload-mode">
-                <div class="form-section-title no-margin-top">
-                    <span class="fst-icon">📋</span>
-                    <h4>Bulk Contract Configuration</h4>
-                    <span class="fst-badge">Required</span>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Buyer Contact Email *</label>
-                        <input type="email" name="bc_buyer_contact" class="input-field" required value="${email}">
-                    </div>
-                    <div class="form-group">
-                        <label>Entity Name *</label>
-                        <input type="text" name="bc_entity_name" class="input-field" required value="FactWise">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Buyer Identifications</label>
-                        <input type="text" name="bc_buyer_identifications" class="input-field" value="GST" placeholder="GST, PAN, etc.">
-                    </div>
-                    <div class="form-group">
-                        <label>Buyer Address</label>
-                        <input type="text" name="bc_buyer_address" class="input-field" placeholder="Main address">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Contract Template</label>
-                        <select id="bc_template_select" name="bc_template_name" class="input-field">
-                            <option value="">Loading templates...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Number of Contracts *</label>
-                        <input type="number" name="bc_contract_count" class="input-field" required min="1" max="100" value="2">
-                    </div>
-                    <div class="form-group" style="align-self:flex-end;">
-                        <button type="button" onclick="window.uiController._generateBulkContractCards()"
-                            style="width:100%;padding:9px 14px;background:#6366f1;color:white;border:none;border-radius:5px;cursor:pointer;font-weight:500;font-size:13px;">
-                            Generate Contracts
-                        </button>
-                    </div>
-                </div>
-
-                <div class="form-section-title">
-                    <span class="fst-icon">📦</span>
-                    <h4>Contracts</h4>
-                </div>
                 <div id="bulk-contracts-container"></div>
-                <button type="button" class="btn-add-row" onclick="window.uiController._addBulkContractCard()" style="margin-top:12px;">+ Add Contract</button>
-            </div><!-- /bulk-payload-mode -->
+                <button type="button" class="btn-add-row" onclick="window.uiController._addBulkContractCard()" style="margin-top:12px;">
+                    + Add Contract
+                </button>
+            </div>
             <div id="bulk-script-mode" style="display:none;">
-                ${this._bulkScriptModeHTML('contracts')}
+                <div style="margin-bottom:20px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
+                    <div class="form-section-title no-margin-top">
+                        <span class="fst-icon">📜</span>
+                        <h4>Scale Test Configuration</h4>
+                        <span class="fst-badge">Script</span>
+                    </div>
+                    <p style="margin:0 0 12px 0;font-size:12px;color:#64748b;">
+                        Fill out the contract form below. The script generates N contracts with IDs: <code>BASE_CODE_001</code>, <code>BASE_CODE_002</code>, etc.
+                        Use the bottom buttons to generate the Postman script or execute directly.
+                    </p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Number of Contracts *</label>
+                            <input type="number" id="script-contract-count" class="input-field" value="10" min="1" max="500" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Base Contract Code *</label>
+                            <input type="text" id="script-contract-base-code" class="input-field" value="SCALE-TEST" required placeholder="e.g., SCALE-TEST">
+                        </div>
+                    </div>
+                </div>
+                <div id="script-contract-form-container"></div>
             </div>
         `;
 
         this._addBulkContractCard();
-        this._populateBulkTemplateSelect('bc_template_select', 'CLM');
         console.log('Loaded bulk contracts form');
     }
 
@@ -9646,77 +10192,99 @@ echo "[Done: ${count} vendors created sequentially]"
         const select = document.getElementById(selectId);
         if (!select) return;
 
-        // Check if templates are already loaded in templateManager
         const typeMap = {
             'CLM': 'templates',
             'VENDOR': 'vendorTemplates',
             'PO_GROUP': 'poTemplates',
         };
         const storeKey = typeMap[templateType] || 'templates';
+
+        // Deduplicate concurrent fetches — if a fetch is already in flight, wait for it
+        if (!this._templateFetchPromises) this._templateFetchPromises = {};
         let templates = this.templateManager?.[storeKey];
 
-        // If not loaded yet, fetch them
         if (!templates || templates.length === 0) {
-            try {
-                let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
-                if (!token) {
-                    select.innerHTML = '<option value="">No token available</option>';
-                    return;
-                }
-                let entityId = '20d11e41-5ee0-40f1-9f01-a619d20e74e3';
-                try {
-                    const payload = JSON.parse(atob(token.split('.')[1]));
-                    entityId = payload.entity_id || payload['custom:entityId'] || entityId;
-                } catch (e) {}
+            if (!this._templateFetchPromises[storeKey]) {
+                this._templateFetchPromises[storeKey] = (async () => {
+                    try {
+                        let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+                        if (!token) return [];
+                        let entityId = '20d11e41-5ee0-40f1-9f01-a619d20e74e3';
+                        try {
+                            const payload = JSON.parse(atob(token.split('.')[1]));
+                            entityId = payload.entity_id || payload['custom:entityId'] || entityId;
+                        } catch (e) {}
 
-                const baseUrl = this.environmentManager.getFactwiseBaseUrl();
-                const url = `${baseUrl}module_templates/?entity_id=${entityId}&template_type=${templateType}`;
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
-                });
+                        const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+                        const url = `${baseUrl}module_templates/?entity_id=${entityId}&template_type=${templateType}`;
+                        const response = await fetch(url, {
+                            method: 'GET',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                        });
 
-                if (response.ok) {
-                    const data = await response.json();
-                    const responseData = Array.isArray(data) ? (data[0] || {}) : data;
-                    templates = responseData.templates || [];
-                    if (this.templateManager && templates.length > 0) {
-                        this.templateManager[storeKey] = templates;
+                        if (response.ok) {
+                            const data = await response.json();
+                            const responseData = Array.isArray(data) ? (data[0] || {}) : data;
+                            const fetched = responseData.templates || [];
+                            if (this.templateManager && fetched.length > 0) {
+                                this.templateManager[storeKey] = fetched;
+                            }
+                            return fetched;
+                        }
+                    } catch (err) {
+                        console.error(`Error fetching ${templateType} templates:`, err);
                     }
-                }
-            } catch (err) {
-                console.error(`Error fetching ${templateType} templates:`, err);
+                    return [];
+                })();
             }
+            templates = await this._templateFetchPromises[storeKey];
         }
 
         if (templates && templates.length > 0) {
             select.innerHTML = templates.map(t => {
                 const name = t.name || t.template_name || 'Unnamed Template';
-                const id = t.template_id || name;
-                return `<option value="${name}">${name}</option>`;
+                const s = (t.status || '').toUpperCase();
+                const isDraft = s === 'DRAFT';
+                const isRevised = s === 'REVISED';
+                const disabled = isDraft || isRevised;
+                const suffix = disabled ? ` (${s.toLowerCase()})` : '';
+                const hint = isDraft ? 'Publish this template to use it'
+                            : isRevised ? 'Template has been revised — publish to use it'
+                            : '';
+                return `<option value="${name}" ${disabled ? 'disabled' : ''} title="${hint}">${name}${suffix}</option>`;
             }).join('');
-            select.selectedIndex = 0;
+
+            // Auto-select first usable (non-draft/revised) template
+            const firstUsable = templates.find(t => {
+                const s = (t.status || '').toUpperCase();
+                return s !== 'DRAFT' && s !== 'REVISED';
+            });
+            if (firstUsable) {
+                select.value = firstUsable.name || firstUsable.template_name;
+            } else {
+                select.selectedIndex = 0;
+            }
         } else {
-            select.innerHTML = '<option value="Default Template">Default Template</option>';
+            select.innerHTML = '<option value="Default Contract">Default Contract</option>';
         }
     }
 
     _generateBulkContractCards() {
-        const count = parseInt(document.querySelector('[name="bc_contract_count"]')?.value) || 2;
-        const container = document.getElementById('bulk-contracts-container');
-        if (!container) return;
-        container.innerHTML = '';
-        for (let i = 0; i < count; i++) this._addBulkContractCard();
+        // No longer used — kept for backwards compat
     }
 
+    /**
+     * Add a full contract card to the bulk form — mirrors the single contract form exactly.
+     * Each card is self-contained with its own template selector, toggles, items, T&C, etc.
+     */
     _addBulkContractCard() {
         const container = document.getElementById('bulk-contracts-container');
         if (!container) return;
-        const n = container.children.length;
+        const n = container.querySelectorAll('.bulk-contract-card').length;
         const idx = n;
-        const today = new Date().toISOString().split('T')[0];
-        const nextYear = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
         const email = this.currentAccount?.user_email || 'globalfieldsETE@gmail.com';
+        const now = Math.floor(Date.now() / 1000);
+        const short = String(now).slice(-6);
 
         const card = document.createElement('div');
         card.className = 'cc-item-card bulk-contract-card';
@@ -9725,118 +10293,248 @@ echo "[Done: ${count} vendors created sequentially]"
             <div class="cc-item-card-header">
                 <div class="cc-item-card-badge">${n + 1}</div>
                 <div class="cc-item-card-title">Contract #${n + 1}</div>
-                ${n > 0 ? `<button type="button" onclick="this.closest('.cc-item-card').remove()" style="margin-left:auto;background:#ef4444;color:white;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12px;">✕ Remove</button>` : ''}
+                ${n > 0 ? `<button type="button" onclick="this.closest('.bulk-contract-card').remove()" style="margin-left:auto;background:#ef4444;color:white;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12px;">✕ Remove</button>` : ''}
             </div>
             <div class="cc-item-card-body">
 
-                <p class="cc-sub-title">📌 Basic Information</p>
+                <!-- Config Box -->
+                <div class="cc-config-box">
+                    <p class="cc-config-box-title">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93l-1.41 1.41M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M19.07 19.07l-1.41-1.41M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>
+                        Payload Configuration
+                    </p>
+                    <div class="cc-config-grid">
+                        <div class="cc-config-panel">
+                            <span class="cc-config-panel-label">Contract Template</span>
+                            <div style="padding: 4px 0;">
+                                <select id="bc_${idx}_template_select" name="bc_${idx}_template_name" class="input-field" style="margin-top: 4px;">
+                                    <option value="Default Contract">Loading templates...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="cc-config-panel">
+                            <span class="cc-config-panel-label">Optional Features</span>
+                            <div class="cc-toggles-grid">
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="bc_${idx}_toggle_additional_costs">
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Additional Costs</span>
+                                </label>
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="bc_${idx}_toggle_taxes">
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Taxes</span>
+                                </label>
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="bc_${idx}_toggle_contract_custom">
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Contract Custom Fields</span>
+                                </label>
+                                <label class="cc-toggle-row">
+                                    <span class="cc-toggle-switch">
+                                        <input type="checkbox" id="bc_${idx}_toggle_item_custom">
+                                        <span class="cc-toggle-slider"></span>
+                                    </span>
+                                    <span class="cc-toggle-text">Item Custom Fields</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic Information -->
+                <div class="form-section-title no-margin-top">
+                    <span class="fst-icon">📋</span>
+                    <h4>Basic Information</h4>
+                    <span class="fst-badge">Required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Contract Name *</label>
+                    <input type="text" name="bc_${idx}_contract_name" class="input-field" required value="TestAPI ${short}_${idx + 1}">
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Contract Name *</label>
-                        <input type="text" name="bc_${idx}_contract_name" class="input-field" value="Test Contract ${n + 1}">
+                        <label>ERP Contract ID</label>
+                        <input type="text" name="bc_${idx}_ERP_contract_id" class="input-field">
                     </div>
                     <div class="form-group">
                         <label>Factwise Contract ID</label>
-                        <input type="text" name="bc_${idx}_factwise_contract_id" class="input-field" value="FW-CON-${String(n + 1).padStart(3, '0')}">
-                    </div>
-                    <div class="form-group">
-                        <label>ERP Contract ID</label>
-                        <input type="text" name="bc_${idx}_ERP_contract_id" class="input-field" value="ERP-CON-${String(n + 1).padStart(3, '0')}">
-                    </div>
-                    <div class="form-group">
-                        <label>Status</label>
-                        <select name="bc_${idx}_status" class="input-field">
-                            <option value="DRAFT" selected>DRAFT</option>
-                            <option value="SUBMITTED">SUBMITTED</option>
-                        </select>
+                        <input type="text" name="bc_${idx}_factwise_contract_id" class="input-field">
                     </div>
                 </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Start Date *</label>
-                        <input type="date" name="bc_${idx}_start_date" class="input-field" value="${today}">
+                        <input type="date" name="bc_${idx}_contract_start_date" class="input-field" required>
                     </div>
                     <div class="form-group">
                         <label>End Date *</label>
-                        <input type="date" name="bc_${idx}_end_date" class="input-field" value="${nextYear}">
-                    </div>
-                    <div class="form-group">
-                        <label>Project</label>
-                        <input type="text" name="bc_${idx}_project" class="input-field" placeholder="Project name">
+                        <input type="date" name="bc_${idx}_contract_end_date" class="input-field" required>
                     </div>
                 </div>
 
-                <p class="cc-sub-title">🏢 Vendor Details</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entity Name *</label>
+                        <input type="text" name="bc_${idx}_entity_name" class="input-field" required value="FactWise">
+                    </div>
+                    <div class="form-group">
+                        <label>Status *</label>
+                        <select name="bc_${idx}_status" class="input-field" required>
+                            <option value="DRAFT">DRAFT - Contract is in draft state</option>
+                            <option value="SUBMITTED">SUBMITTED - Contract is in submitted state</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Buyer Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🏢</span>
+                    <h4>Buyer Details</h4>
+                </div>
+
+                <div class="form-group">
+                    <label>Buyer Identifications (comma-separated) *</label>
+                    <input type="text" name="bc_${idx}_buyer_identifications" class="input-field" required value="GST" placeholder="GST, PAN, etc.">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Buyer Address</label>
+                        <input type="text" name="bc_${idx}_buyer_address" class="input-field" value="Main address">
+                    </div>
+                    <div class="form-group">
+                        <label>Buyer Contact *</label>
+                        <input type="email" name="bc_${idx}_buyer_contact" class="input-field" required value="${email}">
+                    </div>
+                </div>
+
+                <!-- Vendor Details -->
+                <div class="form-section-title">
+                    <span class="fst-icon">🤝</span>
+                    <h4>Vendor Details</h4>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Factwise Vendor Code</label>
-                        <input type="text" name="bc_${idx}_factwise_vendor_code" class="input-field" placeholder="e.g., FacVENDOR001">
+                        <input type="text" name="bc_${idx}_factwise_vendor_code" class="input-field" value="V0019">
                     </div>
                     <div class="form-group">
                         <label>ERP Vendor Code</label>
-                        <input type="text" name="bc_${idx}_ERP_vendor_code" class="input-field" placeholder="e.g., ERPV001">
-                    </div>
-                    <div class="form-group">
-                        <label>Vendor Contact Email</label>
-                        <input type="email" name="bc_${idx}_vendor_contact" class="input-field" placeholder="vendor@example.com">
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Vendor ID Name</label>
-                        <input type="text" name="bc_${idx}_vendor_id_name" class="input-field" placeholder="GST">
-                    </div>
-                    <div class="form-group">
-                        <label>Vendor ID Value</label>
-                        <input type="text" name="bc_${idx}_vendor_id_value" class="input-field" placeholder="27AABCU9603R1ZX">
-                    </div>
-                    <div class="form-group">
-                        <label>Vendor Address ID</label>
-                        <input type="text" name="bc_${idx}_vendor_address_id" class="input-field" placeholder="Address UUID">
+                        <input type="text" name="bc_${idx}_ERP_vendor_code" class="input-field">
                     </div>
                 </div>
 
-                <p class="cc-sub-title">💳 Payment & Delivery</p>
+                <div class="form-group">
+                    <label>Vendor Contact *</label>
+                    <input type="email" name="bc_${idx}_vendor_contact" class="input-field" required value="nestlecompany@gmail.com">
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Prepayment %</label>
-                        <input type="number" name="bc_${idx}_prepayment_percentage" class="input-field" value="0" step="0.01">
+                        <label>Vendor Identification Name *</label>
+                        <input type="text" name="bc_${idx}_vendor_identification_name" class="input-field" placeholder="Optional">
                     </div>
+                    <div class="form-group">
+                        <label>Vendor Identification Value</label>
+                        <input type="text" name="bc_${idx}_vendor_identification_value" class="input-field" placeholder="Optional">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Vendor Address ID</label>
+                        <input type="text" name="bc_${idx}_vendor_address_id" class="input-field">
+                    </div>
+                    <div class="form-group">
+                        <label>Vendor Full Address</label>
+                        <input type="text" name="bc_${idx}_vendor_full_address" class="input-field" value="432 Tool Ave, Chicago">
+                    </div>
+                </div>
+
+                <!-- Payment & Terms -->
+                <div class="form-section-title">
+                    <span class="fst-icon">💳</span>
+                    <h4>Payment &amp; Terms</h4>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Project</label>
+                        <input type="text" name="bc_${idx}_project" class="input-field" value="P000039">
+                    </div>
+                    <div class="form-group">
+                        <label>Prepayment %</label>
+                        <input type="number" name="bc_${idx}_prepayment_percentage" class="input-field" value="0" min="0" max="100" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-row">
                     <div class="form-group">
                         <label>Payment Type</label>
                         <select name="bc_${idx}_payment_type" class="input-field">
+                            <option value="">Select...</option>
                             <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
-                            <option value="PER_DELIVERY">PER_DELIVERY</option>
-                            <option value="ADVANCE">ADVANCE</option>
+                            <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Incoterm</label>
-                        <select name="bc_${idx}_incoterm" class="input-field">
-                            <option value="NA" selected>NA</option>
-                            <option value="CFR">CFR</option>
+                        <label>Incoterm *</label>
+                        <select name="bc_${idx}_incoterm" class="input-field" required>
+                            <option value="EXW">EXW</option>
+                            <option value="FCA">FCA</option>
+                            <option value="FAS">FAS</option>
+                            <option value="FOB">FOB</option>
+                            <option value="CFR" selected>CFR</option>
                             <option value="CIF">CIF</option>
                             <option value="CPT">CPT</option>
+                            <option value="CIP">CIP</option>
                             <option value="DAP">DAP</option>
+                            <option value="DAT">DAT</option>
                             <option value="DDP">DDP</option>
-                            <option value="EXW">EXW</option>
-                            <option value="FAS">FAS</option>
-                            <option value="FCA">FCA</option>
-                            <option value="FOB">FOB</option>
+                            <option value="NA">NA</option>
                         </select>
                     </div>
                 </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Lead Time</label>
+                        <input type="number" name="bc_${idx}_lead_time" class="input-field" value="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Lead Time Period</label>
+                        <select name="bc_${idx}_lead_time_period" class="input-field">
+                            <option value="">Select...</option>
+                            <option value="DAYS" selected>DAYS</option>
+                            <option value="WEEKS">WEEKS</option>
+                            <option value="MONTHS">MONTHS</option>
+                            <option value="YEARS">YEARS</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Payment Term</label>
-                        <input type="number" name="bc_${idx}_payment_term" class="input-field" value="1">
+                        <input type="number" name="bc_${idx}_payment_term" class="input-field" value="1" min="0">
                     </div>
                     <div class="form-group">
                         <label>Payment Period</label>
                         <select name="bc_${idx}_payment_period" class="input-field">
-                            <option value="MONTHS" selected>MONTHS</option>
                             <option value="DAYS">DAYS</option>
                             <option value="WEEKS">WEEKS</option>
+                            <option value="MONTHS" selected>MONTHS</option>
                             <option value="YEARS">YEARS</option>
                         </select>
                     </div>
@@ -9844,33 +10542,322 @@ echo "[Done: ${count} vendors created sequentially]"
                         <label>Applied From</label>
                         <select name="bc_${idx}_payment_applied_from" class="input-field">
                             <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
-                            <option value="DELIVERY_DATE">DELIVERY_DATE</option>
-                            <option value="ORDER_DATE">ORDER_DATE</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Lead Time</label>
-                        <input type="number" name="bc_${idx}_lead_time" class="input-field" placeholder="e.g., 7">
-                    </div>
-                    <div class="form-group">
-                        <label>Lead Time Period</label>
-                        <select name="bc_${idx}_lead_time_period" class="input-field">
-                            <option value="DAYS" selected>DAYS</option>
-                            <option value="WEEKS">WEEKS</option>
-                            <option value="MONTHS">MONTHS</option>
+                            <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                            <option value="DISPATCH_DATE">DISPATCH_DATE</option>
                         </select>
                     </div>
                 </div>
 
-                <p class="cc-sub-title">📦 Contract Items</p>
+                <!-- Contract Custom Sections -->
+                <div id="bc-${idx}-contract-custom-section" class="cc-conditional-section">
+                    <div class="form-section-title">
+                        <span class="fst-icon">🔧</span>
+                        <h4>Contract Custom Sections</h4>
+                    </div>
+                    <div id="bc-${idx}-contract-custom-container"></div>
+                    <button type="button" class="btn-add-row" onclick="window.uiController._addBulkContractCustomSection(${idx})">+ Add Custom Section</button>
+                </div>
+
+                <!-- Terms & Conditions -->
+                <div class="form-section-title">
+                    <span class="fst-icon">📜</span>
+                    <h4>Terms &amp; Conditions</h4>
+                </div>
+                <div class="form-group">
+                    <label>T&C Template</label>
+                    <select id="bc_${idx}_tnc_select" name="bc_${idx}_tnc_name" class="input-field">
+                        <option value="">None (skip)</option>
+                    </select>
+                </div>
+                <div id="bc-${idx}-tnc-data-wrapper" style="display:none;margin-bottom:16px;">
+                    <div id="bc-${idx}-tnc-data-toggle" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;color:#64748b;font-size:12px;font-weight:500;">
+                        <svg id="bc-${idx}-tnc-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;transform:rotate(-90deg);"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        T&C Content
+                    </div>
+                    <div id="bc-${idx}-tnc-data-content" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px;font-size:12px;color:#475569;max-height:300px;overflow-y:auto;white-space:pre-wrap;"></div>
+                </div>
+
+                <!-- Contract Items -->
+                <h4 style="margin: 20px 0 10px 0; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">
+                    <span>📦 Contract Items</span>
+                    <button type="button" class="btn-secondary" onclick="window.uiController._addBulkContractItemCard(${idx})" style="font-size: 13px; padding: 6px 12px; margin-left: 15px; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        + Add Item
+                    </button>
+                </h4>
                 <div id="bc-${idx}-items-container"></div>
-                <button type="button" class="btn-add-row" style="font-size:12px;" onclick="window.uiController._addBulkContractItemCard(${idx})">+ Add Item</button>
+
             </div>
         `;
         container.appendChild(card);
+
+        // Set default dates
+        const today = new Date().toISOString().split('T')[0];
+        const nextYear = new Date(Date.now() + 365 * 86400000).toISOString().split('T')[0];
+        const startInput = card.querySelector(`[name="bc_${idx}_contract_start_date"]`);
+        const endInput = card.querySelector(`[name="bc_${idx}_contract_end_date"]`);
+        if (startInput) startInput.value = today;
+        if (endInput) endInput.value = nextYear;
+
+        // Auto-increment contract IDs per card (reuse `now` from above)
+        const erpInput = card.querySelector(`[name="bc_${idx}_ERP_contract_id"]`);
+        const fwInput = card.querySelector(`[name="bc_${idx}_factwise_contract_id"]`);
+        if (erpInput) erpInput.value = `OPENAPIERP${now + idx}`;
+        if (fwInput) fwInput.value = `C${String(now + idx).slice(-6)}`;
+
+        // Load templates for this card
+        this._populateBulkTemplateSelect(`bc_${idx}_template_select`, 'CLM');
+
+        // Load T&C dropdown for this card and wire up expand/collapse
+        this._populateBulkTncSelect(`bc_${idx}_tnc_select`);
+        this._setupBulkTncListeners(idx);
+
+        // Add first item
         this._addBulkContractItemCard(idx);
+
+        // Setup vendor lookup on this card's vendor fields
+        setTimeout(() => {
+            this._setupBulkCardVendorLookup(card, idx);
+            this._setupBulkCardItemSearch(card, idx);
+        }, 100);
+    }
+
+    /**
+     * Attach vendor search dropdown to a bulk contract card's vendor fields
+     */
+    _setupBulkCardVendorLookup(card, cardIdx) {
+        const fetchVendors = async (q) => {
+            const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+            if (!token) return [];
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            try {
+                const res = await fetch(`${baseUrl}dashboard/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        dashboard_view: 'enterprise_vendor', tab: 'active',
+                        page_number: 1, items_per_page: 8,
+                        sort_fields: [], search_text: q,
+                        query_data: { vendor_entity_status: null }, filters: null
+                    })
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                const records = data?.data || data?.results || (Array.isArray(data) ? data : []);
+                return records.map(v => ({
+                    vendor: v,
+                    html: `<strong>${v.vendor_code}</strong>${v.ERP_vendor_code ? ` / ${v.ERP_vendor_code}` : ''} <span style="color:#64748b;">— ${v.vendor_name || ''}</span>`
+                }));
+            } catch { return []; }
+        };
+
+        const onSelect = (r) => this._fillBulkCardVendor(card, cardIdx, r.vendor);
+
+        const fwEl = card.querySelector(`[name="bc_${cardIdx}_factwise_vendor_code"]`);
+        const erpEl = card.querySelector(`[name="bc_${cardIdx}_ERP_vendor_code"]`);
+        // Defaults are V0019 (known working). Search still available if user wants a different vendor.
+        if (fwEl) this._attachSearchDropdown(fwEl, fetchVendors, onSelect, { autoSelectFirst: false });
+        if (erpEl) this._attachSearchDropdown(erpEl, fetchVendors, onSelect, { autoSelectFirst: false });
+    }
+
+    /**
+     * Full vendor fill for a bulk contract card — fetches admin detail for identifications, address, contacts
+     */
+    async _fillBulkCardVendor(card, cardIdx, vendor) {
+        const set = (name, val) => { const el = card.querySelector(`[name="bc_${cardIdx}_${name}"]`); if (el) el.value = val || ''; };
+
+        // Step 1: fill codes immediately
+        set('factwise_vendor_code', vendor.vendor_code);
+        set('ERP_vendor_code', vendor.ERP_vendor_code);
+
+        // Step 2: fetch admin detail for full data
+        let detail = vendor;
+        const masterId = vendor.enterprise_vendor_master_id;
+        if (masterId) {
+            try {
+                const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+                const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+                const res = await fetch(`${baseUrl}organization/vendor_master/${masterId}/admin/`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+                });
+                if (res.ok) detail = await res.json();
+            } catch (e) {
+                console.warn('Vendor admin fetch failed for bulk card, using dashboard data', e);
+            }
+        }
+
+        // Step 3: identification from seller_identifications[0]
+        const firstId = detail.seller_identifications?.[0];
+        set('vendor_identification_name', firstId?.identification_name || '');
+        set('vendor_identification_value', firstId?.identification_value || '');
+
+        // Step 4: address
+        const firstAddr = detail.seller_address_information?.[0];
+        if (firstAddr) {
+            if (typeof firstAddr === 'string') {
+                set('vendor_full_address', firstAddr);
+            } else if (firstAddr.address_id) {
+                set('vendor_address_id', firstAddr.address_id);
+                const parts = [firstAddr.address1, firstAddr.address2, firstAddr.city, firstAddr.state_or_territory, firstAddr.country].filter(Boolean);
+                set('vendor_full_address', parts.join(', '));
+            }
+        }
+
+        // Step 5: contact — don't overwrite the safe default (nestlecompany@gmail.com)
+        // Many vendor contact emails have 20+ duplicate rows in the DB which crashes the API's get() call.
+        // The default works universally. User can manually change it if needed.
+    }
+
+    /**
+     * Attach item search dropdown to bulk contract item code inputs in a card
+     */
+    _setupBulkCardItemSearch(card, cardIdx) {
+        const attach = () => {
+            card.querySelectorAll(`[name^="bc_${cardIdx}_item_"][name$="_factwise_code"]`).forEach(input => {
+                if (input.dataset.searchAttached) return;
+                input.dataset.searchAttached = '1';
+
+                const fetchFn = (q) => this._searchItems(q);
+                const onSelect = (r) => {
+                    input.value = r.code;
+                    input.dispatchEvent(new Event('input', { bubbles: true }));
+                };
+                this._attachSearchDropdown(input, fetchFn, onSelect);
+            });
+        };
+        attach();
+
+        // Re-attach when new items are added
+        const itemsContainer = card.querySelector(`#bc-${cardIdx}-items-container`);
+        if (itemsContainer) {
+            new MutationObserver(attach).observe(itemsContainer, { childList: true, subtree: true });
+        }
+    }
+
+    /**
+     * Wire up T&C select change + expand/collapse for a bulk contract card
+     */
+    _setupBulkTncListeners(idx) {
+        const select = document.getElementById(`bc_${idx}_tnc_select`);
+        const wrapper = document.getElementById(`bc-${idx}-tnc-data-wrapper`);
+        const toggle = document.getElementById(`bc-${idx}-tnc-data-toggle`);
+        const content = document.getElementById(`bc-${idx}-tnc-data-content`);
+        const chevron = document.getElementById(`bc-${idx}-tnc-chevron`);
+
+        if (select && wrapper) {
+            select.addEventListener('change', () => {
+                const tncName = select.value;
+                if (!tncName) {
+                    wrapper.style.display = 'none';
+                    if (content) content.textContent = '';
+                    return;
+                }
+                const tncRecord = (this._tncList || []).find(t => t.name === tncName);
+                if (tncRecord && tncRecord.data) {
+                    wrapper.style.display = '';
+                    if (content) content.textContent = tncRecord.data;
+                } else {
+                    wrapper.style.display = 'none';
+                }
+            });
+        }
+
+        if (toggle && content && chevron) {
+            toggle.addEventListener('click', () => {
+                const isHidden = content.style.display === 'none';
+                content.style.display = isHidden ? '' : 'none';
+                chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+            });
+        }
+    }
+
+    /**
+     * Populate a T&C dropdown in a bulk contract card
+     */
+    async _populateBulkTncSelect(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        const populateAndSelect = (tncList) => {
+            tncList.forEach(tnc => {
+                const opt = document.createElement('option');
+                opt.value = tnc.name;
+                opt.textContent = tnc.name;
+                select.appendChild(opt);
+            });
+            // Auto-select first T&C (index 0 is "None (skip)", 1 is first actual)
+            if (select.options.length > 1) {
+                select.selectedIndex = 1;
+                select.dispatchEvent(new Event('change'));
+            }
+        };
+
+        // Reuse the already-loaded T&C list if available
+        if (this._tncList && this._tncList.length > 0) {
+            populateAndSelect(this._tncList);
+            return;
+        }
+
+        // Otherwise try to fetch
+        try {
+            let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
+            if (!token) return;
+            const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+            const response = await fetch(`${baseUrl}api/CLM/tnc/`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const tncList = Array.isArray(data) ? data : [];
+                if (!this._tncList) this._tncList = tncList;
+                populateAndSelect(tncList);
+            }
+        } catch (e) {
+            console.error('Error loading T&C for bulk card:', e);
+        }
+    }
+
+    /**
+     * Add a custom section to a bulk contract card
+     */
+    _addBulkContractCustomSection(contractIdx) {
+        const container = document.getElementById(`bc-${contractIdx}-contract-custom-container`);
+        if (!container) return;
+        const sIdx = container.children.length;
+        const div = document.createElement('div');
+        div.className = 'cc-custom-section';
+        div.style.cssText = 'border:1px solid #e2e8f0;border-radius:6px;padding:12px;margin-bottom:10px;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <label style="font-weight:600;font-size:13px;">Section Name</label>
+                ${sIdx > 0 ? `<button type="button" onclick="this.closest('.cc-custom-section').remove()" style="background:#ef4444;color:white;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;">✕</button>` : ''}
+            </div>
+            <input type="text" name="bc_${contractIdx}_custom_${sIdx}_section_name" class="input-field" placeholder="Section name">
+            <div class="bc-custom-fields-container" style="margin-top:8px;"></div>
+            <button type="button" class="btn-add-row" style="font-size:12px;margin-top:6px;" onclick="window.uiController._addBulkContractCustomField(${contractIdx}, ${sIdx}, this.previousElementSibling)">+ Add Field</button>
+        `;
+        container.appendChild(div);
+        this._addBulkContractCustomField(contractIdx, sIdx, div.querySelector('.bc-custom-fields-container'));
+    }
+
+    _addBulkContractCustomField(contractIdx, sectionIdx, fieldsContainer) {
+        if (!fieldsContainer) return;
+        const fIdx = fieldsContainer.children.length;
+        const div = document.createElement('div');
+        div.className = 'cc-custom-field-row';
+        div.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;';
+        div.innerHTML = `
+            <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Field Name</label>
+                <input type="text" name="bc_${contractIdx}_custom_${sectionIdx}_field_${fIdx}_name" class="input-field" placeholder="Field name" style="font-size:12px;">
+            </div>
+            <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Field Value</label>
+                <input type="text" name="bc_${contractIdx}_custom_${sectionIdx}_field_${fIdx}_value" class="input-field" placeholder="Value" style="font-size:12px;">
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" style="padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;margin-bottom:2px;">✕</button>
+        `;
+        fieldsContainer.appendChild(div);
     }
 
     _addBulkContractItemCard(contractIdx) {
@@ -9879,162 +10866,248 @@ echo "[Done: ${count} vendors created sequentially]"
         const itemIdx = container.children.length;
 
         const div = document.createElement('div');
-        div.className = 'cc-tier-card';
+        div.className = 'cc-item-card';
+        div.dataset.itemIndex = itemIdx;
+        div.dataset.tiersCount = '1';
         div.innerHTML = `
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <p style="margin:0;font-weight:600;font-size:12px;color:#475569;">Item ${itemIdx + 1}</p>
-                ${itemIdx > 0 ? `<button type="button" onclick="this.closest('.cc-tier-card').remove()" style="background:#ef4444;color:white;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;">✕</button>` : ''}
+            <div class="cc-item-card-header">
+                <div class="cc-item-card-badge">${itemIdx + 1}</div>
+                <div class="cc-item-card-title">Contract Item #${itemIdx + 1}</div>
+                ${itemIdx > 0 ? `
+                    <button type="button" onclick="this.closest('.cc-item-card').remove()" style="margin-left: auto; background: #ef4444; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px;">
+                        ✕ Remove Item
+                    </button>
+                ` : ''}
             </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label style="font-size:12px;">Factwise Item Code</label>
-                    <input type="text" name="bc_${contractIdx}_item_${itemIdx}_factwise_code" class="input-field" value="BKT-${String(itemIdx + 1).padStart(3, '0')}" style="font-size:12px;">
+            <div class="cc-item-card-body">
+
+                <p class="cc-sub-title">📌 Item Identification</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Factwise Item Code</label>
+                        <input type="text" name="bc_${contractIdx}_item_${itemIdx}_factwise_code" class="input-field" placeholder="Search items...">
+                    </div>
+                    <div class="form-group">
+                        <label>ERP Item Code</label>
+                        <input type="text" name="bc_${contractIdx}_item_${itemIdx}_erp_code" class="input-field">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">ERP Item Code</label>
-                    <input type="text" name="bc_${contractIdx}_item_${itemIdx}_erp_code" class="input-field" placeholder="ERP item code" style="font-size:12px;">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Currency Code ID *</label>
+                        <input type="text" name="bc_${contractIdx}_item_${itemIdx}_currency_id" class="input-field" required value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3">
+                    </div>
+                    <div class="form-group">
+                        <label>Measurement Unit ID *</label>
+                        <input type="text" name="bc_${contractIdx}_item_${itemIdx}_unit_id" class="input-field" required value="f16d124e-db59-48fe-a2b8-19f625745cbf">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Quantity</label>
-                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_quantity" class="input-field" value="1000" step="0.01" style="font-size:12px;">
+
+                <p class="cc-sub-title">💳 Payment &amp; Shipping</p>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Prepayment %</label>
+                        <input type="number" name="bc_${contractIdx}_item_${itemIdx}_prepayment" class="input-field" value="100" min="0" max="100" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Type</label>
+                        <select name="bc_${contractIdx}_item_${itemIdx}_payment_type" class="input-field">
+                            <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
+                            <option value="PER_DELIVERABLE">PER_DELIVERABLE</option>
+                        </select>
+                    </div>
                 </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label style="font-size:12px;">Currency ID</label>
-                    <input type="text" name="bc_${contractIdx}_item_${itemIdx}_currency_id" class="input-field" value="a8c3e3fd-b05f-4d09-bd2f-9fedd07d0ec3" style="font-size:12px;">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Incoterm *</label>
+                        <select name="bc_${contractIdx}_item_${itemIdx}_incoterm" class="input-field" required>
+                            <option value="EXW">EXW</option>
+                            <option value="FCA">FCA</option>
+                            <option value="FAS">FAS</option>
+                            <option value="FOB">FOB</option>
+                            <option value="CFR">CFR</option>
+                            <option value="CIF">CIF</option>
+                            <option value="CPT">CPT</option>
+                            <option value="CIP">CIP</option>
+                            <option value="DAP">DAP</option>
+                            <option value="DAT">DAT</option>
+                            <option value="DDP">DDP</option>
+                            <option value="NA" selected>NA</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Lead Time</label>
+                        <input type="number" name="bc_${contractIdx}_item_${itemIdx}_lead_time" class="input-field" value="10" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Lead Time Period</label>
+                        <select name="bc_${contractIdx}_item_${itemIdx}_lead_time_period" class="input-field">
+                            <option value="DAYS" selected>DAYS</option>
+                            <option value="WEEKS">WEEKS</option>
+                            <option value="MONTHS">MONTHS</option>
+                            <option value="YEARS">YEARS</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Unit ID</label>
-                    <input type="text" name="bc_${contractIdx}_item_${itemIdx}_unit_id" class="input-field" value="f16d124e-db59-48fe-a2b8-19f625745cbf" style="font-size:12px;">
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Payment Term</label>
+                        <input type="number" name="bc_${contractIdx}_item_${itemIdx}_payment_term" class="input-field" value="1" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Payment Period</label>
+                        <select name="bc_${contractIdx}_item_${itemIdx}_payment_period" class="input-field">
+                            <option value="DAYS">DAYS</option>
+                            <option value="WEEKS">WEEKS</option>
+                            <option value="MONTHS" selected>MONTHS</option>
+                            <option value="YEARS">YEARS</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Applied From</label>
+                        <select name="bc_${contractIdx}_item_${itemIdx}_payment_applied_from" class="input-field">
+                            <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
+                            <option value="RECEIPT_DATE">RECEIPT_DATE</option>
+                            <option value="DISPATCH_DATE">DISPATCH_DATE</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Prepayment %</label>
-                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_prepayment" class="input-field" value="0" step="0.01" style="font-size:12px;">
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <p class="cc-sub-title" style="margin: 0;">📊 Pricing Tiers</p>
+                    <button type="button" onclick="window.uiController._addBulkContractTier(${contractIdx}, ${itemIdx})" style="background: #3b82f6; color: white; border: none; border-radius: 4px; padding: 6px 12px; cursor: pointer; font-size: 12px;">
+                        + Add Tier
+                    </button>
                 </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label style="font-size:12px;">Payment Type</label>
-                    <select name="bc_${contractIdx}_item_${itemIdx}_payment_type" class="input-field" style="font-size:12px;">
-                        <option value="PER_INVOICE_ITEM" selected>PER_INVOICE_ITEM</option>
-                        <option value="PER_DELIVERY">PER_DELIVERY</option>
-                        <option value="ADVANCE">ADVANCE</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Incoterm</label>
-                    <select name="bc_${contractIdx}_item_${itemIdx}_incoterm" class="input-field" style="font-size:12px;">
-                        <option value="NA" selected>NA</option>
-                        <option value="CFR">CFR</option>
-                        <option value="CIF">CIF</option>
-                        <option value="DAP">DAP</option>
-                        <option value="DDP">DDP</option>
-                        <option value="EXW">EXW</option>
-                        <option value="FOB">FOB</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label style="font-size:12px;">Payment Term</label>
-                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_payment_term" class="input-field" value="1" style="font-size:12px;">
-                </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Payment Period</label>
-                    <select name="bc_${contractIdx}_item_${itemIdx}_payment_period" class="input-field" style="font-size:12px;">
-                        <option value="MONTHS" selected>MONTHS</option>
-                        <option value="DAYS">DAYS</option>
-                        <option value="WEEKS">WEEKS</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Applied From</label>
-                    <select name="bc_${contractIdx}_item_${itemIdx}_payment_applied_from" class="input-field" style="font-size:12px;">
-                        <option value="INVOICE_DATE" selected>INVOICE_DATE</option>
-                        <option value="DELIVERY_DATE">DELIVERY_DATE</option>
-                        <option value="ORDER_DATE">ORDER_DATE</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label style="font-size:12px;">Lead Time</label>
-                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_lead_time" class="input-field" placeholder="e.g., 7" style="font-size:12px;">
-                </div>
-                <div class="form-group">
-                    <label style="font-size:12px;">Lead Time Period</label>
-                    <select name="bc_${contractIdx}_item_${itemIdx}_lead_time_period" class="input-field" style="font-size:12px;">
-                        <option value="DAYS" selected>DAYS</option>
-                        <option value="WEEKS">WEEKS</option>
-                        <option value="MONTHS">MONTHS</option>
-                    </select>
-                </div>
-            </div>
-            <div style="margin-top:6px;">
-                <p style="font-size:11px;font-weight:600;color:#64748b;margin:4px 0;">Pricing Tiers</p>
                 <div id="bc-${contractIdx}-item-${itemIdx}-tiers"></div>
-                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addBulkContractTier(${contractIdx}, ${itemIdx})">+ Add Tier</button>
+
+                <!-- Item Custom Sections -->
+                <div class="cc-item-custom-section-wrapper">
+                    <p class="cc-sub-title">🔧 Item Custom Sections</p>
+                    <div id="bc-${contractIdx}-item-${itemIdx}-custom"></div>
+                    <button type="button" class="btn-add-row" onclick="window.uiController._addBulkItemCustomSection(${contractIdx}, ${itemIdx})">+ Add Custom Section</button>
+                </div>
             </div>
         `;
         container.appendChild(div);
         this._addBulkContractTier(contractIdx, itemIdx);
     }
 
+    /**
+     * Add a custom section to a bulk contract item
+     */
+    _addBulkItemCustomSection(contractIdx, itemIdx) {
+        const container = document.getElementById(`bc-${contractIdx}-item-${itemIdx}-custom`);
+        if (!container) return;
+        const sIdx = container.children.length;
+        const div = document.createElement('div');
+        div.className = 'cc-item-custom-section';
+        div.style.cssText = 'border:1px solid #e2e8f0;border-radius:6px;padding:12px;margin-bottom:10px;';
+        div.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <label style="font-weight:600;font-size:13px;">Section Name</label>
+                ${sIdx > 0 ? `<button type="button" onclick="this.closest('.cc-item-custom-section').remove()" style="background:#ef4444;color:white;border:none;border-radius:4px;padding:3px 8px;cursor:pointer;font-size:11px;">✕</button>` : ''}
+            </div>
+            <input type="text" name="bc_${contractIdx}_item_${itemIdx}_custom_${sIdx}_section_name" class="input-field" placeholder="Section name">
+            <div class="bc-item-custom-fields-container" style="margin-top:8px;"></div>
+            <button type="button" class="btn-add-row" style="font-size:12px;margin-top:6px;" onclick="window.uiController._addBulkItemCustomField(${contractIdx}, ${itemIdx}, ${sIdx}, this.previousElementSibling)">+ Add Field</button>
+        `;
+        container.appendChild(div);
+        this._addBulkItemCustomField(contractIdx, itemIdx, sIdx, div.querySelector('.bc-item-custom-fields-container'));
+    }
+
+    _addBulkItemCustomField(contractIdx, itemIdx, sectionIdx, fieldsContainer) {
+        if (!fieldsContainer) return;
+        const fIdx = fieldsContainer.children.length;
+        const div = document.createElement('div');
+        div.className = 'cc-custom-field-row';
+        div.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;';
+        div.innerHTML = `
+            <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Field Name</label>
+                <input type="text" name="bc_${contractIdx}_item_${itemIdx}_custom_${sectionIdx}_field_${fIdx}_name" class="input-field" placeholder="Field name" style="font-size:12px;">
+            </div>
+            <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Field Value</label>
+                <input type="text" name="bc_${contractIdx}_item_${itemIdx}_custom_${sectionIdx}_field_${fIdx}_value" class="input-field" placeholder="Value" style="font-size:12px;">
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" style="padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;margin-bottom:2px;">✕</button>
+        `;
+        fieldsContainer.appendChild(div);
+    }
+
     _addBulkContractTier(contractIdx, itemIdx) {
         const container = document.getElementById(`bc-${contractIdx}-item-${itemIdx}-tiers`);
         if (!container) return;
         const tierIdx = container.children.length;
+        const isFirstTier = tierIdx === 0;
         const defaultMin = tierIdx * 100 + (tierIdx > 0 ? 1 : 0);
         const defaultMax = (tierIdx + 1) * 100;
 
         const div = document.createElement('div');
-        div.className = 'form-row';
-        div.style.cssText = 'background:#f8fafc;padding:6px;border-radius:4px;margin-bottom:4px;';
+        div.className = 'cc-tier-card';
+        div.dataset.tierIndex = tierIdx;
         div.innerHTML = `
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Min</label>
-                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_min" class="input-field" value="${defaultMin}" step="0.01" style="font-size:12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <p class="cc-tier-card-title" style="margin: 0;"><span class="tier-dot"></span>Tier ${tierIdx + 1}</p>
+                ${tierIdx > 0 ? `
+                    <button type="button" onclick="this.closest('.cc-tier-card').remove()" style="background: #ef4444; color: white; border: none; border-radius: 4px; padding: 4px 8px; cursor: pointer; font-size: 11px;">
+                        ✕ Remove
+                    </button>
+                ` : ''}
             </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Max</label>
-                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_max" class="input-field" value="${defaultMax}" step="0.01" style="font-size:12px;">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Min Quantity${isFirstTier ? ' <small style="color:#6366f1;font-size:10px">(default: 0)</small>' : ' <small style="color:#64748b;font-size:10px">(prev max + 1)</small>'}</label>
+                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_min" class="input-field tier-min" value="${defaultMin}" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Max Quantity</label>
+                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_max" class="input-field tier-max" value="${defaultMax}" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label>Rate</label>
+                    <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_rate" class="input-field" value="10" step="0.01">
+                </div>
             </div>
-            <div class="form-group" style="margin:0;">
-                <label style="font-size:11px;">Rate</label>
-                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_rate" class="input-field" value="10" step="0.01" style="font-size:12px;">
+            <div id="bc-${contractIdx}-item-${itemIdx}-tier-${tierIdx}-costs"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addBulkTierCostRow(${contractIdx},${itemIdx},${tierIdx},'cost')">+ Additional Cost</button>
+                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addBulkTierCostRow(${contractIdx},${itemIdx},${tierIdx},'tax')">+ Tax</button>
+                <button type="button" class="btn-add-row" style="font-size:11px;padding:3px 8px;" onclick="window.uiController._addBulkTierCostRow(${contractIdx},${itemIdx},${tierIdx},'discount')">+ Discount</button>
             </div>
-            ${tierIdx > 0 ? `<button type="button" onclick="this.parentElement.remove()" style="padding:3px 6px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;align-self:flex-end;margin-bottom:2px;">✕</button>` : '<div style="width:28px;"></div>'}
         `;
         container.appendChild(div);
     }
 
-    _addBulkContractCostRow(contractIdx) {
-        // kept for backwards compat but no longer called from card HTML
-        const container = document.getElementById(`bc-${contractIdx}-costs-container`);
+    /**
+     * Add a cost/tax/discount row to a bulk contract tier
+     */
+    _addBulkTierCostRow(contractIdx, itemIdx, tierIdx, costType) {
+        const container = document.getElementById(`bc-${contractIdx}-item-${itemIdx}-tier-${tierIdx}-costs`);
         if (!container) return;
-        const idx = container.children.length;
-        const html = `
-            <div class="form-row" style="margin-bottom:6px;">
-                <div class="form-group" style="flex:1;margin:0;">
-                    <label style="font-size:11px;">Type</label>
-                    <select name="bc_${contractIdx}_cost_${idx}_type" class="input-field" style="font-size:12px;">
-                        <option value="cost">Cost</option>
-                        <option value="tax">Tax</option>
-                        <option value="discount">Discount</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex:2;margin:0;">
-                    <label style="font-size:11px;">Name</label>
-                    <input type="text" name="bc_${contractIdx}_cost_${idx}_name" class="input-field" placeholder="e.g., GST" style="font-size:12px;">
-                </div>
-                <div class="form-group" style="flex:1;margin:0;">
-                    <label style="font-size:11px;">Value</label>
-                    <input type="number" name="bc_${contractIdx}_cost_${idx}_value" class="input-field" step="0.01" value="0" style="font-size:12px;">
-                </div>
-                <button type="button" onclick="this.parentElement.remove()" style="padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;align-self:flex-end;margin-bottom:2px;">✕</button>
-            </div>`;
-        container.insertAdjacentHTML('beforeend', html);
+        const rowIdx = container.children.length;
+        const typeLabel = costType === 'cost' ? 'Additional Cost' : costType === 'tax' ? 'Tax' : 'Discount';
+
+        const div = document.createElement('div');
+        div.className = 'cc-tier-cost-row';
+        div.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;align-items:flex-end;';
+        div.innerHTML = `
+            <input type="hidden" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_cost_${rowIdx}_type" value="${costType}">
+            <div class="form-group" style="flex:2;margin:0;">
+                <label style="font-size:11px;">${typeLabel} Name</label>
+                <input type="text" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_cost_${rowIdx}_name" class="input-field" placeholder="e.g., GST" style="font-size:12px;">
+            </div>
+            <div class="form-group" style="flex:1;margin:0;">
+                <label style="font-size:11px;">Value</label>
+                <input type="number" name="bc_${contractIdx}_item_${itemIdx}_tier_${tierIdx}_cost_${rowIdx}_value" class="input-field" step="0.01" value="0" style="font-size:12px;">
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" style="padding:4px 8px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;font-size:11px;margin-bottom:2px;">✕</button>
+        `;
+        container.appendChild(div);
     }
 
     /**
@@ -11420,7 +12493,7 @@ echo "[Done: ${count} vendors created sequentially]"
         try {
             // Get current environment and operation
             const env = this.environmentManager.getCurrentEnvironment();
-            const op = this.moduleRegistry.getOperation(this.currentModule, this.currentOperation);
+            let op = this.moduleRegistry.getOperation(this.currentModule, this.currentOperation);
 
             if (!op) {
                 throw new Error('Operation not found');
@@ -11692,7 +12765,7 @@ echo "[Done: ${count} vendors created sequentially]"
                 buyer_address: form.querySelector('[name="buyer_address"]')?.value || null,
                 buyer_contact: form.querySelector('[name="buyer_contact"]')?.value || null,
                 factwise_vendor_code: form.querySelector('[name="factwise_vendor_code"]')?.value || null,
-                ERP_vendor_code: form.querySelector('[name="ERP_vendor_code"]')?.value || null,
+                ERP_vendor_code: form.querySelector('[name="factwise_vendor_code"]')?.value ? null : (form.querySelector('[name="ERP_vendor_code"]')?.value || null),
                 vendor_contact: form.querySelector('[name="vendor_contact"]')?.value || null,
                 vendor_identifications: [
                     {
@@ -11882,7 +12955,7 @@ echo "[Done: ${count} vendors created sequentially]"
                 buyer_address: form.querySelector('[name="buyer_address"]')?.value || null,
                 buyer_contact: form.querySelector('[name="buyer_contact"]')?.value,
                 factwise_vendor_code: form.querySelector('[name="factwise_vendor_code"]')?.value || null,
-                ERP_vendor_code: form.querySelector('[name="ERP_vendor_code"]')?.value || null,
+                ERP_vendor_code: form.querySelector('[name="factwise_vendor_code"]')?.value ? null : (form.querySelector('[name="ERP_vendor_code"]')?.value || null),
                 vendor_contact: form.querySelector('[name="vendor_contact"]')?.value,
                 vendor_identifications: [
                     {
@@ -12192,7 +13265,22 @@ echo "[Done: ${count} vendors created sequentially]"
             }
         }
 
-        this.elements.responseDisplay.innerHTML = `${translationHtml}<pre><code class="language-json">${jsonStr}</code></pre>`;
+        this.elements.responseDisplay.innerHTML = `<div style="text-align:right;margin-bottom:8px;">
+            <button type="button" id="copy-response-btn"
+                style="padding:6px 14px;background:#475569;color:#fff;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:500;">
+                📋 Copy Response
+            </button>
+        </div>${translationHtml}<pre><code class="language-json">${jsonStr}</code></pre>`;
+        const copyBtn = document.getElementById('copy-response-btn');
+        if (copyBtn) {
+            const rawJson = JSON.stringify(bodyToDisplay, null, 2);
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(rawJson).then(() => {
+                    copyBtn.textContent = '✓ Copied!';
+                    setTimeout(() => copyBtn.textContent = '📋 Copy Response', 1500);
+                });
+            });
+        }
 
         // "View Contract" button — for successful contract create or update
         if (this.currentModule === 'contract'
@@ -12203,17 +13291,64 @@ echo "[Done: ${count} vendors created sequentially]"
             btnWrapper.style.cssText = 'margin-top:12px;text-align:center;';
             this.elements.responseDisplay.appendChild(btnWrapper);
 
+            const linkSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+            const linkStyle = 'display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;margin:4px;';
+
+            const makeLink = (url, label) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">${linkSvg} ${label}</a>`;
+
             // If user loaded a contract (update), we already have the IDs — no lookup needed
             if (this.currentOperation === 'update' && this._loadedContractId && this._loadedTemplateId) {
-                const contractUrl = `https://factwise-newdbtest.netlify.app/buyer/CLM/template/${this._loadedTemplateId}/contract/${this._loadedContractId}`;
-                btnWrapper.innerHTML = `
-                    <a href="${contractUrl}" target="_blank" rel="noopener noreferrer"
-                       style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                        View Contract on Factwise
-                    </a>`;
+                const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
+                const contractUrl = `${deployBase}buyer/CLM/template/${this._loadedTemplateId}/contract/${this._loadedContractId}`;
+                btnWrapper.innerHTML = makeLink(contractUrl, 'View Contract on Factwise');
+
+            } else if (this.currentMode === 'bulk' && this.currentOperation === 'create') {
+                // Bulk create — response may be an array of created contracts or a wrapper object
+                const responseData = bodyToDisplay;
+                let contractIds = [];
+
+                // Extract custom_contract_ids from response
+                if (Array.isArray(responseData)) {
+                    contractIds = responseData.map(c => c.custom_contract_id).filter(Boolean);
+                } else if (responseData?.contracts && Array.isArray(responseData.contracts)) {
+                    contractIds = responseData.contracts.map(c => c.custom_contract_id).filter(Boolean);
+                } else if (responseData?.custom_contract_id) {
+                    contractIds = [responseData.custom_contract_id];
+                }
+
+                if (contractIds.length > 0) {
+                    btnWrapper.innerHTML = `<span style="color:#64748b;font-size:12px;">Looking up ${contractIds.length} contract${contractIds.length > 1 ? 's' : ''}...</span>`;
+
+                    // Lookup all contracts in parallel
+                    Promise.all(contractIds.map(id => this._lookupContractFromDashboard(id).then(r => ({ id, result: r }))))
+                        .then(lookups => {
+                            const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
+                            const links = [];
+                            const failed = [];
+
+                            lookups.forEach(({ id, result }) => {
+                                const tplId = result?.templateId;
+                                if (result?.contractId && tplId) {
+                                    const url = `${deployBase}buyer/CLM/template/${tplId}/contract/${result.contractId}`;
+                                    links.push(makeLink(url, id));
+                                } else {
+                                    failed.push(id);
+                                }
+                            });
+
+                            let html = '';
+                            if (links.length > 0) {
+                                html += `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;">${links.join('')}</div>`;
+                            }
+                            if (failed.length > 0) {
+                                html += `<div style="margin-top:8px;color:#94a3b8;font-size:12px;">Could not resolve: ${failed.join(', ')}</div>`;
+                            }
+                            btnWrapper.innerHTML = html || `<span style="color:#94a3b8;font-size:12px;">Contracts created but could not resolve links</span>`;
+                        });
+                }
+
             } else {
-                // Fallback: lookup via dashboard (create response has custom_contract_id, or user typed it manually)
+                // Single create — lookup via dashboard
                 const customContractId = bodyToDisplay?.custom_contract_id
                     || this.elements.operationForm?.querySelector('[name="factwise_contract_id"]')?.value;
                 if (customContractId) {
@@ -12221,15 +13356,11 @@ echo "[Done: ${count} vendors created sequentially]"
                     this._lookupContractFromDashboard(customContractId).then(result => {
                         const tplId = result?.templateId || document.getElementById('template_name_select')?.value;
                         if (result?.contractId && tplId) {
-                            const contractUrl = `https://factwise-newdbtest.netlify.app/buyer/CLM/template/${tplId}/contract/${result.contractId}`;
-                            btnWrapper.innerHTML = `
-                                <a href="${contractUrl}" target="_blank" rel="noopener noreferrer"
-                                   style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                                    View Contract on Factwise
-                                </a>`;
+                            const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
+                            const contractUrl = `${deployBase}buyer/CLM/template/${tplId}/contract/${result.contractId}`;
+                            btnWrapper.innerHTML = makeLink(contractUrl, 'View Contract on Factwise');
                         } else {
-                            btnWrapper.innerHTML = `<span style="color:#94a3b8;font-size:12px;">Contract ${this.currentOperation === 'create' ? 'created' : 'updated'} but could not resolve link</span>`;
+                            btnWrapper.innerHTML = `<span style="color:#94a3b8;font-size:12px;">Contract created but could not resolve link</span>`;
                         }
                     });
                 }
@@ -12369,13 +13500,20 @@ echo "[Done: ${count} vendors created sequentially]"
     _generateCurlCommand() {
         // dynamic generator based on form inputs
         const env = this.environmentManager.getCurrentEnvironment();
-        const op = this.moduleRegistry.getOperation(this.currentModule, this.currentOperation);
+        let op = this.moduleRegistry.getOperation(this.currentModule, this.currentOperation);
 
         if (!op) return 'Error: Operation not found';
 
         // For Contract operations, use payload builder
         let body = null;
-        if (this.currentModule === 'contract') {
+        if (this.currentModule === 'contract' && this.currentOperation === 'create' && this.currentMode === 'bulk') {
+            try {
+                body = this._buildContractsBulkCreatePayload();
+                op = { ...op, endpoint: '/dev/api/contract/bulk-create/' };
+            } catch (error) {
+                return `Error: ${error.message}`;
+            }
+        } else if (this.currentModule === 'contract') {
             try {
                 body = this._buildContractPayload(op);
             } catch (error) {
@@ -12875,6 +14013,10 @@ echo "[Done: ${count} vendors created sequentially]"
                         wrapper.style.display = 'none';
                     }
                 });
+
+                // Auto-select first T&C
+                select.selectedIndex = 1; // index 0 is "None (skip)", 1 is first actual T&C
+                select.dispatchEvent(new Event('change'));
             }
         } catch (error) {
             console.error('Error loading T&C:', error);

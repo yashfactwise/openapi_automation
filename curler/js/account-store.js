@@ -146,11 +146,11 @@ class AccountStore {
                     id: 'syrma-prod',
                     name: 'Syrma SGS Prod',
                     entity_name: 'Syrma SGS',
-                    user_email: 'syrma_sgs@example.com',
+                    user_email: 'devanshimehta404@gmail.com',
                     enterprise_id: 'ent_prod_001',
                     buyer_id: 'buy_prod_001',
-                    api_id: 'syrma_api_id',
-                    api_key: 'syrma_api_key_placeholder',
+                    api_id: '999sl79ylc',
+                    api_key: '0YwNujOwpH2Q2Hx8QYOeJ6g6OImKmTLW2gB4QcNR',
                     created_at: Date.now(),
                     updated_at: Date.now()
                 }

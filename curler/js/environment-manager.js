@@ -28,8 +28,8 @@ class EnvironmentManager {
             prod: {
                 id: 'prod',
                 name: 'Production',
-                baseUrl: 'https://qc9s5bz8d7.execute-api.us-east-1.amazonaws.com',
-                factwiseBaseUrl: 'https://poiigw0go0.execute-api.us-east-1.amazonaws.com/prod/',
+                baseUrl: 'https://kaxklbtq4f.execute-api.us-east-1.amazonaws.com',
+                factwiseBaseUrl: 'https://qc9s5bz8d7.execute-api.us-east-1.amazonaws.com/prod/',
                 authEndpoint: '/auth/token',
                 deployUrl: 'https://apps.factwise.io/'
             }
