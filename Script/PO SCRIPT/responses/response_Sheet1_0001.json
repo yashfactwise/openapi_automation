@@ -1,0 +1,86 @@
+{
+  "mode": "async",
+  "task_id": "9038e3a2-f415-47f4-ae34-74d0a5cfca22",
+  "task_type": "purchase_order",
+  "status": "success",
+  "total": 10,
+  "processed": 10,
+  "success_count": 10,
+  "failure_count": 0,
+  "created_at": "2026-04-17T15:47:49.234398Z",
+  "updated_at": "2026-04-17T15:47:49.234417Z",
+  "success": [
+    {
+      "index": 0,
+      "status": "success",
+      "purchase_order_id": "e86d4584-51a2-4d1b-9928-951656378458",
+      "purchase_order_code": "PO006230",
+      "erp_purchase_order_code": "4500066696"
+    },
+    {
+      "index": 1,
+      "status": "success",
+      "purchase_order_id": "bba929ef-2fe3-466d-a9bb-01aa52f2d313",
+      "purchase_order_code": "PO006231",
+      "erp_purchase_order_code": "4500066700"
+    },
+    {
+      "index": 2,
+      "status": "success",
+      "purchase_order_id": "2c5c305f-2543-4c2e-b0b8-d220c4c301c4",
+      "purchase_order_code": "PO006232",
+      "erp_purchase_order_code": "4500066702"
+    },
+    {
+      "index": 3,
+      "status": "success",
+      "purchase_order_id": "c4465d73-0fe5-4de9-954f-712c9fa3891b",
+      "purchase_order_code": "PO006233",
+      "erp_purchase_order_code": "4500066706"
+    },
+    {
+      "index": 4,
+      "status": "success",
+      "purchase_order_id": "2e77c77a-88e5-403c-8fd1-52c579074081",
+      "purchase_order_code": "PO006234",
+      "erp_purchase_order_code": "4500066709"
+    },
+    {
+      "index": 5,
+      "status": "success",
+      "purchase_order_id": "097c7879-1c1d-44c1-91b6-0d676ed0f998",
+      "purchase_order_code": "PO006235",
+      "erp_purchase_order_code": "4500066711"
+    },
+    {
+      "index": 6,
+      "status": "success",
+      "purchase_order_id": "be6ce6d1-70e6-4515-b202-5771f1e2173d",
+      "purchase_order_code": "PO006236",
+      "erp_purchase_order_code": "4500066713"
+    },
+    {
+      "index": 7,
+      "status": "success",
+      "purchase_order_id": "780bed68-fa41-4a07-8ba9-06e68662ce07",
+      "purchase_order_code": "PO006237",
+      "erp_purchase_order_code": "4500066714"
+    },
+    {
+      "index": 8,
+      "status": "success",
+      "purchase_order_id": "820ea9af-bc80-40e8-b706-36cab9205e38",
+      "purchase_order_code": "PO006238",
+      "erp_purchase_order_code": "4500066715"
+    },
+    {
+      "index": 9,
+      "status": "success",
+      "purchase_order_id": "2359fd12-57bd-41a0-8b3d-50d610d7f5eb",
+      "purchase_order_code": "PO006239",
+      "erp_purchase_order_code": "4500066716"
+    }
+  ],
+  "failed": [],
+  "completed_at": "2026-04-17T15:47:49.234417Z"
+}

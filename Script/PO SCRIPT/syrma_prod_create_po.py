@@ -12,6 +12,7 @@ import sys
 import json
 import time
 import glob
+import signal
 import requests
 import pandas as pd
 from datetime import datetime, date
@@ -20,9 +21,9 @@ from datetime import datetime, date
 BASE_URL    = "https://kaxklbtq4f.execute-api.us-east-1.amazonaws.com/prod/"
 X_API_KEY   = "4AIu1XuzEzalDwF8iFAiU1yLzDyTzAG3avHVwiGZ"
 API_ID      = "nzj6nbxbpj"
-BATCH_SIZE  = 15
-POLL_INTERVAL = 5   # seconds between status polls
-POLL_TIMEOUT  = 300 # max seconds to wait for a batch
+BATCH_SIZE  = 10
+POLL_INTERVAL = 3600 # seconds between status polls
+POLL_TIMEOUT  = 10800 # max seconds to wait for a batch
 
 DRY_RUN     = False  # Set True to save payloads without hitting the API
 
@@ -169,9 +170,38 @@ def _parse_delivery_schedules(row, item_idx):
 
 # ─── ROW TO PO ───────────────────────────────────────────────────────────────
 
-def row_to_purchase_order(row):
-    """Convert a DataFrame row (dict) to PO payload dict."""
+def row_to_item(row):
+    """Extract just the PO item from a DataFrame row (dict)."""
+    def g(col):
+        return row.get(col)
 
+    return {
+        "ERP_item_code": safe_str(g("Item ERP Code")),
+        "factwise_item_code": safe_str(g("Item Factwise Code")),
+        "item_additional_details": safe_str(g("Item Additional Details")) or "",
+        "internal_notes": safe_str(g("Item Internal Notes")) or "",
+        "external_notes": safe_str(g("Item External Notes")) or "",
+        "price": safe_float(g("Item Price")) or 0,
+        "quantity": safe_float(g("Item Quantity")) or 0,
+        "measurement_unit": safe_str(g("Item Unit")),
+        "incoterm": safe_str(g("Item Incoterm")) or "NA",
+        "prepayment_percentage": safe_float(g("Item Prepayment %")) or 0,
+        "lead_time": safe_str(g("Item Lead Time")),
+        "lead_time_period": safe_str(g("Item Lead Time Period")),
+        "payment_type": safe_str(g("Item Payment Type")) or "PER_INVOICE_ITEM",
+        "payment_terms": parse_payment_terms(g("Item Payment Terms")),
+        "deliverables_payment_terms": parse_json_field(g("Item Deliverables Pmt Terms")),
+        "delivery_schedules": _parse_delivery_schedules(row, 0),
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": parse_json_field(g("Item Custom Sections")),
+        "attachments": [],
+    }
+
+
+def row_to_purchase_order(row):
+    """Convert a DataFrame row (dict) to a full PO payload dict (single item)."""
     def g(col):
         return row.get(col)
 
@@ -187,12 +217,12 @@ def row_to_purchase_order(row):
     # Seller details
     seller_id_name  = safe_str(g("Vendor ID Type"))
     seller_id_value = safe_str(g("Vendor ID Value"))
-    fw_vendor_code = safe_str(g("Vendor Factwise Code"))
+    fw_vendor_code  = safe_str(g("Vendor Factwise Code"))
     erp_vendor_code = safe_str(g("Vendor ERP Code"))
     if fw_vendor_code:
         erp_vendor_code = None  # prefer factwise, never send ERP when factwise is present
     elif erp_vendor_code:
-        print(f"  ⚠ Row using ERP vendor code only — may fail if multiple vendors share this code")
+        pass
     seller_details = {
         "ERP_vendor_code": erp_vendor_code,
         "factwise_vendor_code": fw_vendor_code,
@@ -229,40 +259,38 @@ def row_to_purchase_order(row):
         "custom_sections": parse_json_field(g("PO Custom Sections")),
     }
 
-    # PO item
-    item = {
-        "ERP_item_code": safe_str(g("Item ERP Code")),
-        "factwise_item_code": safe_str(g("Item Factwise Code")),
-        "item_additional_details": safe_str(g("Item Additional Details")) or "",
-        "internal_notes": safe_str(g("Item Internal Notes")) or "",
-        "external_notes": safe_str(g("Item External Notes")) or "",
-        "price": safe_float(g("Item Price")) or 0,
-        "quantity": safe_float(g("Item Quantity")) or 0,
-        "measurement_unit": safe_str(g("Item Unit")),
-        "incoterm": safe_str(g("Item Incoterm")) or "NA",
-        "prepayment_percentage": safe_float(g("Item Prepayment %")) or 0,
-        "lead_time": safe_str(g("Item Lead Time")),
-        "lead_time_period": safe_str(g("Item Lead Time Period")),
-        "payment_type": safe_str(g("Item Payment Type")) or "PER_INVOICE_ITEM",
-        "payment_terms": parse_payment_terms(g("Item Payment Terms")),
-        "deliverables_payment_terms": parse_json_field(g("Item Deliverables Pmt Terms")),
-        "delivery_schedules": _parse_delivery_schedules(row, 0),
-        "additional_costs": [],
-        "taxes": [],
-        "discounts": [],
-        "custom_sections": parse_json_field(g("Item Custom Sections")),
-        "attachments": [],
-    }
-
-    po = {
+    return {
         "buyer_details": buyer_details,
         "seller_details": seller_details,
         "purchase_order_details": purchase_order_details,
-        "purchase_order_items": [item],
+        "purchase_order_items": [row_to_item(row)],
         "attachments": [],
     }
 
-    return po
+
+def group_rows_into_pos(batch_rows):
+    """
+    Group DataFrame rows by ERP PO ID so that multiple rows sharing the same
+    PO ID become a single PO with multiple items in purchase_order_items.
+    Returns a list of (po_dict, [original_row_indices]) tuples.
+    """
+    from collections import OrderedDict
+    groups = OrderedDict()  # erp_po_id -> {"po": po_dict, "indices": [int]}
+
+    for idx, row_data in batch_rows.iterrows():
+        row = row_data.to_dict()
+        erp_po_id = safe_str(row.get("ERP PO ID")) or f"__no_id_{idx}__"
+
+        if erp_po_id not in groups:
+            po = row_to_purchase_order(row)
+            groups[erp_po_id] = {"po": po, "indices": [idx]}
+        else:
+            # Same PO — just append the new item
+            new_item = row_to_item(row)
+            groups[erp_po_id]["po"]["purchase_order_items"].append(new_item)
+            groups[erp_po_id]["indices"].append(idx)
+
+    return list(groups.values())
 
 # ─── STATE MANAGEMENT ────────────────────────────────────────────────────────
 
@@ -305,12 +333,23 @@ def poll_task(task_id):
     while elapsed < POLL_TIMEOUT:
         time.sleep(POLL_INTERVAL)
         elapsed += POLL_INTERVAL
-        resp = requests.get(url, headers=headers, timeout=30)
+        try:
+            resp = requests.get(url, headers=headers, timeout=30)
+        except requests.exceptions.RequestException as e:
+            print(f"  Network error polling task, retrying... ({e})")
+            continue
         if resp.status_code == 404:
             print(f"  Task {task_id} not found yet, retrying...")
             continue
+        if resp.status_code in (502, 503, 504):
+            print(f"  HTTP {resp.status_code} on poll, retrying...")
+            continue
         resp.raise_for_status()
-        data = resp.json()
+        try:
+            data = resp.json()
+        except Exception:
+            print(f"  Non-JSON poll response, retrying... ({resp.text[:100]})")
+            continue
         status = data.get("status", "")
         processed = data.get("processed", 0)
         total = data.get("total", 0)
@@ -334,15 +373,24 @@ def fire_batch(purchase_orders, batch_num=0, sheet=None):
     url = BASE_URL + "api/purchase_order/bulk-create/"
     headers = get_headers()
     payload = {"purchase_orders": purchase_orders}
-    resp = requests.post(url, json=payload, headers=headers, timeout=60)
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=120)
+    except requests.exceptions.RequestException as e:
+        raise RuntimeError(f"Network error sending batch: {e}") from e
 
     if resp.status_code == 202:
-        data = resp.json()
+        try:
+            data = resp.json()
+        except Exception:
+            raise RuntimeError(f"202 response but non-JSON body: {resp.text[:300]}")
         task_id = data.get("task_id")
         print(f"  -> Async task_id: {task_id}")
         return task_id, None
     elif resp.status_code == 207:
-        data = resp.json()
+        try:
+            data = resp.json()
+        except Exception:
+            raise RuntimeError(f"207 response but non-JSON body: {resp.text[:300]}")
         print(f"  -> Sync response: {data.get('successful_count',0)} ok, {data.get('failed_count',0)} failed")
         save_response(batch_num, sheet or "unknown", data)
         return None, data
@@ -454,6 +502,19 @@ def pick_sheets(filepath):
     print(f"Selected: {selected}")
     return selected
 
+# ─── CTRL+C HANDLER ──────────────────────────────────────────────────────────
+
+_current_state = None
+
+def _handle_sigint(sig, frame):
+    print("\n\n  Interrupted! Saving state before exit...")
+    if _current_state is not None:
+        save_state(_current_state)
+        print(f"  State saved to {STATE_FILE} — you can resume next run.")
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, _handle_sigint)
+
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -466,7 +527,9 @@ def main():
     filepath = pick_file(folder)
     sheets   = pick_sheets(filepath)
 
+    global _current_state
     state = load_state()
+    _current_state = state
     if state.get("results") or state.get("last_batch_start", 0) > 0:
         last_sheet = state.get("current_sheet", "?")
         last_row   = state.get("last_batch_start", 0)
@@ -503,47 +566,47 @@ def main():
         total_rows = len(df)
         print(f"Total rows: {total_rows}")
 
+        # Group ALL rows first so multi-item POs are never split across batch boundaries
+        try:
+            all_groups = group_rows_into_pos(df)
+        except Exception as e:
+            print(f"  X Grouping error: {e}")
+            continue
+        total_pos = len(all_groups)
+        print(f"Total POs after grouping: {total_pos}")
+
         if state.get("current_sheet") == sheet:
             start = state.get("last_batch_start", 0)
         else:
             start = 0
             state["current_sheet"] = sheet
             state["last_batch_start"] = 0
+            state["total_pos"] = total_pos
             save_state(state)
 
         if start > 0:
-            print(f"Resuming from row {start}...")
+            print(f"Resuming from PO index {start}...")
 
         batch_num = start // BATCH_SIZE
         i = start
-        while i < total_rows:
-            batch_end = min(i + BATCH_SIZE, total_rows)
-            batch_rows = df.iloc[i:batch_end]
+        while i < total_pos:
+            batch_end = min(i + BATCH_SIZE, total_pos)
+            batch_groups = all_groups[i:batch_end]
             batch_num += 1
 
-            print(f"\nBatch {batch_num}: rows {i+1}-{batch_end} ({batch_end - i} POs)")
+            print(f"\nBatch {batch_num}: POs {i+1}-{batch_end} ({batch_end - i} POs)")
 
             purchase_orders = []
             row_indices = []
-            for idx, row_data in batch_rows.iterrows():
-                try:
-                    po = row_to_purchase_order(row_data.to_dict())
-                    purchase_orders.append(po)
-                    row_indices.append(i + len(purchase_orders) - 1)
-                except Exception as e:
-                    print(f"  X Row {idx+2} parse error: {e}")
-                    state["results"].append({
-                        "row": idx + 2,
-                        "sheet": sheet,
-                        "status": "parse_error",
-                        "error": str(e),
-                        "erp_po_id": row_data.get("ERP PO ID", ""),
-                    })
+            for group in batch_groups:
+                purchase_orders.append(group["po"])
+                row_indices.append(group["indices"])
 
             if not purchase_orders:
                 i = batch_end
                 state["current_sheet"] = sheet
                 state["last_batch_start"] = i
+                state["current_po_index"] = f"{i}/{total_pos}"
                 save_state(state)
                 continue
 
@@ -552,15 +615,17 @@ def main():
             except Exception as e:
                 print(f"  X Batch fire error: {e}")
                 for ri, po in enumerate(purchase_orders):
-                    state["results"].append({
-                        "row": row_indices[ri] + 2,
-                        "sheet": sheet,
-                        "status": "send_error",
-                        "error": str(e),
-                        "erp_po_id": po.get("purchase_order_details", {}).get("ERP_po_id", ""),
-                    })
+                    for orig_idx in row_indices[ri]:
+                        state["results"].append({
+                            "row": orig_idx + 2,
+                            "sheet": sheet,
+                            "status": "send_error",
+                            "error": str(e),
+                            "erp_po_id": po.get("purchase_order_details", {}).get("ERP_po_id", ""),
+                        })
                 i = batch_end
                 state["last_batch_start"] = i
+                state["current_po_index"] = f"{i}/{total_pos}"
                 save_state(state)
                 continue
 
@@ -578,27 +643,31 @@ def main():
 
             for s in successful:
                 ri = s.get("index", 0)
-                state["results"].append({
-                    "row": row_indices[ri] + 2 if ri < len(row_indices) else "?",
-                    "sheet": sheet,
-                    "status": "success",
-                    "purchase_order_code": s.get("purchase_order_code"),
-                    "purchase_order_id": s.get("purchase_order_id"),
-                    "erp_purchase_order_code": s.get("erp_purchase_order_code"),
-                    "erp_po_id": purchase_orders[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(purchase_orders) else "",
-                })
+                indices = row_indices[ri] if ri < len(row_indices) else []
+                for orig_idx in indices:
+                    state["results"].append({
+                        "row": orig_idx + 2,
+                        "sheet": sheet,
+                        "status": "success",
+                        "purchase_order_code": s.get("purchase_order_code"),
+                        "purchase_order_id": s.get("purchase_order_id"),
+                        "erp_purchase_order_code": s.get("erp_purchase_order_code"),
+                        "erp_po_id": purchase_orders[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(purchase_orders) else "",
+                    })
 
             for f in failed:
                 ri = f.get("index", 0)
-                state["results"].append({
-                    "row": row_indices[ri] + 2 if ri < len(row_indices) else "?",
-                    "sheet": sheet,
-                    "status": "failed",
-                    "error": f.get("error", ""),
-                    "erp_purchase_order_code": f.get("erp_purchase_order_code"),
-                    "erp_po_id": purchase_orders[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(purchase_orders) else "",
-                    "_payload": purchase_orders[ri] if ri < len(purchase_orders) else None,
-                })
+                indices = row_indices[ri] if ri < len(row_indices) else []
+                for orig_idx in indices:
+                    state["results"].append({
+                        "row": orig_idx + 2,
+                        "sheet": sheet,
+                        "status": "failed",
+                        "error": f.get("error", ""),
+                        "erp_purchase_order_code": f.get("erp_purchase_order_code"),
+                        "erp_po_id": purchase_orders[ri].get("purchase_order_details", {}).get("ERP_po_id", "") if ri < len(purchase_orders) else "",
+                        "_payload": purchase_orders[ri] if ri < len(purchase_orders) else None,
+                    })
 
             s_count = len(successful)
             f_count = len(failed)
@@ -607,6 +676,7 @@ def main():
             i = batch_end
             state["current_sheet"] = sheet
             state["last_batch_start"] = i
+            state["current_po_index"] = f"{i}/{total_pos}"
             save_state(state)
 
         if sheet not in completed_sheets:

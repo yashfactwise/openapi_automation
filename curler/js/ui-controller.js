@@ -109,8 +109,6 @@ class UIController {
         // Footer Actions
         if (this.elements.btnReset) this.elements.btnReset.addEventListener('click', () => this.handleReset());
         if (this.elements.btnGenerate) this.elements.btnGenerate.addEventListener('click', () => this.handleGenerate());
-        if (this.elements.btnCopyScript) this.elements.btnCopyScript.addEventListener('click', () => this.handleCopyScript());
-        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.addEventListener('click', () => this.handleExecuteScript());
         if (this.elements.btnExecute) this.elements.btnExecute.addEventListener('click', () => this.handleExecute());
 
         // Form Validation Monitoring
@@ -920,7 +918,6 @@ class UIController {
             `;
         } else if (module.id === 'items' && operation.id === 'bulk_create') {
             bodyInputsHtml = `
-                ${this._bulkModeToggleHTML()}
                 <!-- ① Shared Config -->
                 <div id="bulk-payload-mode">
                 <div class="cc-config-box">
@@ -1024,10 +1021,6 @@ class UIController {
                 <div id="bulk-items-container"></div>
                 </div><!-- /bulk-payload-mode -->
 
-                <!-- Script Mode (hidden by default) -->
-                <div id="bulk-script-mode" style="display:none;">
-                    ${this._bulkScriptModeHTML('items')}
-                </div>
             `;
 
         } else if (module.id === 'vendors' && operation.id === 'contacts_create') {
@@ -1853,7 +1846,6 @@ class UIController {
             `;
         } else if (module.id === 'projects' && operation.id === 'bulk_create') {
             bodyInputsHtml = `
-                ${this._bulkModeToggleHTML()}
                 <div id="bulk-payload-mode">
                 <!-- Project Bulk Create Form -->
                 <div class="form-section-title no-margin-top">
@@ -1909,9 +1901,6 @@ class UIController {
                 </button>
                 </div><!-- /bulk-payload-mode -->
 
-                <div id="bulk-script-mode" style="display:none;">
-                    ${this._bulkScriptModeHTML('projects')}
-                </div>
             `;
         } else if (module.id === 'purchase_order' && operation.id === 'create') {
             bodyInputsHtml = `
@@ -2765,11 +2754,6 @@ class UIController {
             // Add first mapping row
             this._addCostingSheetMapping();
         }
-
-        // Script buttons only visible in bulk script sub-mode — hide on initial render
-        if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.add('hidden');
-        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.add('hidden');
-        this._currentBulkMode = 'payload';
 
         // Default mode is bulk — auto-load bulk form content if empty
         if (this.currentMode === 'bulk') {
@@ -5766,11 +5750,8 @@ class UIController {
         return payload;
     }
 
-    /**
-     * Generates a Postman pre-request script that dynamically builds the bulk payload.
-     * Reads shared config + first item card as the template, then generates a loop.
-     */
-    _generateBulkItemScript() {
+    // === Script mode functions removed — using Duplicate feature instead ===
+    _generateBulkItemScript_REMOVED() {
         const form = this.elements.operationForm;
         const get = (name) => form.querySelector(`[name="${name}"]`)?.value?.trim() || '';
         const t = this._getBulkToggles();
@@ -6238,41 +6219,7 @@ pm.variables.set("bulkPayload", JSON.stringify({ items }, null, 2));
         container.appendChild(card);
     }
 
-    _switchBulkMode(mode) {
-        const payloadDiv = document.getElementById('bulk-payload-mode');
-        const scriptDiv = document.getElementById('bulk-script-mode');
-        if (!payloadDiv || !scriptDiv) return;
-
-        const isScript = mode === 'script';
-        payloadDiv.style.display = isScript ? 'none' : '';
-        scriptDiv.style.display = isScript ? '' : 'none';
-
-        // Update toggle buttons using the same CSS class pattern as single/bulk toggle
-        const toggleBtns = document.querySelectorAll('[data-bulk-mode]');
-        toggleBtns.forEach(btn => {
-            if (btn.dataset.bulkMode === mode) {
-                btn.classList.add('active');
-            } else {
-                btn.classList.remove('active');
-            }
-        });
-
-        this._currentBulkMode = mode;
-
-        // In script mode: show script buttons, hide normal buttons. In payload mode: reverse.
-        if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.toggle('hidden', !isScript);
-        if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.toggle('hidden', !isScript);
-        if (this.elements.btnGenerate) this.elements.btnGenerate.classList.toggle('hidden', isScript);
-        if (this.elements.btnExecute) this.elements.btnExecute.classList.toggle('hidden', isScript);
-
-        // Load script contract form if switching to script mode and not yet loaded
-        if (isScript && this.currentModule === 'contract') {
-            const scriptFormContainer = document.getElementById('script-contract-form-container');
-            if (scriptFormContainer && !scriptFormContainer.innerHTML.trim()) {
-                this._loadScriptContractForm(scriptFormContainer);
-            }
-        }
-    }
+    // Script mode removed — use Duplicate feature instead
 
     /**
      * Load a single pre-filled contract form inside script mode
@@ -10146,41 +10093,112 @@ echo "[Done: ${count} vendors created sequentially]"
      */
     _loadContractBulkForm(targetForm) {
         targetForm.innerHTML = `
-            ${this._bulkModeToggleHTML()}
-            <div id="bulk-payload-mode">
-                <div id="bulk-contracts-container"></div>
-                <button type="button" class="btn-add-row" onclick="window.uiController._addBulkContractCard()" style="margin-top:12px;">
+            <div id="bulk-contracts-container"></div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:12px;">
+                <button type="button" class="btn-add-row" onclick="window.uiController._addBulkContractCard()">
                     + Add Contract
                 </button>
-            </div>
-            <div id="bulk-script-mode" style="display:none;">
-                <div style="margin-bottom:20px;padding:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;">
-                    <div class="form-section-title no-margin-top">
-                        <span class="fst-icon">📜</span>
-                        <h4>Scale Test Configuration</h4>
-                        <span class="fst-badge">Script</span>
-                    </div>
-                    <p style="margin:0 0 12px 0;font-size:12px;color:#64748b;">
-                        Fill out the contract form below. The script generates N contracts with IDs: <code>BASE_CODE_001</code>, <code>BASE_CODE_002</code>, etc.
-                        Use the bottom buttons to generate the Postman script or execute directly.
-                    </p>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Number of Contracts *</label>
-                            <input type="number" id="script-contract-count" class="input-field" value="10" min="1" max="500" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Base Contract Code *</label>
-                            <input type="text" id="script-contract-base-code" class="input-field" value="SCALE-TEST" required placeholder="e.g., SCALE-TEST">
-                        </div>
-                    </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+                    <label style="font-size:12px;color:#64748b;white-space:nowrap;">Duplicate last card</label>
+                    <input type="number" id="duplicate-contract-count" class="input-field" value="2" min="1" max="50" style="width:60px;padding:6px 8px;font-size:12px;">
+                    <button type="button" onclick="window.uiController._duplicateBulkContractCards()"
+                        style="padding:6px 14px;background:#6366f1;color:white;border:none;border-radius:5px;cursor:pointer;font-size:12px;font-weight:500;white-space:nowrap;">
+                        Duplicate
+                    </button>
                 </div>
-                <div id="script-contract-form-container"></div>
             </div>
         `;
 
         this._addBulkContractCard();
         console.log('Loaded bulk contracts form');
+    }
+
+    /**
+     * Duplicate the last bulk contract card N times
+     */
+    _duplicateBulkContractCards() {
+        const count = parseInt(document.getElementById('duplicate-contract-count')?.value) || 2;
+        const container = document.getElementById('bulk-contracts-container');
+        if (!container) return;
+
+        // Read values from the last card to copy
+        const lastCard = container.querySelector('.bulk-contract-card:last-child');
+        if (!lastCard) {
+            this._addBulkContractCard();
+            return;
+        }
+
+        const lastIdx = lastCard.dataset.contractIndex;
+        const getVal = (name) => lastCard.querySelector(`[name="bc_${lastIdx}_${name}"]`)?.value || '';
+
+        for (let i = 0; i < count; i++) {
+            this._addBulkContractCard({ skipAutoSearch: true });
+
+            // Copy values from last card into the newly added card
+            const newCard = container.querySelector('.bulk-contract-card:last-child');
+            const newIdx = newCard.dataset.contractIndex;
+            const setVal = (name, val) => {
+                const el = newCard.querySelector(`[name="bc_${newIdx}_${name}"]`);
+                if (el && val) el.value = val;
+            };
+
+            // Copy all the fields from the source card
+            const fieldsToCopy = [
+                'entity_name', 'status', 'buyer_identifications', 'buyer_address', 'buyer_contact',
+                'factwise_vendor_code', 'ERP_vendor_code', 'vendor_contact',
+                'vendor_identification_name', 'vendor_identification_value',
+                'vendor_address_id', 'vendor_full_address',
+                'project', 'prepayment_percentage', 'payment_type', 'incoterm',
+                'lead_time', 'lead_time_period', 'payment_term', 'payment_period', 'payment_applied_from',
+                'contract_start_date', 'contract_end_date'
+            ];
+            fieldsToCopy.forEach(f => setVal(f, getVal(f)));
+
+            // Copy item fields from source card's first item
+            const srcItemContainer = lastCard.querySelector(`#bc-${lastIdx}-items-container`);
+            if (srcItemContainer) {
+                const itemFields = ['factwise_code', 'erp_code', 'currency_id', 'unit_id',
+                    'prepayment', 'payment_type', 'incoterm', 'lead_time', 'lead_time_period',
+                    'payment_term', 'payment_period', 'payment_applied_from'];
+                itemFields.forEach(f => {
+                    const srcVal = lastCard.querySelector(`[name="bc_${lastIdx}_item_0_${f}"]`)?.value || '';
+                    const destEl = newCard.querySelector(`[name="bc_${newIdx}_item_0_${f}"]`);
+                    if (destEl && srcVal) destEl.value = srcVal;
+                });
+
+                // Copy pricing tiers — match count and copy values
+                const srcTiers = lastCard.querySelectorAll(`#bc-${lastIdx}-item-0-tiers .cc-tier-card`);
+                const destTiersContainer = newCard.querySelector(`#bc-${newIdx}-item-0-tiers`);
+                if (srcTiers.length > 0 && destTiersContainer) {
+                    // Add extra tiers if source has more than 1
+                    for (let t = 1; t < srcTiers.length; t++) {
+                        this._addBulkContractTier(parseInt(newIdx), 0);
+                    }
+                    // Copy all tier values
+                    srcTiers.forEach((srcTier, t) => {
+                        const tierFields = ['min', 'max', 'rate'];
+                        tierFields.forEach(f => {
+                            const srcVal = srcTier.querySelector(`[name="bc_${lastIdx}_item_0_tier_${t}_${f}"]`)?.value || '';
+                            const destEl = newCard.querySelector(`[name="bc_${newIdx}_item_0_tier_${t}_${f}"]`);
+                            if (destEl && srcVal) destEl.value = srcVal;
+                        });
+                    });
+                }
+            }
+
+            // Copy template selection
+            const srcTemplate = lastCard.querySelector(`[name="bc_${lastIdx}_template_name"]`);
+            const newTemplate = newCard.querySelector(`[name="bc_${newIdx}_template_name"]`);
+            if (srcTemplate && newTemplate) newTemplate.value = srcTemplate.value;
+
+            // Copy T&C selection
+            const srcTnc = lastCard.querySelector(`[name="bc_${lastIdx}_tnc_name"]`);
+            const newTnc = newCard.querySelector(`[name="bc_${newIdx}_tnc_name"]`);
+            if (srcTnc && newTnc) {
+                newTnc.value = srcTnc.value;
+                newTnc.dispatchEvent(new Event('change'));
+            }
+        }
     }
 
     /**
@@ -10277,7 +10295,7 @@ echo "[Done: ${count} vendors created sequentially]"
      * Add a full contract card to the bulk form — mirrors the single contract form exactly.
      * Each card is self-contained with its own template selector, toggles, items, T&C, etc.
      */
-    _addBulkContractCard() {
+    _addBulkContractCard({ skipAutoSearch = false } = {}) {
         const container = document.getElementById('bulk-contracts-container');
         if (!container) return;
         const n = container.querySelectorAll('.bulk-contract-card').length;
@@ -10614,11 +10632,49 @@ echo "[Done: ${count} vendors created sequentially]"
         // Add first item
         this._addBulkContractItemCard(idx);
 
-        // Setup vendor lookup on this card's vendor fields
-        setTimeout(() => {
-            this._setupBulkCardVendorLookup(card, idx);
-            this._setupBulkCardItemSearch(card, idx);
-        }, 100);
+        // Setup vendor/item search dropdowns (but skip auto-select if duplicating)
+        if (!skipAutoSearch) {
+            setTimeout(() => {
+                this._setupBulkCardVendorLookup(card, idx);
+                this._setupBulkCardItemSearch(card, idx);
+            }, 100);
+        } else {
+            // Still attach search for manual use, but no auto-fire
+            setTimeout(() => {
+                const fwVendor = card.querySelector(`[name="bc_${idx}_factwise_vendor_code"]`);
+                const erpVendor = card.querySelector(`[name="bc_${idx}_ERP_vendor_code"]`);
+                const fetchVendors = async (q) => {
+                    const token = this.factwiseIntegration?.getToken() || this.tokenManager?.getToken();
+                    if (!token) return [];
+                    const baseUrl = this.environmentManager.getFactwiseBaseUrl();
+                    try {
+                        const res = await fetch(`${baseUrl}dashboard/`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ dashboard_view: 'enterprise_vendor', tab: 'active', page_number: 1, items_per_page: 8, sort_fields: [], search_text: q, query_data: { vendor_entity_status: null }, filters: null })
+                        });
+                        if (!res.ok) return [];
+                        const data = await res.json();
+                        return (data?.data || []).map(v => ({ vendor: v, html: `<strong>${v.vendor_code}</strong>${v.ERP_vendor_code ? ` / ${v.ERP_vendor_code}` : ''} <span style="color:#64748b;">— ${v.vendor_name || ''}</span>` }));
+                    } catch { return []; }
+                };
+                const onVendorSelect = (r) => this._fillBulkCardVendor(card, idx, r.vendor);
+                if (fwVendor) this._attachSearchDropdown(fwVendor, fetchVendors, onVendorSelect, { autoSelectFirst: false });
+                if (erpVendor) this._attachSearchDropdown(erpVendor, fetchVendors, onVendorSelect, { autoSelectFirst: false });
+
+                // Item search — no auto-select
+                const attachItems = () => {
+                    card.querySelectorAll(`[name^="bc_${idx}_item_"][name$="_factwise_code"]`).forEach(input => {
+                        if (input.dataset.searchAttached) return;
+                        input.dataset.searchAttached = '1';
+                        this._attachSearchDropdown(input, (q) => this._searchItems(q), (r) => { input.value = r.code; }, { autoSelectFirst: false });
+                    });
+                };
+                attachItems();
+                const itemsContainer = card.querySelector(`#bc-${idx}-items-container`);
+                if (itemsContainer) new MutationObserver(attachItems).observe(itemsContainer, { childList: true, subtree: true });
+            }, 100);
+        }
     }
 
     /**
@@ -10802,13 +10858,14 @@ echo "[Done: ${count} vendors created sequentially]"
             let token = this.factwiseIntegration?.getToken() || this.tokenManager.getToken();
             if (!token) return;
             const baseUrl = this.environmentManager.getFactwiseBaseUrl();
-            const response = await fetch(`${baseUrl}api/CLM/tnc/`, {
+            const response = await fetch(`${baseUrl}organization/terms_and_conditions/admin/?type=PURCHASE_ORDER`, {
                 method: 'GET',
                 headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
             });
             if (response.ok) {
                 const data = await response.json();
-                const tncList = Array.isArray(data) ? data : [];
+                const allTnc = Array.isArray(data) ? data : (data.results || []);
+                const tncList = allTnc.filter(t => t.status === 'ACTIVE');
                 if (!this._tncList) this._tncList = tncList;
                 populateAndSelect(tncList);
             }
@@ -11116,7 +11173,6 @@ echo "[Done: ${count} vendors created sequentially]"
     _loadVendorBulkForm(targetForm) {
         const email = this.currentAccount?.user_email || 'globalfieldsETE@gmail.com';
         targetForm.innerHTML = `
-            ${this._bulkModeToggleHTML()}
             <div id="bulk-payload-mode">
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -11161,9 +11217,6 @@ echo "[Done: ${count} vendors created sequentially]"
                 <div id="bulk-vendors-container"></div>
                 <button type="button" class="btn-add-row" onclick="window.uiController._addBulkVendorCard()" style="margin-top:12px;">+ Add Vendor</button>
             </div><!-- /bulk-payload-mode -->
-            <div id="bulk-script-mode" style="display:none;">
-                ${this._bulkScriptModeHTML('vendors')}
-            </div>
         `;
 
         this._addBulkVendorCard();
@@ -11239,7 +11292,6 @@ echo "[Done: ${count} vendors created sequentially]"
     _loadPOBulkForm(targetForm) {
         const email = this.currentAccount?.user_email || 'globalfieldsETE@gmail.com';
         targetForm.innerHTML = `
-            ${this._bulkModeToggleHTML()}
             <div id="bulk-payload-mode">
                 <div class="form-section-title no-margin-top">
                     <span class="fst-icon">📋</span>
@@ -11284,9 +11336,6 @@ echo "[Done: ${count} vendors created sequentially]"
                 <div id="bulk-pos-container"></div>
                 <button type="button" class="btn-add-row" onclick="window.uiController._addBulkPOCard()" style="margin-top:12px;">+ Add PO</button>
             </div><!-- /bulk-payload-mode -->
-            <div id="bulk-script-mode" style="display:none;">
-                ${this._bulkScriptModeHTML('purchase_order')}
-            </div>
         `;
 
         this._addBulkPOCard();
@@ -11462,15 +11511,10 @@ echo "[Done: ${count} vendors created sequentially]"
             singleForm.style.display = 'block';
             bulkForm.style.display = 'none';
             this.currentMode = 'single';
-            // Hide script buttons in single mode
-            if (this.elements.btnCopyScript) this.elements.btnCopyScript.classList.add('hidden');
-            if (this.elements.btnExecuteScript) this.elements.btnExecuteScript.classList.add('hidden');
         } else {
             singleForm.style.display = 'none';
             bulkForm.style.display = 'block';
             this.currentMode = 'bulk';
-            // Script buttons only show when in bulk script mode (not payload mode)
-            // _switchBulkMode will control their visibility when user switches sub-mode
 
             // Load bulk form if not already loaded
             if (!bulkForm.innerHTML.trim()) {
@@ -11528,13 +11572,8 @@ echo "[Done: ${count} vendors created sequentially]"
         // Determine if this is a create operation (gets script mode toggle)
         const isCreateOp = operation === 'create';
 
-        // Determine script type key for _bulkScriptModeHTML
-        const scriptTypeMap = { 'contract': 'contracts', 'vendors': 'vendors', 'purchase_order': 'purchase_order' };
-        const scriptType = scriptTypeMap[module] || module;
-
         // For all other operations, generate generic bulk form
         targetForm.innerHTML = `
-            ${isCreateOp ? this._bulkModeToggleHTML() : ''}
             ${isCreateOp ? '<div id="bulk-payload-mode">' : ''}
             <div class="form-section-title no-margin-top">
                 <span class="fst-icon">📦</span>
@@ -11568,7 +11607,6 @@ echo "[Done: ${count} vendors created sequentially]"
 
             <div id="bulk-records-container"></div>
             ${isCreateOp ? '</div><!-- /bulk-payload-mode -->' : ''}
-            ${isCreateOp ? `<div id="bulk-script-mode" style="display:none;">${this._bulkScriptModeHTML(scriptType)}</div>` : ''}
         `;
 
         // Add first record
@@ -13282,90 +13320,224 @@ echo "[Done: ${count} vendors created sequentially]"
             });
         }
 
-        // "View Contract" button — for successful contract create or update
+        // Contract create/update — show results table with links
         if (this.currentModule === 'contract'
             && (this.currentOperation === 'create' || this.currentOperation === 'update')
             && response.status >= 200 && response.status < 300) {
 
-            const btnWrapper = document.createElement('div');
-            btnWrapper.style.cssText = 'margin-top:12px;text-align:center;';
-            this.elements.responseDisplay.appendChild(btnWrapper);
-
-            const linkSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
-            const linkStyle = 'display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#3b82f6;color:#fff;border-radius:6px;text-decoration:none;font-size:13px;font-weight:500;cursor:pointer;margin:4px;';
-
-            const makeLink = (url, label) => `<a href="${url}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">${linkSvg} ${label}</a>`;
-
-            // If user loaded a contract (update), we already have the IDs — no lookup needed
-            if (this.currentOperation === 'update' && this._loadedContractId && this._loadedTemplateId) {
-                const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
-                const contractUrl = `${deployBase}buyer/CLM/template/${this._loadedTemplateId}/contract/${this._loadedContractId}`;
-                btnWrapper.innerHTML = makeLink(contractUrl, 'View Contract on Factwise');
-
-            } else if (this.currentMode === 'bulk' && this.currentOperation === 'create') {
-                // Bulk create — response may be an array of created contracts or a wrapper object
-                const responseData = bodyToDisplay;
-                let contractIds = [];
-
-                // Extract custom_contract_ids from response
-                if (Array.isArray(responseData)) {
-                    contractIds = responseData.map(c => c.custom_contract_id).filter(Boolean);
-                } else if (responseData?.contracts && Array.isArray(responseData.contracts)) {
-                    contractIds = responseData.contracts.map(c => c.custom_contract_id).filter(Boolean);
-                } else if (responseData?.custom_contract_id) {
-                    contractIds = [responseData.custom_contract_id];
-                }
-
-                if (contractIds.length > 0) {
-                    btnWrapper.innerHTML = `<span style="color:#64748b;font-size:12px;">Looking up ${contractIds.length} contract${contractIds.length > 1 ? 's' : ''}...</span>`;
-
-                    // Lookup all contracts in parallel
-                    Promise.all(contractIds.map(id => this._lookupContractFromDashboard(id).then(r => ({ id, result: r }))))
-                        .then(lookups => {
-                            const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
-                            const links = [];
-                            const failed = [];
-
-                            lookups.forEach(({ id, result }) => {
-                                const tplId = result?.templateId;
-                                if (result?.contractId && tplId) {
-                                    const url = `${deployBase}buyer/CLM/template/${tplId}/contract/${result.contractId}`;
-                                    links.push(makeLink(url, id));
-                                } else {
-                                    failed.push(id);
-                                }
-                            });
-
-                            let html = '';
-                            if (links.length > 0) {
-                                html += `<div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px;">${links.join('')}</div>`;
-                            }
-                            if (failed.length > 0) {
-                                html += `<div style="margin-top:8px;color:#94a3b8;font-size:12px;">Could not resolve: ${failed.join(', ')}</div>`;
-                            }
-                            btnWrapper.innerHTML = html || `<span style="color:#94a3b8;font-size:12px;">Contracts created but could not resolve links</span>`;
-                        });
-                }
-
+            // Check for async mode — poll until complete
+            if (bodyToDisplay?.mode === 'async' && bodyToDisplay?.status_url) {
+                this._pollAsyncContractTask(bodyToDisplay);
             } else {
-                // Single create — lookup via dashboard
-                const customContractId = bodyToDisplay?.custom_contract_id
-                    || this.elements.operationForm?.querySelector('[name="factwise_contract_id"]')?.value;
-                if (customContractId) {
-                    btnWrapper.innerHTML = `<span style="color:#64748b;font-size:12px;">Looking up contract...</span>`;
-                    this._lookupContractFromDashboard(customContractId).then(result => {
-                        const tplId = result?.templateId || document.getElementById('template_name_select')?.value;
-                        if (result?.contractId && tplId) {
-                            const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
-                            const contractUrl = `${deployBase}buyer/CLM/template/${tplId}/contract/${result.contractId}`;
-                            btnWrapper.innerHTML = makeLink(contractUrl, 'View Contract on Factwise');
-                        } else {
-                            btnWrapper.innerHTML = `<span style="color:#94a3b8;font-size:12px;">Contract created but could not resolve link</span>`;
-                        }
-                    });
-                }
+                this._renderContractResultsTable(bodyToDisplay);
             }
         }
+    }
+
+    /**
+     * Poll an async contract task until it completes, then render results table
+     */
+    async _pollAsyncContractTask(asyncResponse) {
+        const statusUrl = asyncResponse.status_url;
+        const taskId = asyncResponse.task_id;
+        const total = asyncResponse.total_contracts || '?';
+
+        const tableWrapper = document.createElement('div');
+        tableWrapper.id = 'contract-results-table';
+        tableWrapper.style.cssText = 'margin-top:16px;';
+        tableWrapper.innerHTML = `
+            <div style="padding:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;text-align:center;">
+                <div style="font-size:14px;font-weight:600;color:#1e40af;margin-bottom:8px;">Processing ${total} contracts asynchronously...</div>
+                <div style="font-size:12px;color:#3b82f6;">Task ID: ${taskId}</div>
+                <div id="async-poll-status" style="margin-top:12px;font-size:12px;color:#64748b;">Polling for results...</div>
+            </div>`;
+        this.elements.responseDisplay.appendChild(tableWrapper);
+
+        // Build headers same as main execute
+        const headers = { 'Content-Type': 'application/json' };
+        if (this.currentAccount?.api_id) headers['api-id'] = this.currentAccount.api_id;
+        if (this.currentAccount?.api_key) headers['x-api-key'] = this.currentAccount.api_key;
+
+        const maxAttempts = 120; // 10 minutes at 5s intervals
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            await new Promise(r => setTimeout(r, 5000));
+
+            const pollStatus = document.getElementById('async-poll-status');
+            if (pollStatus) pollStatus.textContent = `Polling... attempt ${attempt}/${maxAttempts}`;
+
+            try {
+                const res = await this.apiClient.request({
+                    method: 'GET',
+                    url: statusUrl,
+                    headers
+                });
+
+                const body = res.body || {};
+                console.log('Poll response:', body);
+                const status = (body.status || '').toLowerCase();
+                const hasResults = body.success !== undefined || body.successful !== undefined
+                    || body.failed !== undefined || body.failure !== undefined
+                    || body.success_count !== undefined || body.successful_count !== undefined;
+
+                if (hasResults || status === 'success' || status === 'completed' || status === 'finished') {
+                    // Task complete — update JSON display and render table
+                    const jsonStr = this._escapeHtml(JSON.stringify(body, null, 2));
+                    const existingPre = this.elements.responseDisplay.querySelector('pre');
+                    if (existingPre) existingPre.innerHTML = `<code class="language-json">${jsonStr}</code>`;
+
+                    tableWrapper.innerHTML = '';
+                    this._renderContractResultsTable(body);
+                    return;
+                } else if (status === 'failed' || status === 'error') {
+                    if (pollStatus) pollStatus.innerHTML = `<span style="color:#ef4444;">Task failed: ${body.message || body.error || 'Unknown error'}</span>`;
+                    return;
+                }
+                // Still processing — continue polling
+            } catch (err) {
+                console.warn('Poll error:', err);
+            }
+        }
+
+        const pollStatus = document.getElementById('async-poll-status');
+        if (pollStatus) pollStatus.innerHTML = `<span style="color:#f59e0b;">Polling timed out after ${maxAttempts} attempts. Check task ${taskId} manually.</span>`;
+    }
+
+    /**
+     * Render a results table for contract bulk create responses (sync or async)
+     */
+    _renderContractResultsTable(body) {
+        // Handle both sync format (successful/failed) and async format (success/failure)
+        const successful = body.successful || body.success || [];
+        const failed = body.failed || body.failure || [];
+        const deployBase = this.environmentManager.getCurrentEnvironment().deployUrl || 'https://factwise-newdbtest.netlify.app/';
+
+        // Single create response — wrap into the same format
+        if (body.custom_contract_id && !body.successful && !body.success) {
+            successful.push({
+                contract_code: body.custom_contract_id,
+                erp_contract_code: body.ERP_contract_id || '',
+                contract_id: body.contract_id || ''
+            });
+        }
+
+        if (successful.length === 0 && failed.length === 0) return;
+
+        // Collapse the raw JSON — show as expandable
+        const existingPre = this.elements.responseDisplay.querySelector('pre');
+        if (existingPre) {
+            const preParent = existingPre.parentElement;
+            const toggle = document.createElement('div');
+            toggle.style.cssText = 'cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 0;color:#64748b;font-size:12px;font-weight:500;margin-top:12px;';
+            toggle.innerHTML = `<svg id="raw-json-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="transition:transform 0.2s;transform:rotate(-90deg);"><polyline points="6 9 12 15 18 9"></polyline></svg> Raw JSON Response`;
+            existingPre.style.display = 'none';
+            toggle.addEventListener('click', () => {
+                const hidden = existingPre.style.display === 'none';
+                existingPre.style.display = hidden ? '' : 'none';
+                toggle.querySelector('svg').style.transform = hidden ? 'rotate(0deg)' : 'rotate(-90deg)';
+            });
+            preParent.insertBefore(toggle, existingPre);
+        }
+
+        // Build template_name → template_id map from already-loaded templates (no API calls needed)
+        const templateNameToId = {};
+        (this.templateManager?.templates || []).forEach(t => {
+            const name = t.name || t.template_name;
+            if (name && t.template_id) templateNameToId[name] = t.template_id;
+        });
+
+        // Build per-card template_id map: read which template each bulk card selected
+        // cardIndex → template_id, then match to contract by index
+        const cardTemplateIds = [];
+        const container = document.getElementById('bulk-contracts-container');
+        if (container) {
+            container.querySelectorAll('.bulk-contract-card').forEach(card => {
+                const idx = card.dataset.contractIndex;
+                const select = card.querySelector(`[name="bc_${idx}_template_name"]`);
+                const selectedName = select?.value || '';
+                cardTemplateIds.push(templateNameToId[selectedName] || '');
+            });
+        }
+
+        // For single mode, use the single template selector
+        if (cardTemplateIds.length === 0) {
+            const singleSelect = document.getElementById('template_name_select');
+            if (singleSelect) {
+                const selectedName = singleSelect.options[singleSelect.selectedIndex]?.dataset?.name || singleSelect.value;
+                const tplId = templateNameToId[selectedName] || singleSelect.value;
+                cardTemplateIds.push(tplId);
+            }
+        }
+
+        const tableWrapper = document.createElement('div');
+        tableWrapper.style.cssText = 'margin-top:16px;';
+
+        // Summary bar
+        const successCount = body.successful_count || body.success_count || successful.length;
+        const failCount = body.failed_count || body.failure_count || failed.length;
+        const totalCount = body.total || successCount + failCount;
+        const summaryColor = failCount === 0 ? '#166534' : successCount === 0 ? '#991b1b' : '#854d0e';
+        const summaryBg = failCount === 0 ? '#f0fdf4' : successCount === 0 ? '#fef2f2' : '#fffbeb';
+        let html = `<div style="padding:10px 16px;background:${summaryBg};border-radius:6px 6px 0 0;border:1px solid #e2e8f0;border-bottom:none;color:${summaryColor};font-size:13px;font-weight:600;">
+            ${successCount} succeeded, ${failCount} failed out of ${totalCount}
+        </div>`;
+
+        // Table
+        html += `<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:0 0 6px 6px;max-height:500px;overflow-y:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead>
+                    <tr style="background:#f8fafc;position:sticky;top:0;">
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0;color:#475569;">#</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0;color:#475569;">Status</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0;color:#475569;">Contract Code</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0;color:#475569;">ERP Code</th>
+                        <th style="padding:8px 12px;text-align:left;border-bottom:1px solid #e2e8f0;color:#475569;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        let rowIdx = 1;
+
+        // Successful rows
+        successful.forEach((c, i) => {
+            const code = c.contract_code || c.custom_contract_id || '';
+            const erpCode = c.erp_contract_code || c.ERP_contract_id || '';
+            const contractId = c.contract_id || '';
+            // template_id: from response, or from the card's template selector (by index), or fallback to first
+            const templateId = c.template_id || cardTemplateIds[c.index ?? i] || cardTemplateIds[0] || '';
+
+            let linkHtml = '—';
+            if (contractId && templateId) {
+                const url = `${deployBase}buyer/CLM/template/${templateId}/contract/${contractId}`;
+                linkHtml = `<a href="${url}" target="_blank" style="color:#3b82f6;text-decoration:none;font-weight:500;">View on Factwise</a>`;
+            }
+
+            html += `<tr style="border-bottom:1px solid #f1f5f9;">
+                <td style="padding:8px 12px;">${c.index !== undefined ? c.index + 1 : rowIdx}</td>
+                <td style="padding:8px 12px;"><span style="color:#16a34a;font-weight:600;">✓ Success</span></td>
+                <td style="padding:8px 12px;font-weight:500;">${this._escapeHtml(code)}</td>
+                <td style="padding:8px 12px;">${this._escapeHtml(erpCode)}</td>
+                <td style="padding:8px 12px;">${linkHtml}</td>
+            </tr>`;
+            rowIdx++;
+        });
+
+        // Failed rows
+        failed.forEach(c => {
+            const erpCode = c.erp_contract_code || c.ERP_contract_id || '';
+            const error = c.error || c.message || 'Unknown error';
+            html += `<tr style="border-bottom:1px solid #f1f5f9;background:#fefce8;">
+                <td style="padding:8px 12px;">${c.index !== undefined ? c.index + 1 : rowIdx}</td>
+                <td style="padding:8px 12px;"><span style="color:#dc2626;font-weight:600;">✗ Failed</span></td>
+                <td style="padding:8px 12px;">—</td>
+                <td style="padding:8px 12px;">${this._escapeHtml(erpCode)}</td>
+                <td style="padding:8px 12px;color:#991b1b;font-size:11px;">${this._escapeHtml(error)}</td>
+            </tr>`;
+            rowIdx++;
+        });
+
+        html += `</tbody></table></div>`;
+        tableWrapper.innerHTML = html;
+        this.elements.responseDisplay.appendChild(tableWrapper);
     }
 
     // Walk a DRF validation error object and collect { path, msg } pairs

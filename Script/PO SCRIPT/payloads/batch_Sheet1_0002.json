@@ -1,0 +1,1631 @@
+{
+  "purchase_orders": [
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0810",
+        "seller_address_id": null,
+        "seller_full_address": "Tai Seng Exchange (TowerA)1 Tai Seng Avenue, #07-11112 & 13 ,SINGAPORE,Singapore,Singapore - 536464",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066717",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "CIF",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100010917",
+          "factwise_item_code": "1100010917_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.1077,
+          "quantity": 11000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 11000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0656",
+        "seller_address_id": null,
+        "seller_full_address": "Room 504, Block B,Yuyangzhiye Building, No 43, Anwaixiaoguan North Lane, Chaoyang,CHINA,Beijing,China - 100029",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066718",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FCA",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100029071",
+          "factwise_item_code": "1100029071_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.2355,
+          "quantity": 285.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 285.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100029071",
+          "factwise_item_code": "1100029071_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.2355,
+          "quantity": 308.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 308.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100029071",
+          "factwise_item_code": "1100029071_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.2355,
+          "quantity": 309.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 309.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0656",
+        "seller_address_id": null,
+        "seller_full_address": "Room 504, Block B,Yuyangzhiye Building, No 43, Anwaixiaoguan North Lane, Chaoyang,CHINA,Beijing,China - 100029",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066719",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FCA",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1110053471",
+          "factwise_item_code": "1110053471_YL2214/V/E/2/P2/20-C",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.01585,
+          "quantity": 15000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 15000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0796",
+        "seller_address_id": null,
+        "seller_full_address": "151 Lorong Chuan, #0603,NewTech park ,SINGAPORE,,Singapore - 556741",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066721",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FOB",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100022424",
+          "factwise_item_code": "1100022424_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 7051.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7051.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110032598",
+          "factwise_item_code": "1110032598_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 30000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 30000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022522",
+          "factwise_item_code": "1100022522_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 1060.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1060.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022253",
+          "factwise_item_code": "1100022253_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 4150.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4150.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022028",
+          "factwise_item_code": "1100022028_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 3667.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 3667.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010691",
+          "factwise_item_code": "1100010691_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00366,
+          "quantity": 1928.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1928.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110031561",
+          "factwise_item_code": "1110031561_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00569,
+          "quantity": 1420.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1420.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022424",
+          "factwise_item_code": "1100022424_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 7051.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7051.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110032598",
+          "factwise_item_code": "1110032598_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 30000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 30000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022522",
+          "factwise_item_code": "1100022522_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 1060.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1060.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022253",
+          "factwise_item_code": "1100022253_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 4150.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4150.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022028",
+          "factwise_item_code": "1100022028_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 3667.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 3667.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010691",
+          "factwise_item_code": "1100010691_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00366,
+          "quantity": 1928.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1928.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110031561",
+          "factwise_item_code": "1110031561_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00569,
+          "quantity": 1420.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1420.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022424",
+          "factwise_item_code": "1100022424_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 7051.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7051.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110032598",
+          "factwise_item_code": "1110032598_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 30000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 30000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022522",
+          "factwise_item_code": "1100022522_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 1060.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1060.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022253",
+          "factwise_item_code": "1100022253_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 4150.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4150.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022028",
+          "factwise_item_code": "1100022028_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 3667.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 3667.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010691",
+          "factwise_item_code": "1100010691_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00366,
+          "quantity": 1928.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1928.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110031561",
+          "factwise_item_code": "1110031561_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00569,
+          "quantity": 1420.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1420.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022424",
+          "factwise_item_code": "1100022424_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 7051.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7051.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110032598",
+          "factwise_item_code": "1110032598_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 30000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 30000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022522",
+          "factwise_item_code": "1100022522_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 1060.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1060.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022253",
+          "factwise_item_code": "1100022253_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 4150.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4150.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022028",
+          "factwise_item_code": "1100022028_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00098,
+          "quantity": 3667.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 3667.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010691",
+          "factwise_item_code": "1100010691_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00366,
+          "quantity": 1928.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1928.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110031561",
+          "factwise_item_code": "1110031561_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00569,
+          "quantity": 1420.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1420.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022424",
+          "factwise_item_code": "1100022424_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 7051.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7051.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1110032598",
+          "factwise_item_code": "1110032598_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 30000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 30000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100022522",
+          "factwise_item_code": "1100022522_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.00159,
+          "quantity": 1060.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1060.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0810",
+        "seller_address_id": null,
+        "seller_full_address": "Tai Seng Exchange (TowerA)1 Tai Seng Avenue, #07-11112 & 13 ,SINGAPORE,Singapore,Singapore - 536464",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066722",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "CIF",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100027204",
+          "factwise_item_code": "1100027204_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0296,
+          "quantity": 80000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 80000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0794",
+        "seller_address_id": null,
+        "seller_full_address": "Lyskaer 9,Herlev ,HERLEV,,Denmark - 2730",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066723",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "DAP",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100021411",
+          "factwise_item_code": "1100021411_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.036185,
+          "quantity": 7000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100021411",
+          "factwise_item_code": "1100021411_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.036185,
+          "quantity": 7000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100021411",
+          "factwise_item_code": "1100021411_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.036185,
+          "quantity": 7000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100021411",
+          "factwise_item_code": "1100021411_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.036185,
+          "quantity": 7000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100021411",
+          "factwise_item_code": "1100021411_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.036185,
+          "quantity": 7000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100021411",
+          "factwise_item_code": "1100021411_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.036185,
+          "quantity": 7000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 7000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    }
+  ]
+}

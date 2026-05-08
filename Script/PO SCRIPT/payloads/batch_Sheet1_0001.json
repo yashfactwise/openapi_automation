@@ -1,0 +1,1176 @@
+{
+  "purchase_orders": [
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0229",
+        "seller_address_id": null,
+        "seller_full_address": "No. 99 XinYuan Road,Haicang, Xiamen,CHINA,,China - 361028",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066696",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FOB",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 1590.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1590.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 1536.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1536.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 4320.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4320.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 1116.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1116.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 5625.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 5625.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 4281.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4281.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 237.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 237.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100010416",
+          "factwise_item_code": "1100010416_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.138,
+          "quantity": 4953.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4953.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0777",
+        "seller_address_id": null,
+        "seller_full_address": "No. 2road,Dongjiang Industrial Area,Hunan ,LEIYANG,,China - 421899",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066700",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "EXW",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100005043",
+          "factwise_item_code": "1100005043_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 8.23,
+          "quantity": 2000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 2000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0777",
+        "seller_address_id": null,
+        "seller_full_address": "No. 2road,Dongjiang Industrial Area,Hunan ,LEIYANG,,China - 421899",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066702",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "EXW",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100005044",
+          "factwise_item_code": "1100005044_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 9.24,
+          "quantity": 1000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0396",
+        "seller_address_id": null,
+        "seller_full_address": "No.\u00a01588,\u00a0Songjia\u00a0Road,\u00a0Guoxiang Street,Wuzhong District, Jiangsu Prov.,SUZHOU\u00a0CITY,,China - 215124",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066706",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "EXW",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100015455",
+          "factwise_item_code": "1100015455_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.21,
+          "quantity": 25000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 25000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0068",
+        "seller_address_id": null,
+        "seller_full_address": "East Taohualun Road,Heshan Area,Yiyang ,HUNAN,,China - 413000",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066709",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FOB",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100014299",
+          "factwise_item_code": "1100014299_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.799,
+          "quantity": 1000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 1000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0656",
+        "seller_address_id": null,
+        "seller_full_address": "Room 504, Block B,Yuyangzhiye Building, No 43, Anwaixiaoguan North Lane, Chaoyang,CHINA,Beijing,China - 100029",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066711",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FCA",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100016933",
+          "factwise_item_code": "1100016933_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0645,
+          "quantity": 8397.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 8397.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100016933",
+          "factwise_item_code": "1100016933_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0645,
+          "quantity": 8397.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 8397.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100016933",
+          "factwise_item_code": "1100016933_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0645,
+          "quantity": 8397.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 8397.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100016933",
+          "factwise_item_code": "1100016933_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0645,
+          "quantity": 8397.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 8397.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100016933",
+          "factwise_item_code": "1100016933_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0645,
+          "quantity": 8397.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 8397.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        },
+        {
+          "ERP_item_code": "1100016933",
+          "factwise_item_code": "1100016933_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0645,
+          "quantity": 12945.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 12945.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0068",
+        "seller_address_id": null,
+        "seller_full_address": "East Taohualun Road,Heshan Area,Yiyang ,HUNAN,,China - 413000",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066713",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FOB",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100014288",
+          "factwise_item_code": "1100014288_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.45,
+          "quantity": 10000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 10000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0027",
+        "seller_address_id": null,
+        "seller_full_address": "NO.1585 XIAOLIN AVENUECixi, Ningbo ,ZHEJIANG,Zhejiang,China - 315321",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066714",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "FOB",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1110050603",
+          "factwise_item_code": "1110050603_2EDGRC-5.08-03P-11-132AH",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.082,
+          "quantity": 40000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 40000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0810",
+        "seller_address_id": null,
+        "seller_full_address": "Tai Seng Exchange (TowerA)1 Tai Seng Avenue, #07-11112 & 13 ,SINGAPORE,Singapore,Singapore - 536464",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066715",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "CIF",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100027151",
+          "factwise_item_code": "1100027151_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 0.0792,
+          "quantity": 30000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 30000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    },
+    {
+      "buyer_details": {
+        "entity_name": "Syrma SGS Technology Limited",
+        "billing_address_id": "CHENNAI UNIT 4",
+        "shipping_address_id": "CHENNAI UNIT 4",
+        "identifications": [
+          "GST Number Chennai"
+        ],
+        "contacts": [
+          "sap.helpdesk@syrmasgs.com"
+        ]
+      },
+      "seller_details": {
+        "ERP_vendor_code": null,
+        "factwise_vendor_code": "V0764",
+        "seller_address_id": null,
+        "seller_full_address": "#972, Gangshan RdXiuzhou district Zhejiang Province,JIAXING,,China - 314000",
+        "identifications": [],
+        "contacts": []
+      },
+      "purchase_order_details": {
+        "created_by_user_email": "sap.helpdesk@syrmasgs.com",
+        "ERP_po_id": "4500066716",
+        "status": "ISSUED",
+        "template_name": "Syrma SGS PO Template",
+        "issued_date": "2026-03-31",
+        "accepted_date": "2026-03-31",
+        "currency_code": "7bcfbe2e-51c6-45fd-89a8-ebf815f38d0e",
+        "notes": "",
+        "event": null,
+        "terms_and_conditions": {
+          "name": "\"\"",
+          "data": "\"\""
+        },
+        "incoterm": "EXW",
+        "prepayment_percentage": 0,
+        "payment_type": null,
+        "payment_terms": null,
+        "lead_time": null,
+        "lead_time_period": null,
+        "additional_costs": [],
+        "taxes": [],
+        "discounts": [],
+        "custom_sections": []
+      },
+      "purchase_order_items": [
+        {
+          "ERP_item_code": "1100030229",
+          "factwise_item_code": "1100030229_PO",
+          "item_additional_details": "",
+          "internal_notes": "",
+          "external_notes": "",
+          "price": 2.5569,
+          "quantity": 4000.0,
+          "measurement_unit": "09942e0f-c85a-4afb-a028-339413e5149c",
+          "incoterm": "NA",
+          "prepayment_percentage": 0,
+          "lead_time": null,
+          "lead_time_period": null,
+          "payment_type": "PER_INVOICE_ITEM",
+          "payment_terms": null,
+          "deliverables_payment_terms": [],
+          "delivery_schedules": [
+            {
+              "delivery_date": null,
+              "quantity": 4000.0,
+              "cost_centre_id": null,
+              "general_ledger_id": null,
+              "project_id": null
+            }
+          ],
+          "additional_costs": [],
+          "taxes": [],
+          "discounts": [],
+          "custom_sections": [],
+          "attachments": []
+        }
+      ],
+      "attachments": []
+    }
+  ]
+}
